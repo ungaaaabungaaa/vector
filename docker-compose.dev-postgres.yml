@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:17
-    container_name: dev-postgres
+    container_name: dev-postgres-aikp
     environment:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: devpass

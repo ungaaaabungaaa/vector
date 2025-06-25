@@ -96,6 +96,48 @@ pnpm dlx --yes docker compose -f docker-compose.dev-postgres.yml up -d
 7. **Commit granularity**
    • Group logically related edits; keep diffs minimal.
 
+8. **Type inference over hard-coding**  
+   • Derive service-layer types directly from Drizzle tables using `InferInsertModel` / `InferSelectModel` (or `typeof ....$inferSelect` when available) instead of manually duplicating fields.  
+   • This guarantees that schema changes cause compile-time errors instead of silently drifting.  
+   • Example:
+
+   ```ts
+   type ProjectInsert = InferInsertModel<typeof project>;
+
+   // Good → stays in sync automatically
+   export type CreateProjectParams = Omit<
+     ProjectInsert,
+     "id" | "createdAt" | "updatedAt"
+   >;
+   ```
+
+   Avoid crafting hand-written interfaces like `interface CreateProjectParams { name: string; ... }` when the information can be inferred.
+
+9. **Justify any `any`**  
+   • The `any` type is a last resort. If you really need it, add an inline comment explaining _why_ and, ideally, a TODO to remove it later.  
+   • PRs without a justification comment next to `any` will be rejected during review.
+
+10. **Router file naming & imports**  
+    • All tRPC router source files must end with `*.router.ts` for automatic code-gen & DX tooling. Example: `project.router.ts`.  
+    • Update import paths accordingly (`import { projectRouter } from "./project.router";`).  
+    • Avoid `await import("./module")` inside routers—use static ES imports so types are checked and bundlers can tree-shake.
+
+11. **Dynamic route params**  
+    • In **App Router** server components, `params` is an **async Dynamic API**. Always `await params` before accessing its properties:
+
+    ```ts
+    const { projectId } = await params; // ✅ correct
+    ```
+
+    • Destructuring synchronously (`const { projectId } = params`) will throw at runtime.
+
+12. **Date & Time handling**  
+    • All timestamps are stored in **UTC** in the database.  
+    • Use **date-fns** (and [`date-fns-tz`](https://github.com/date-fns/date-fns-tz) if you need conversions) for ALL parsing/formatting—never rely on the built-in `Date` utilities alone.  
+    • A shared helper lives in `src/lib/date.ts` (`formatDateForDb`, `toDate`, `DATE_PATTERN`). Import from there instead of rolling your own.  
+    • Client code should detect the viewer's IANA timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone` (or a persisted user/org preference) and format dates with date-fns accordingly.  
+    • Never store timezone-specific values in the DB—store UTC, convert at the edges.
+
 ---
 
 ## 6. Folder Snapshot (trimmed)
@@ -147,7 +189,7 @@ We use [shadcn/ui](https://ui.shadcn.com) for nicely-styled, Radix-powered compo
 
 ```bash
 # Adds the CLI temporarily and runs it
-pnpm dlx --yes shadcn-ui@latest init
+pnpm dlx shadcn@latest init --yes
 ```
 
 Follow the prompts:
@@ -167,7 +209,7 @@ This step generates:
 
 ```bash
 # e.g. add AlertDialog & Tabs components
-pnpm dlx --yes shadcn-ui@latest add alert-dialog tabs
+pnpm dlx shadcn@latest add alert-dialog tabs --yes
 ```
 
 The CLI reads `components.json` to know where to put files—so commit that file whenever it changes.
@@ -175,7 +217,7 @@ The CLI reads `components.json` to know where to put files—so commit that file
 ### 8.3 Rules for AI
 
 1. **Do not** run `init` again if `components.json` already exists.
-2. Always use `pnpm dlx --yes shadcn-ui@latest <command>` so the CLI isn't installed permanently.
+2. Always use `pnpm dlx shadcn@latest <command> --yes` so the CLI isn't installed permanently and auto-confirms prompts.
 3. After adding components, ensure Tailwind classes compile (`pnpm dev`).
 4. Keep component paths under `src/components` and import via `@/components/*`.
 
@@ -198,83 +240,4 @@ The CLI reads `components.json` to know where to put files—so commit that file
 > **Component Composition:**
 >
 > - **Card elevation**: `shadow-xl` with `backdrop-blur-sm` for depth
-> - **Background treatments**: `bg-white/80 dark:bg-slate-900/80` for glass morphism
-> - **Icon integration**: Consistent `h-5 w-5` sizing, proper spacing with `space-x-2`
-> - **Form controls**: `h-11` inputs for better touch targets, `text-base font-medium` buttons
->
-> **Brand Identity:**
->
-> - **Logo treatment**: Bot icon in rounded container with backdrop blur
-> - **Color palette**: Emerald, blue, purple accents for feature highlights
-> - **Gradient usage**: Multi-stop gradients (`from-via-to`) for visual interest
-> - **Background patterns**: Subtle grid overlay with `opacity-50`
->
-> **Accessibility Standards:**
->
-> - **Semantic markup**: Proper form labels with `htmlFor` associations
-> - **ARIA support**: Alert roles, descriptive text for screen readers
-> - **Keyboard navigation**: Focus rings with `focus-visible:` states
-> - **Color contrast**: High contrast text on background colors
->
-> **Modern UX Patterns:**
->
-> - **Progressive disclosure**: Mobile logo hidden on desktop, desktop branding hidden on mobile
-> - **Loading states**: Disabled inputs and descriptive button text during async operations
-> - **Error handling**: Prominent alert component with iconography
-> - **Micro-interactions**: Smooth transitions and hover effects
->
-> This serves as the template for ALL user-facing interfaces. When building new pages:
->
-> 1. **Reuse these exact spacing values** (`space-y-8`, `space-y-6`, `space-y-5`)
-> 2. **Follow this color hierarchy** (primary, secondary, muted text treatment)
-> 3. **Match these component sizes** (`h-11` inputs, proper button heights)
-> 4. **Implement similar responsive patterns** (mobile-first with `lg:` breakpoints)
-> 5. **Use consistent backdrop/glass effects** for elevated surfaces
-
----
-
-## 9. Better Auth — Authentication Layer
-
-AIKP uses [Better Auth](https://www.npmjs.com/package/better-auth) for authentication.
-
-### 9.1 Quick start
-
-```ts
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/db";
-
-export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "pg" }),
-});
-```
-
-This pattern lives in `src/auth/auth.ts`. 99 % of the time you just
-`import { auth } from "@/auth/auth"` and call the helper methods (e.g.
-`auth.signIn()`, `auth.getSession()`).
-
-### 9.2 Env vars
-
-• `BETTER_AUTH_SECRET` — cryptographic secret for session tokens
-• `BETTER_AUTH_URL` — public origin (e.g. `http://localhost:3000` in dev)
-
-Make sure both are validated in `src/env.ts` and present in `.env.local`.
-
-### 9.3 When making changes
-
-1. **Follow the pattern above**; reuse the `auth` singleton instead of
-   re-creating a new Better Auth instance.
-2. **Adapters**: We use the official `drizzleAdapter` with our typed Drizzle
-   client. If you need to tweak adapter behaviour, do it in a dedicated
-   helper and import it.
-3. **Ask, don't invent**: If you're unsure about Better Auth APIs or need a
-   feature that isn't obviously documented, **pause and ask the maintainer**
-   to supply the relevant docs or code snippets. Do _not_ conjure up
-   imaginary API calls.
-
-> **Rule for AI**: When uncertain about Better Auth implementation details,
-> request clarification/documentation from the user instead of guessing.
-
----
-
-Happy hacking! 🎉
+> - **Background treatments**: `

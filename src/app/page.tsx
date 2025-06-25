@@ -1,103 +1,65 @@
-import Image from "next/image";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { auth } from "@/auth/auth";
+import { UserService } from "@/entities/users/user.service";
 
-export default function Home() {
-  return (
-    <div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 font-[family-name:var(--font-geist-sans)] sm:p-20">
-      <main className="row-start-2 flex flex-col items-center gap-[32px] sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-center font-[family-name:var(--font-geist-mono)] text-sm/6 sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="rounded bg-black/[.05] px-1 py-0.5 font-[family-name:var(--font-geist-mono)] font-semibold dark:bg-white/[.06]">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+// --- Post-login redirect logic -----------------------------------------------------------
+export default async function Home() {
+  console.log("[HomePage] Starting redirect logic");
 
-        <div className="flex flex-col items-center gap-4 sm:flex-row">
-          <a
-            className="bg-foreground text-background flex h-10 items-center justify-center gap-2 rounded-full border border-solid border-transparent px-4 text-sm font-medium transition-colors hover:bg-[#383838] sm:h-12 sm:w-auto sm:px-5 sm:text-base dark:hover:bg-[#ccc]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="flex h-10 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-4 text-sm font-medium transition-colors hover:border-transparent hover:bg-[#f2f2f2] sm:h-12 sm:w-auto sm:px-5 sm:text-base md:w-[158px] dark:border-white/[.145] dark:hover:bg-[#1a1a1a]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex flex-wrap items-center justify-center gap-[24px]">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+  try {
+    // First-run check: If no users exist, redirect to admin setup
+    const hasUsers = await UserService.hasAnyUsers();
+    if (!hasUsers) {
+      console.log("[HomePage] No users found, redirecting to setup-admin");
+      redirect("/setup-admin");
+    }
+
+    // Check if user is authenticated by using server-side auth
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      // User is not authenticated, redirect to login
+      console.log("[HomePage] No session found, redirecting to login");
+      redirect("/auth/login");
+    }
+
+    console.log("[HomePage] User authenticated:", session.user.id);
+
+    // User is authenticated, determine their active organization
+    const activeOrgSlug = await UserService.getUserActiveOrganization(
+      session.user.id,
+      session.session.activeOrganizationId,
+    );
+
+    console.log("[HomePage] Active org slug:", activeOrgSlug);
+
+    if (activeOrgSlug) {
+      // Redirect to organization dashboard
+      console.log(
+        "[HomePage] Redirecting to org dashboard:",
+        `/${activeOrgSlug}/dashboard`,
+      );
+      redirect(`/${activeOrgSlug}/dashboard`);
+    } else {
+      // User has no organization memberships, redirect to create organization
+      console.log("[HomePage] No org found, redirecting to org-setup");
+      redirect("/org-setup");
+    }
+  } catch (error) {
+    // Allow the NEXT_REDIRECT error generated by `redirect()` to propagate
+    const digest = (error as any)?.digest as string | undefined;
+    if (digest?.startsWith("NEXT_REDIRECT")) {
+      throw error;
+    }
+
+    console.error("[HomePage] Unexpected error in redirect logic:", error);
+    // Fallback: redirect to login if anything else goes wrong
+    redirect("/auth/login");
+  }
+
+  // This should never be reached, but just in case
+  return null;
 }

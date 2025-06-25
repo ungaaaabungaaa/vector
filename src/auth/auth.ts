@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { username } from "better-auth/plugins";
+import { username, admin, organization } from "better-auth/plugins";
 
 import { db } from "@/db";
 
@@ -19,8 +19,8 @@ export const auth = betterAuth({
     enabled: true,
   },
 
-  // Plugin that adds username fields + endpoints
-  plugins: [username()],
+  // Plugins: username, admin panel, and multi-organization workspaces
+  plugins: [username(), admin(), organization()],
 
   // Cache session JSON in an encrypted cookie for quick reads
   session: {

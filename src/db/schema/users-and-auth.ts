@@ -91,6 +91,10 @@ export const memberRoleEnum = pgEnum("member_role", [
   "member", // standard user
 ]);
 
+// Type derived from enum values – keeps compile-time sync with schema
+export type MemberRole = (typeof memberRoleEnum.enumValues)[number];
+export type NonOwnerMemberRole = Exclude<MemberRole, "owner">;
+
 export const member = pgTable("member", {
   id: text("id").primaryKey(),
   organizationId: text("organization_id")

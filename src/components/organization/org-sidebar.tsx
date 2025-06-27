@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
   Users,
   FolderKanban,
   Bug,
-  Settings,
   type LucideIcon,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,9 +26,9 @@ export function OrgSidebar({ orgId }: OrgSidebarProps) {
 
   const navItems: NavItem[] = [
     {
-      label: "Dashboard",
-      href: `/${orgId}/dashboard`,
-      icon: Home,
+      label: "Issues",
+      href: `/${orgId}/issues`,
+      icon: CheckSquare,
     },
     {
       label: "Teams",
@@ -41,20 +40,10 @@ export function OrgSidebar({ orgId }: OrgSidebarProps) {
       href: `/${orgId}/projects`,
       icon: FolderKanban,
     },
-    {
-      label: "Issues",
-      href: `/${orgId}/issues`,
-      icon: Bug,
-    },
-    {
-      label: "Settings",
-      href: `/${orgId}/settings`,
-      icon: Settings,
-    },
   ];
 
   return (
-    <nav className="space-y-1 p-3">
+    <nav className="space-y-1 p-2 pt-0">
       {navItems.map((item) => {
         const isActive =
           pathname === item.href || pathname.startsWith(item.href + "/");

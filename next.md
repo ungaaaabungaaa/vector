@@ -15,9 +15,9 @@ Now that the core database schema for **Teams, Projects, Issues, Comments & Acti
 
 Remaining follow-ups:
 
-1. `allowUserToCreateOrganization: true` — decide if self-serve workspaces should stay on.
+1. `allowUserToCreateOrganization: true` — decide if self-serve workspaces should stay on. **Can stay ON for now ✅**
 2. `auth-client` now includes the `organizationClient()` plugin — use `authClient.useActiveOrganization()` instead of a custom helper. **Done ✅**
-3. **Data-ownership checks** – update service layer queries to always scope by `organizationId`.
+3. **Data-ownership checks** – update service layer queries to always scope by `organizationId`. **Done ✅**
 
 ## 1. Data-Access & Business Services (`src/entities/*`)
 
@@ -32,7 +32,7 @@ Schema update: `project_member` now includes a `role` column (`default "member"`
    • CRUD operations (createTeam, updateTeam, addMember, removeMember, …)
    • Helper to generate the next `sequenceNumber` for issues (`getNextIssueSequence`)
 
-2. **Projects** – `src/entities/projects/project.service.ts`
+2. **Projects** – `src/entities/projects/project.service.ts` — **Completed ✅**
    • CRUD + member management helpers
    • **Workflow statuses** – new `project_status` table (organisation-scoped). `project.statusId` now points to these rows.
    • Business rule: a project can only reference members that belong to the owning team

@@ -3,8 +3,8 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, MoreHorizontal } from "lucide-react";
-import { OrgRoleBadge } from "@/components/role-badge";
-import { InviteDialog } from "@/components/invite-dialog";
+import { OrgRoleBadge } from "@/components/organization/role-badge";
+import { InviteDialog } from "@/components/organization/invite-dialog";
 import {
   Table,
   TableBody,

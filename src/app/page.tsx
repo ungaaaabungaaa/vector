@@ -37,12 +37,12 @@ export default async function Home() {
     console.log("[HomePage] Active org slug:", activeOrgSlug);
 
     if (activeOrgSlug) {
-      // Redirect to organization dashboard
+      // Redirect to organization's issues page
       console.log(
-        "[HomePage] Redirecting to org dashboard:",
-        `/${activeOrgSlug}/dashboard`,
+        "[HomePage] Redirecting to org issues:",
+        `/${activeOrgSlug}/issues`,
       );
-      redirect(`/${activeOrgSlug}/dashboard`);
+      redirect(`/${activeOrgSlug}/issues`);
     } else {
       // User has no organization memberships, redirect to create organization
       console.log("[HomePage] No org found, redirecting to org-setup");

@@ -7,9 +7,13 @@ import {
   team,
   invitation,
   user,
+  type MemberRole,
+  type NonOwnerMemberRole,
 } from "@/db/schema";
 import { eq, and, count, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { env } from "@/env";
+import { notify } from "@/notifications/core";
 
 export class OrganizationService {
   /**
@@ -274,7 +278,7 @@ export class OrganizationService {
   static async inviteMember(
     orgId: string,
     email: string,
-    role: "admin" | "member",
+    role: NonOwnerMemberRole,
     inviterId: string,
   ) {
     const token = randomUUID();
@@ -292,7 +296,26 @@ export class OrganizationService {
       createdAt: now,
     });
 
-    // TODO: Send email via provider
+    // Dispatch notification (email by default).
+    const inviterName =
+      (
+        await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, inviterId))
+      )[0]?.name ?? "Someone";
+
+    await notify(
+      "organization.invite",
+      {
+        inviterName,
+        inviteLink: `${env.APP_URL}/invite/${token}`,
+      },
+      {
+        email: { to: email },
+      },
+    );
+
     return { token } as const;
   }
 
@@ -352,7 +375,7 @@ export class OrganizationService {
   static async updateMemberRole(
     orgId: string,
     userId: string,
-    role: "admin" | "member",
+    role: NonOwnerMemberRole,
   ) {
     await db
       .update(member)

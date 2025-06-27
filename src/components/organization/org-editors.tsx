@@ -44,6 +44,16 @@ export function OrgNameEditor({ orgSlug, initialValue }: EditorProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="h-8 w-40"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (value.trim() !== "" && !mutation.isPending) {
+              mutation.mutate({ orgSlug, data: { name: value } });
+            }
+          } else if (e.key === "Escape") {
+            setEditing(false);
+          }
+        }}
       />
       <Button
         variant="secondary"
@@ -101,6 +111,16 @@ export function OrgSlugEditor({ orgSlug, initialValue }: EditorProps) {
         onChange={(e) => setValue(e.target.value)}
         pattern="[a-z0-9-]+"
         className="h-8 w-32 font-mono"
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (value.trim() !== "" && !mutation.isPending) {
+              mutation.mutate({ orgSlug, data: { slug: value } });
+            }
+          } else if (e.key === "Escape") {
+            setEditing(false);
+          }
+        }}
       />
       <Button
         variant="secondary"

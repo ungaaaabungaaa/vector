@@ -123,7 +123,15 @@ pnpm dlx --yes docker compose -f docker-compose.dev-postgres.yml up -d
     • Avoid `await import("./module")` inside routers—use static ES imports so types are checked and bundlers can tree-shake.
 
 11. **Dynamic route params**  
-    • In **App Router** server components, `params` is an **async Dynamic API**. Always `await params` before accessing its properties:
+    • In **App Router** server components, `params` is an **async Dynamic API** _and should therefore be typed as a Promise_. Example type signature:
+
+    ```ts
+    interface PageProps {
+      params: Promise<{ projectId: string }>;
+    }
+    ```
+
+    • Always `await params` before accessing its properties:
 
     ```ts
     const { projectId } = await params; // ✅ correct
@@ -137,6 +145,9 @@ pnpm dlx --yes docker compose -f docker-compose.dev-postgres.yml up -d
     • A shared helper lives in `src/lib/date.ts` (`formatDateForDb`, `toDate`, `DATE_PATTERN`). Import from there instead of rolling your own.  
     • Client code should detect the viewer's IANA timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone` (or a persisted user/org preference) and format dates with date-fns accordingly.  
     • Never store timezone-specific values in the DB—store UTC, convert at the edges.
+
+13. **Moving / Renaming files**  
+    • When reorganising, _move_ (`git mv` or via the built-in terminal) instead of copy-pasting + deleting. This keeps git history intact and avoids noisy diffs.
 
 ---
 

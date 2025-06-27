@@ -10,9 +10,7 @@ import type { Context } from "@/trpc/init";
 /**
  * Throws UNAUTHORIZED if the requester is not logged in.
  */
-export function assertAuthenticated(
-  ctx: Context,
-): asserts ctx is Context & {
+export function assertAuthenticated(ctx: Context): asserts ctx is Context & {
   session: { user: { id: string; role: string } };
 } {
   if (!ctx.session) throw new TRPCError({ code: "UNAUTHORIZED" });

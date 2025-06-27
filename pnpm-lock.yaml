@@ -10,6 +10,9 @@ importers:
       "@hookform/resolvers":
         specifier: ^5.1.1
         version: 5.1.1(react-hook-form@7.58.1(react@19.1.0))
+      "@radix-ui/react-dialog":
+        specifier: ^1.1.14
+        version: 1.1.14(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       "@radix-ui/react-dropdown-menu":
         specifier: ^2.1.15
         version: 2.1.15(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -58,6 +61,12 @@ importers:
       next:
         specifier: 15.3.4
         version: 15.3.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      nextjs-toploader:
+        specifier: ^3.8.16
+        version: 3.8.16(next@15.3.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      nodemailer:
+        specifier: ^7.0.3
+        version: 7.0.3
       pg:
         specifier: ^8.11.2
         version: 8.16.2
@@ -86,6 +95,9 @@ importers:
       "@types/node":
         specifier: ^20
         version: 20.19.1
+      "@types/nodemailer":
+        specifier: ^6.4.17
+        version: 6.4.17
       "@types/pg":
         specifier: ^8.6.7
         version: 8.15.4
@@ -1439,6 +1451,22 @@ packages:
       "@types/react":
         optional: true
 
+  "@radix-ui/react-dialog@1.1.14":
+    resolution:
+      {
+        integrity: sha512-+CpweKjqpzTmwRwcYECQcNYbI8V9VSQt0SNFKeEBLgfucbsLssU6Ppq7wUdNXEGb573bMjFhVjKVll8rmV6zMw==,
+      }
+    peerDependencies:
+      "@types/react": "*"
+      "@types/react-dom": "*"
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
+      "@types/react-dom":
+        optional: true
+
   "@radix-ui/react-direction@1.1.1":
     resolution:
       {
@@ -2001,6 +2029,12 @@ packages:
     resolution:
       {
         integrity: sha512-jJD50LtlD2dodAEO653i3YF04NWak6jN3ky+Ri3Em3mGR39/glWiboM/IePaRbgwSfqM1TpGXfAg8ohn/4dTgA==,
+      }
+
+  "@types/nodemailer@6.4.17":
+    resolution:
+      {
+        integrity: sha512-I9CCaIp6DTldEg7vyUTZi8+9Vo0hi1/T8gv3C89yk1rSAAzoKQ8H8ki/jBYJSFoH/BisgLP8tkZMlQ91CIquww==,
       }
 
   "@types/pg@8.15.4":
@@ -4126,6 +4160,29 @@ packages:
       sass:
         optional: true
 
+  nextjs-toploader@3.8.16:
+    resolution:
+      {
+        integrity: sha512-xiejFF9OQD8ovvHfrFhnEmRytvZtwIOY/mMtI9punOAACXpYpgC0y1afJ4DSIEmUi4Syy9A5BsFpUORTJ9z8Ng==,
+      }
+    peerDependencies:
+      next: ">= 6.0.0"
+      react: ">= 16.0.0"
+      react-dom: ">= 16.0.0"
+
+  nodemailer@7.0.3:
+    resolution:
+      {
+        integrity: sha512-Ajq6Sz1x7cIK3pN6KesGTah+1gnwMnx5gKl3piQlQQE/PwyJ4Mbc8is2psWYxK3RJTVeqsDaCv8ZzXLCDHMTZw==,
+      }
+    engines: { node: ">=6.0.0" }
+
+  nprogress@0.2.0:
+    resolution:
+      {
+        integrity: sha512-I19aIingLgR1fmhftnbWWO3dXc0hSxqHQHQb3H8m+K3TnEn/iSeTZZOyvKXWqQESMwuUVnatlCnZdLBZZt2VSA==,
+      }
+
   object-assign@4.1.1:
     resolution:
       {
@@ -5732,6 +5789,28 @@ snapshots:
     optionalDependencies:
       "@types/react": 19.1.8
 
+  "@radix-ui/react-dialog@1.1.14(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
+    dependencies:
+      "@radix-ui/primitive": 1.1.2
+      "@radix-ui/react-compose-refs": 1.1.2(@types/react@19.1.8)(react@19.1.0)
+      "@radix-ui/react-context": 1.1.2(@types/react@19.1.8)(react@19.1.0)
+      "@radix-ui/react-dismissable-layer": 1.1.10(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@radix-ui/react-focus-guards": 1.1.2(@types/react@19.1.8)(react@19.1.0)
+      "@radix-ui/react-focus-scope": 1.1.7(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@radix-ui/react-id": 1.1.1(@types/react@19.1.8)(react@19.1.0)
+      "@radix-ui/react-portal": 1.1.9(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@radix-ui/react-presence": 1.1.4(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@radix-ui/react-primitive": 2.1.3(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      "@radix-ui/react-slot": 1.2.3(@types/react@19.1.8)(react@19.1.0)
+      "@radix-ui/react-use-controllable-state": 1.2.2(@types/react@19.1.8)(react@19.1.0)
+      aria-hidden: 1.2.6
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      react-remove-scroll: 2.7.1(@types/react@19.1.8)(react@19.1.0)
+    optionalDependencies:
+      "@types/react": 19.1.8
+      "@types/react-dom": 19.1.6(@types/react@19.1.8)
+
   "@radix-ui/react-direction@1.1.1(@types/react@19.1.8)(react@19.1.0)":
     dependencies:
       react: 19.1.0
@@ -6090,6 +6169,10 @@ snapshots:
   "@types/node@20.19.1":
     dependencies:
       undici-types: 6.21.0
+
+  "@types/nodemailer@6.4.17":
+    dependencies:
+      "@types/node": 20.19.1
 
   "@types/pg@8.15.4":
     dependencies:
@@ -7561,6 +7644,18 @@ snapshots:
     transitivePeerDependencies:
       - "@babel/core"
       - babel-plugin-macros
+
+  nextjs-toploader@3.8.16(next@15.3.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    dependencies:
+      next: 15.3.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      nprogress: 0.2.0
+      prop-types: 15.8.1
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  nodemailer@7.0.3: {}
+
+  nprogress@0.2.0: {}
 
   object-assign@4.1.1: {}
 

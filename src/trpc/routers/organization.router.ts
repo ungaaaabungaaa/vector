@@ -2,8 +2,17 @@ import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { z } from "zod";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { assertAuthenticated } from "@/trpc/permissions";
+import { memberRoleEnum } from "@/db/schema/users-and-auth";
+import { NonOwnerMemberRole } from "@/db/schema/users-and-auth";
 
-const roleEnum = z.enum(["admin", "member"]);
+// Derive type-safe Zod enum based on DB enum values (excluding "owner" for invite/update)
+const roleEnum = ((): ReturnType<typeof import("zod").z.enum> => {
+  const values = memberRoleEnum.enumValues.filter((v) => v !== "owner") as [
+    (typeof memberRoleEnum.enumValues)[number],
+    ...string[],
+  ];
+  return z.enum(values);
+})();
 
 export const organizationRouter = createTRPCRouter({
   update: protectedProcedure
@@ -77,7 +86,7 @@ export const organizationRouter = createTRPCRouter({
       return OrganizationService.inviteMember(
         membership.organizationId,
         input.email,
-        input.role,
+        input.role as NonOwnerMemberRole,
         ctx.session!.user.id,
       );
     }),
@@ -116,7 +125,7 @@ export const organizationRouter = createTRPCRouter({
       return OrganizationService.updateMemberRole(
         membership.organizationId,
         input.userId,
-        input.role,
+        input.role as NonOwnerMemberRole,
       );
     }),
 });

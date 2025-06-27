@@ -65,8 +65,8 @@ export function OrgSetupForm() {
       });
 
       if (result.data?.slug) {
-        // Redirect to the new organization's dashboard using slug
-        router.push(`/${result.data.slug}/dashboard`);
+        // Redirect to the new organization's issues page using slug
+        router.push(`/${result.data.slug}/issues`);
       } else {
         throw new Error("Failed to create organization");
       }

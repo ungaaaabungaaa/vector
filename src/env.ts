@@ -9,7 +9,13 @@ const envSchema = z.object({
     .default("development"),
   DATABASE_URL: z.string().url(),
   BETTER_AUTH_SECRET: z.string(),
-  BETTER_AUTH_URL: z.string().url(),
+  APP_URL: z.string().url(),
+  BETTER_AUTH_URL: z.string().url().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().optional(),
 });
 
 // Load environment variables from .env files **before** validation.
@@ -46,4 +52,7 @@ if (!_env.success) {
   throw new Error("Invalid environment variables. See logs above.");
 }
 
-export const env = _env.data;
+export const env = {
+  ..._env.data,
+  BETTER_AUTH_URL: _env.data.BETTER_AUTH_URL ?? _env.data.APP_URL,
+};

@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth/auth";
-import { OrgSetupForm } from "@/components/org-setup-form";
+import { OrgSetupForm } from "@/components/organization";
 
 export default async function OrgSetupPage() {
   // Verify user is authenticated

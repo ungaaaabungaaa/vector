@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Check, ChevronsUpDown, Plus, Settings, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,23 +20,27 @@ interface Organization {
   slug: string;
 }
 
-interface OrgSwitcherProps {
+interface OrgOptionsDropdownProps {
   currentOrgId: string;
   currentOrgName: string;
   organizations?: Organization[];
 }
 
-export function OrgSwitcher({
+export function OrgOptionsDropdown({
   currentOrgId,
   currentOrgName,
   organizations = [],
-}: OrgSwitcherProps) {
+}: OrgOptionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Check if we're currently in settings
+  const isInSettings = pathname.includes("/settings");
 
   const handleOrgSwitch = (orgId: string) => {
     if (orgId !== currentOrgId) {
-      // Redirect to the selected organization's dashboard
-      window.location.href = `/${orgId}/dashboard`;
+      // Redirect to the selected organization's issues page
+      window.location.href = `/${orgId}/issues`;
     }
     setIsOpen(false);
   };
@@ -44,11 +49,21 @@ export function OrgSwitcher({
     window.location.href = "/org-setup";
   };
 
+  const handleSettingsClick = () => {
+    window.location.href = `/${currentOrgId}/settings`;
+    setIsOpen(false);
+  };
+
+  const handleDashboardClick = () => {
+    window.location.href = `/${currentOrgId}/issues`;
+    setIsOpen(false);
+  };
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="hover:bg-accent/50 group flex w-full items-center justify-between rounded-md p-1 text-left transition-colors"
+          className="hover:bg-accent/50 group flex w-full items-center justify-between rounded-md border p-1 text-left transition-colors"
           aria-expanded={isOpen}
         >
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -63,11 +78,36 @@ export function OrgSwitcher({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-48" align="start" sideOffset={4}>
+      <DropdownMenuContent className="w-56" align="start" sideOffset={4}>
+        {/* Current Organization Actions */}
         <DropdownMenuLabel className="text-muted-foreground px-2 py-1 text-xs font-medium">
-          Organizations
+          {currentOrgName}
         </DropdownMenuLabel>
+
+        {isInSettings ? (
+          <DropdownMenuItem
+            className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
+            onSelect={handleDashboardClick}
+          >
+            <ArrowLeft className="size-4" />
+            <span className="text-sm">Back to {currentOrgName}</span>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
+            onSelect={handleSettingsClick}
+          >
+            <Settings className="size-4" />
+            <span className="text-sm">Organization settings</span>
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuSeparator />
+
+        {/* Organization Switcher */}
+        <DropdownMenuLabel className="text-muted-foreground px-2 py-1 text-xs font-medium">
+          Switch Organizations
+        </DropdownMenuLabel>
 
         {/* Current Organization */}
         <DropdownMenuItem

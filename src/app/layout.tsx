@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Urbanist, Poppins } from "next/font/google";
 import "./globals.css";
 import { TRPCProvider } from "@/providers/trpc-provider";
+import { TopLoaderProvider } from "@/providers/top-loader-provider";
 
 const urbanist = Urbanist({
   variable: "--font-title",
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${urbanist.variable} ${poppins.variable} antialiased`}>
+        <TopLoaderProvider />
         <TRPCProvider>{children}</TRPCProvider>
       </body>
     </html>

@@ -52,7 +52,7 @@ export const issueRouter = createTRPCRouter({
         priorityId: z.string().uuid().optional(),
         stateId: z.string().uuid().optional(),
         assigneeId: z.string().optional(),
-        issueKeyFormat: z.enum(["user", "project", "team"]).default("user"),
+        issueKeyFormat: z.enum(["org", "project", "team"]).default("org"),
       }),
     )
     .mutation(async ({ ctx, input }) => {

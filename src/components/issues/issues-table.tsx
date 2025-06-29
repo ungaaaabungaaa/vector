@@ -56,7 +56,11 @@ export function IssuesTable({ orgSlug, issues }: IssuesTableProps) {
   const utils = trpc.useUtils();
   const deleteMutation = trpc.issue.delete.useMutation({
     onSuccess: () => {
-      utils.organization.listIssues.invalidate({ orgSlug }).catch(() => {});
+      // Refresh only issue-related queries instead of nuking entire cache.
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
     },
   });
 

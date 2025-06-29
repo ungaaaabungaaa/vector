@@ -16,8 +16,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Users, FolderOpen, Check, MoreHorizontal } from "lucide-react";
+import {
+  Building2,
+  Users,
+  FolderOpen,
+  Check,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
 import { Textarea } from "../ui/textarea";
+import { cn } from "@/lib/utils";
 
 // Extracted selector components
 import {
@@ -34,8 +42,8 @@ import {
 
 // Key Format Selector Component
 interface KeyFormatSelectorProps {
-  manualFormatOverride: "team" | "project" | "user" | null;
-  setManualFormatOverride: (value: "team" | "project" | "user" | null) => void;
+  manualFormatOverride: "team" | "project" | "org" | null;
+  setManualFormatOverride: (value: "team" | "project" | "org" | null) => void;
   preview: string;
 }
 
@@ -73,19 +81,19 @@ function KeyFormatSelector({
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setManualFormatOverride("user")}
+            onClick={() => setManualFormatOverride("org")}
             className="cursor-pointer rounded-sm px-3 py-2 text-sm"
           >
             <span className="flex w-full items-center justify-between">
               <span className="flex items-center gap-2">
                 <div className="flex h-4 w-4 items-center justify-center">
-                  {manualFormatOverride === "user" ? (
+                  {manualFormatOverride === "org" ? (
                     <Check className="text-primary h-3 w-3" />
                   ) : (
-                    <User className="text-muted-foreground h-3 w-3" />
+                    <Building2 className="text-muted-foreground h-3 w-3" />
                   )}
                 </div>
-                User format
+                Org format
               </span>
             </span>
           </DropdownMenuItem>
@@ -138,17 +146,17 @@ function KeyFormatSelector({
   );
 }
 
-interface CreateIssueDialogProps {
+interface CreateIssueDialogContentProps {
   orgSlug: string;
   onClose: () => void;
   onSuccess?: (issueId: string) => void;
 }
 
-export function CreateIssueDialog({
+function CreateIssueDialogContent({
   orgSlug,
   onClose,
   onSuccess,
-}: CreateIssueDialogProps) {
+}: CreateIssueDialogContentProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTeam, setSelectedTeam] = useState<string>("");
@@ -157,7 +165,7 @@ export function CreateIssueDialog({
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [manualFormatOverride, setManualFormatOverride] = useState<
-    "team" | "project" | "user" | null
+    "team" | "project" | "org" | null
   >(null);
 
   const utils = trpc.useUtils();
@@ -182,20 +190,20 @@ export function CreateIssueDialog({
     trpc.organization.listIssuePriorities.useQuery({ orgSlug });
 
   // Auto-infer the format based on selections
-  const getEffectiveFormat = (): "team" | "project" | "user" => {
+  const getEffectiveFormat = (): "team" | "project" | "org" => {
     // Manual override takes precedence
     if (manualFormatOverride) {
       return manualFormatOverride;
     }
 
-    // Auto-infer: Project > Team > User
+    // Auto-infer: Project > Team > Org
     if (selectedProject) {
       return "project";
     }
     if (selectedTeam) {
       return "team";
     }
-    return "user";
+    return "org";
   };
 
   const effectiveFormat = getEffectiveFormat();
@@ -211,8 +219,12 @@ export function CreateIssueDialog({
 
   const createMutation = trpc.issue.create.useMutation({
     onSuccess: (result) => {
-      // Refresh issues list
-      utils.organization.listIssues.invalidate({ orgSlug }).catch(() => {});
+      // Refresh only issue-related queries so the UI updates without nuking
+      // unrelated cache entries.
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
       onSuccess?.(result.id);
       onClose();
     },
@@ -258,8 +270,8 @@ export function CreateIssueDialog({
       const project = projects.find((p) => p.id === selectedProject);
       return project ? `${project.key}-${nextNumber}` : `PROJ-${nextNumber}`;
     }
-    if (manualFormatOverride === "user") {
-      return `USER-${nextNumber}`;
+    if (manualFormatOverride === "org") {
+      return `${orgSlug.toUpperCase()}-${nextNumber}`;
     }
 
     // Auto-detect logic (original behavior)
@@ -271,8 +283,8 @@ export function CreateIssueDialog({
       const project = projects.find((p) => p.id === selectedProject);
       return project ? `${project.key}-${nextNumber}` : `PROJ-${nextNumber}`;
     }
-    // For user format, we'd need the current user info - for now show placeholder
-    return `USER-${nextNumber}`;
+    // Org default
+    return `${orgSlug.toUpperCase()}-${nextNumber}`;
   };
 
   return (
@@ -364,5 +376,70 @@ export function CreateIssueDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 🖱️ Public wrapper — handles trigger button + open state
+// ---------------------------------------------------------------------------
+
+export interface CreateIssueDialogProps {
+  /** Organization slug the issue belongs to */
+  orgSlug: string;
+  /** Optional callback fired after the issue is successfully created */
+  onIssueCreated?: () => void;
+  /** Visual style of trigger button */
+  variant?: "default" | "floating";
+  /** Additional classes for the trigger button */
+  className?: string;
+}
+
+export function CreateIssueDialog({
+  orgSlug,
+  onIssueCreated,
+  variant = "default",
+  className,
+}: CreateIssueDialogProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleSuccess = () => {
+    onIssueCreated?.();
+    setIsDialogOpen(false);
+  };
+
+  const trigger =
+    variant === "floating" ? (
+      <Button
+        onClick={() => setIsDialogOpen(true)}
+        className={cn(
+          "h-12 w-12 rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl",
+          className,
+        )}
+        size="icon"
+      >
+        <Plus className="h-5 w-5" />
+      </Button>
+    ) : (
+      <Button
+        size="sm"
+        onClick={() => setIsDialogOpen(true)}
+        className={cn("gap-1 text-sm", className)}
+        variant="outline"
+      >
+        <Plus className="size-4" />
+      </Button>
+    );
+
+  return (
+    <>
+      {trigger}
+      {isDialogOpen && (
+        <CreateIssueDialogContent
+          orgSlug={orgSlug}
+          onClose={() => setIsDialogOpen(false)}
+          onSuccess={handleSuccess}
+        />
+      )}
+    </>
   );
 }

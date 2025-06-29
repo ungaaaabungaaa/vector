@@ -7,7 +7,6 @@ import {
   organization as organizationTable,
   team as teamTable,
   member,
-  user as userTable,
 } from "@/db/schema";
 import { getNextIssueSequence } from "@/entities/teams/team.service";
 import {
@@ -37,43 +36,15 @@ export type CreateIssueParams = Pick<
   | "projectId"
   | "priorityId"
   | "stateId"
+  | "assigneeId"
 > & {
   orgSlug: string;
-  issueKeyFormat: "user" | "project" | "team";
+  issueKeyFormat: "org" | "project" | "team";
 };
 
 // -----------------------------------------------------------------------------
 // Sequence generation helpers
 // -----------------------------------------------------------------------------
-
-/**
- * Generates a user-based issue key from username.
- * Takes first 3 characters of username (or first 3 chars of name if no username).
- */
-export async function generateUserIssueKey(
-  userId: string,
-  sequenceNumber: number,
-): Promise<string> {
-  const userResult = await db
-    .select({ username: userTable.username, name: userTable.name })
-    .from(userTable)
-    .where(eq(userTable.id, userId))
-    .limit(1);
-
-  if (userResult.length === 0) {
-    throw new Error(`User not found: ${userId}`);
-  }
-
-  const { username, name } = userResult[0];
-
-  // Use username if available, otherwise use name
-  const baseText = username || name;
-
-  // Take first 3 characters and convert to uppercase
-  const prefix = baseText.slice(0, 3).toUpperCase();
-
-  return `${prefix}-${sequenceNumber}`;
-}
 
 /**
  * Generates a project-based issue key from project key.
@@ -93,7 +64,7 @@ export async function generateProjectIssueKey(
   }
 
   const { key } = projectResult[0];
-  return `${key}-${sequenceNumber}`;
+  return `${key}-${sequenceNumber}`.toUpperCase();
 }
 
 /**
@@ -114,7 +85,7 @@ export async function generateTeamIssueKey(
   }
 
   const { key } = teamResult[0];
-  return `${key}-${sequenceNumber}`;
+  return `${key}-${sequenceNumber}`.toUpperCase();
 }
 
 /**
@@ -138,64 +109,20 @@ export async function getNextProjectIssueSequence(
   return current + 1;
 }
 
-/**
- * Generates the next sequence number for user-based issues created by a user in an organization.
- * Only counts issues that were created with user-based keys.
- */
-export async function getNextUserIssueSequence(
-  orgSlug: string,
-  userId: string,
-): Promise<number> {
-  // Get organization ID first
-  const orgRes = await db
-    .select({ id: organizationTable.id })
-    .from(organizationTable)
-    .where(eq(organizationTable.slug, orgSlug))
-    .limit(1);
+// Org ------------------------------------------------------------------------
 
-  const orgId = orgRes[0]?.id;
-  if (!orgId) return 1;
+function generateOrgIssueKey(orgSlug: string, sequenceNumber: number): string {
+  return `${orgSlug.toUpperCase()}-${sequenceNumber}`;
+}
 
-  // Get user info to determine their key prefix
-  const userResult = await db
-    .select({ username: userTable.username, name: userTable.name })
-    .from(userTable)
-    .where(eq(userTable.id, userId))
-    .limit(1);
-
-  if (userResult.length === 0) {
-    return 1;
-  }
-
-  const { username, name } = userResult[0];
-  const baseText = username || name;
-  const userPrefix = baseText.slice(0, 3).toUpperCase();
-
-  // Find highest sequence number for user-based issues with this user's prefix
+async function getNextOrgIssueSequence(orgSlug: string): Promise<number> {
   const res = await db
     .select({ seq: issueTable.sequenceNumber })
     .from(issueTable)
-    .leftJoin(projectTable, eq(issueTable.projectId, projectTable.id))
-    .leftJoin(teamTable, eq(issueTable.teamId, teamTable.id))
-    .leftJoin(member, eq(member.userId, issueTable.reporterId))
-    .where(
-      and(
-        eq(issueTable.reporterId, userId),
-        // Only count issues with user-based keys (start with user prefix)
-        like(issueTable.key, `${userPrefix}-%`),
-        // Issue belongs to org via project, team, or reporter membership
-        or(
-          eq(projectTable.organizationId, orgId),
-          eq(teamTable.organizationId, orgId),
-          eq(member.organizationId, orgId),
-        ),
-      ),
-    )
+    .where(like(issueTable.key, `${orgSlug.toUpperCase()}-%`))
     .orderBy(desc(issueTable.sequenceNumber))
     .limit(1);
-
-  const current = res[0]?.seq ?? 0;
-  return current + 1;
+  return (res[0]?.seq ?? 0) + 1;
 }
 
 export async function createIssue(
@@ -210,6 +137,7 @@ export async function createIssue(
     projectId,
     priorityId,
     stateId,
+    assigneeId,
     issueKeyFormat,
   } = params;
 
@@ -234,43 +162,76 @@ export async function createIssue(
       issueKey = await generateProjectIssueKey(projectId, seq);
       break;
     }
-    case "user":
+    case "org":
     default: {
-      seq = await getNextUserIssueSequence(orgSlug, reporterId!);
-      issueKey = await generateUserIssueKey(reporterId!, seq);
+      seq = await getNextOrgIssueSequence(orgSlug);
+      issueKey = generateOrgIssueKey(orgSlug, seq);
       break;
     }
   }
 
   const now = new Date();
-  const id = randomUUID();
 
-  await db.transaction(async (tx) => {
-    await tx.insert(issueTable).values({
-      id,
-      key: issueKey,
-      sequenceNumber: seq,
-      title,
-      description,
-      teamId,
-      reporterId: reporterId!,
-      projectId,
-      priorityId,
-      stateId,
-      createdAt: now,
-      updatedAt: now,
-    });
+  // -----------------------------------------------------------------------
+  // Concurrency-safe insert with retry on unique-violation (race condition)
+  // -----------------------------------------------------------------------
 
-    await tx.insert(activityTable).values({
-      id: randomUUID(),
-      issueId: id,
-      actorId: reporterId!,
-      type: activityEnum.enumValues[6]!, // "created"
-      createdAt: now,
-    });
-  });
+  let attempts = 0;
+  while (true) {
+    attempts++;
+    const id = randomUUID();
 
-  return { id, key: issueKey } as const;
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(issueTable).values({
+          id,
+          key: issueKey,
+          sequenceNumber: seq,
+          title,
+          description,
+          teamId,
+          reporterId: reporterId!,
+          projectId,
+          priorityId,
+          stateId,
+          assigneeId,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        await tx.insert(activityTable).values({
+          id: randomUUID(),
+          issueId: id,
+          actorId: reporterId!,
+          type: activityEnum.enumValues[6]!, // "created"
+          createdAt: now,
+        });
+      });
+
+      return { id, key: issueKey } as const;
+    } catch (err: any) {
+      // 23505 is unique_violation in Postgres
+      const isDupKey = err?.code === "23505";
+      if (!isDupKey || attempts >= 5) throw err;
+
+      // Recompute sequence/key based on format and retry
+      switch (issueKeyFormat) {
+        case "team":
+          seq = await getNextIssueSequence(teamId!);
+          issueKey = await generateTeamIssueKey(teamId!, seq);
+          break;
+        case "project":
+          seq = await getNextProjectIssueSequence(projectId!);
+          issueKey = await generateProjectIssueKey(projectId!, seq);
+          break;
+        case "org":
+        default:
+          seq = await getNextOrgIssueSequence(orgSlug);
+          issueKey = generateOrgIssueKey(orgSlug, seq);
+          break;
+      }
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +11,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Trash2 } from "lucide-react";
-import { CreateIssueButton } from "@/components/issues/create-issue-button";
+import { CreateIssueDialog } from "@/components/issues/create-issue-dialog";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -20,6 +19,14 @@ import { issueStateTypeEnum } from "@/db/schema/issue-config";
 import { formatDateHuman } from "@/lib/date";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
 import { Circle } from "lucide-react";
+import {
+  StateSelector,
+  PrioritySelector,
+  AssigneeSelector,
+  TeamSelector,
+  ProjectSelector,
+} from "@/components/issues/issue-selectors";
+import { authClient } from "@/lib/auth-client";
 
 type StateType = (typeof issueStateTypeEnum.enumValues)[number];
 type FilterType = "all" | StateType;
@@ -68,11 +75,126 @@ export default function IssuesPage() {
   const PAGE_SIZE = 25;
 
   const utils = trpc.useUtils();
+  const { data: session } = authClient.useSession();
+
   const deleteMutation = trpc.issue.delete.useMutation({
     onSuccess: () => {
-      utils.organization.listIssues.invalidate({ orgSlug }).catch(() => {});
+      // Refresh only issue-related queries instead of invalidating everything
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
     },
   });
+
+  const changeStateMutation = trpc.issue.changeState.useMutation({
+    onSuccess: () => {
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
+    },
+  });
+
+  const changePriorityMutation = trpc.issue.changePriority.useMutation({
+    onSuccess: () => {
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
+    },
+  });
+
+  const assignMutation = trpc.issue.assign.useMutation({
+    onSuccess: () => {
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
+    },
+  });
+
+  const changeTeamMutation = trpc.issue.changeTeam.useMutation({
+    onSuccess: () => {
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
+    },
+  });
+
+  const changeProjectMutation = trpc.issue.changeProject.useMutation({
+    onSuccess: () => {
+      Promise.all([
+        utils.organization.listIssues.invalidate({ orgSlug }),
+        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
+      ]).catch(() => {});
+    },
+  });
+
+  const { data: states = [] } = trpc.organization.listIssueStates.useQuery({
+    orgSlug,
+  });
+
+  const { data: priorities = [] } =
+    trpc.organization.listIssuePriorities.useQuery({ orgSlug });
+
+  const { data: members = [] } = trpc.organization.listMembers.useQuery({
+    orgSlug,
+  });
+
+  const { data: teams = [] } = trpc.organization.listTeams.useQuery({
+    orgSlug,
+  });
+
+  const { data: projects = [] } = trpc.organization.listProjects.useQuery({
+    orgSlug,
+  });
+
+  const handleStateChange = (issueId: string, stateId: string) => {
+    if (!session?.user?.id || !stateId) return;
+    changeStateMutation.mutate({
+      issueId,
+      actorId: session.user.id,
+      stateId,
+    });
+  };
+
+  const handlePriorityChange = (issueId: string, priorityId: string) => {
+    if (!session?.user?.id || !priorityId) return;
+    changePriorityMutation.mutate({
+      issueId,
+      actorId: session.user.id,
+      priorityId,
+    });
+  };
+
+  const handleAssigneeChange = (issueId: string, assigneeId: string) => {
+    if (!session?.user?.id) return;
+    assignMutation.mutate({
+      issueId,
+      actorId: session.user.id,
+      assigneeId: assigneeId || null,
+    });
+  };
+
+  const handleTeamChange = (issueId: string, teamId: string) => {
+    if (!session?.user?.id) return;
+    changeTeamMutation.mutate({
+      issueId,
+      actorId: session.user.id,
+      teamId: teamId || null,
+    });
+  };
+
+  const handleProjectChange = (issueId: string, projectId: string) => {
+    if (!session?.user?.id) return;
+    changeProjectMutation.mutate({
+      issueId,
+      actorId: session.user.id,
+      projectId: projectId || null,
+    });
+  };
 
   const { data: paged, isLoading } = trpc.organization.listIssuesPaged.useQuery(
     {
@@ -137,6 +259,7 @@ export default function IssuesPage() {
               </Button>
             ))}
           </div>
+          <CreateIssueDialog className="h-6" orgSlug={orgSlug} />
         </div>
       </div>
 
@@ -162,26 +285,46 @@ export default function IssuesPage() {
                   key={issue.id}
                   className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
                 >
-                  {/* Priority Icon */}
-                  <div className="flex-shrink-0">
-                    <PriorityIcon
-                      className="size-4"
-                      style={{ color: priorityColor }}
-                    />
-                  </div>
+                  {/* Priority Selector */}
+                  <PrioritySelector
+                    priorities={priorities}
+                    selectedPriority={issue.priorityId || ""}
+                    onPrioritySelect={(pid) =>
+                      handlePriorityChange(issue.id, pid)
+                    }
+                    displayMode="iconOnly"
+                    trigger={
+                      <div className="flex-shrink-0 cursor-pointer">
+                        <PriorityIcon
+                          className="size-4"
+                          style={{ color: priorityColor }}
+                        />
+                      </div>
+                    }
+                    className="border-none bg-transparent p-0 shadow-none"
+                  />
 
                   {/* Issue Key */}
                   <span className="text-muted-foreground flex-shrink-0 font-mono text-xs">
                     {issue.key}
                   </span>
 
-                  {/* State Icon */}
-                  <div className="flex-shrink-0">
-                    <StateIcon
-                      className="size-4"
-                      style={{ color: stateColor }}
-                    />
-                  </div>
+                  {/* State Selector */}
+                  <StateSelector
+                    states={states}
+                    selectedState={issue.stateId || ""}
+                    onStateSelect={(sid) => handleStateChange(issue.id, sid)}
+                    displayMode="iconOnly"
+                    trigger={
+                      <div className="flex-shrink-0 cursor-pointer">
+                        <StateIcon
+                          className="size-4"
+                          style={{ color: stateColor }}
+                        />
+                      </div>
+                    }
+                    className="border-none bg-transparent p-0 shadow-none"
+                  />
 
                   {/* Title */}
                   <div className="min-w-0 flex-1">
@@ -193,32 +336,70 @@ export default function IssuesPage() {
                     </Link>
                   </div>
 
-                  {/* Creation Date */}
+                  {/* Team / Project selectors (if related) */}
+                  {issue.teamKey && (
+                    <TeamSelector
+                      teams={teams}
+                      selectedTeam={
+                        teams.find((t) => t.key === issue.teamKey)?.id || ""
+                      }
+                      onTeamSelect={(tid) => handleTeamChange(issue.id, tid)}
+                      displayMode="iconOnly"
+                      className="border-none bg-transparent p-0 shadow-none"
+                    />
+                  )}
+                  {issue.projectKey && (
+                    <ProjectSelector
+                      projects={projects}
+                      selectedProject={
+                        projects.find((p) => p.key === issue.projectKey)?.id ||
+                        ""
+                      }
+                      onProjectSelect={(pid) =>
+                        handleProjectChange(issue.id, pid)
+                      }
+                      displayMode="iconOnly"
+                      className="border-none bg-transparent p-0 shadow-none"
+                    />
+                  )}
+
+                  {/* Last Updated */}
                   <div className="flex-shrink-0">
                     <span className="text-muted-foreground text-xs">
-                      {formatDateHuman(issue.createdAt)}
+                      {formatDateHuman(issue.updatedAt)}
                     </span>
                   </div>
 
-                  {/* Assignee */}
-                  <div className="flex-shrink-0">
-                    {issue.assigneeId ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="size-6">
-                          <AvatarFallback className="text-xs">
-                            {getAssigneeInitials(
-                              issue.assigneeName,
-                              issue.assigneeEmail,
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
-                    ) : (
-                      <div className="flex size-6 items-center justify-center">
-                        <span className="text-muted-foreground text-xs">—</span>
-                      </div>
-                    )}
-                  </div>
+                  {/* Assignee Selector */}
+                  <AssigneeSelector
+                    members={members}
+                    selectedAssignee={issue.assigneeId || ""}
+                    onAssigneeSelect={(aid) =>
+                      handleAssigneeChange(issue.id, aid)
+                    }
+                    displayMode="iconOnly"
+                    trigger={
+                      issue.assigneeId ? (
+                        <div className="flex cursor-pointer items-center gap-2">
+                          <Avatar className="size-6">
+                            <AvatarFallback className="text-xs">
+                              {getAssigneeInitials(
+                                issue.assigneeName,
+                                issue.assigneeEmail,
+                              )}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                      ) : (
+                        <div className="flex size-6 cursor-pointer items-center justify-center">
+                          <span className="text-muted-foreground text-xs">
+                            —
+                          </span>
+                        </div>
+                      )
+                    }
+                    className="border-none bg-transparent p-0 shadow-none"
+                  />
 
                   {/* Actions */}
                   <div className="flex-shrink-0">
@@ -271,9 +452,9 @@ export default function IssuesPage() {
       </div>
 
       {/* Floating create button */}
-      <div className="fixed right-6 bottom-6">
-        <CreateIssueButton orgSlug={orgSlug} variant="floating" />
-      </div>
+      {/* <div className="fixed right-6 bottom-6">
+        <CreateIssueDialog orgSlug={orgSlug} variant="floating" />
+      </div> */}
 
       {/* Pagination controls */}
       <div className="text-muted-foreground flex justify-between border-t p-2 text-xs">

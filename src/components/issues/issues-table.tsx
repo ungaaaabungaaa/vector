@@ -1,191 +1,265 @@
 "use client";
 
 import Link from "next/link";
+import { motion, AnimatePresence } from "motion/react";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { trpc } from "@/lib/trpc";
-import { formatDateHuman } from "@/lib/date";
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Trash2, Circle } from "lucide-react";
+
+import {
+  StateSelector,
+  PrioritySelector,
+  AssigneeSelector,
+  TeamSelector,
+  ProjectSelector,
+} from "@/components/issues/issue-selectors";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
-import { Circle } from "lucide-react";
+import { formatDateHuman } from "@/lib/date";
 
-import type { InferSelectModel } from "drizzle-orm";
-import { issue as issueTable } from "@/db/schema/issues";
+// Re-exported entity types from the selector module give us fully-typed data
+import type {
+  Team,
+  Project,
+  State,
+  Member,
+  Priority,
+} from "@/components/issues/issue-selectors";
 
-// Extend the base issue type with all the joined data from getRecentIssues
-type Issue = Pick<
-  InferSelectModel<typeof issueTable>,
-  "id" | "title" | "key" | "sequenceNumber" | "stateId" | "priorityId"
-> & {
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  projectName: string | null;
-  teamName: string | null;
-  projectKey: string | null;
-  teamKey: string | null;
-  // State details
-  stateName: string | null;
-  stateColor: string | null;
-  stateIcon: string | null;
-  stateType: string | null;
-  // Priority details
-  priorityName: string | null;
-  priorityWeight: number | null;
-  priorityColor: string | null;
-  priorityIcon: string | null;
-  // Assignee details
-  assigneeId: string | null;
-  assigneeName: string | null;
-  assigneeEmail: string | null;
-  reporterName: string | null;
-};
+// Infer issue row type directly from tRPC router output to stay in sync with DB.
+import type { inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "@/trpc/routers/_app";
 
-interface IssuesTableProps {
-  orgSlug: string;
-  issues: Issue[];
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+export type IssueRowData =
+  RouterOutputs["organization"]["listIssuesPaged"]["issues"][number];
+
+// Local helper to derive initials from a name/email
+function getAssigneeInitials(
+  name?: string | null,
+  email?: string | null,
+): string {
+  const displayName = name || email;
+  if (!displayName) return "?";
+  return displayName
+    .split(" ")
+    .map((part) => part.charAt(0))
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
-export function IssuesTable({ orgSlug, issues }: IssuesTableProps) {
-  const utils = trpc.useUtils();
-  const deleteMutation = trpc.issue.delete.useMutation({
-    onSuccess: () => {
-      // Refresh only issue-related queries instead of nuking entire cache.
-      Promise.all([
-        utils.organization.listIssues.invalidate({ orgSlug }),
-        utils.organization.listIssuesPaged.invalidate({ orgSlug }),
-      ]).catch(() => {});
-    },
-  });
+export interface IssuesTableProps {
+  orgSlug: string;
+  issues: ReadonlyArray<IssueRowData>;
+  states: ReadonlyArray<State>;
+  priorities: ReadonlyArray<Priority>;
+  members: ReadonlyArray<Member>;
+  teams: ReadonlyArray<Team>;
+  projects: ReadonlyArray<Project>;
+  onStateChange: (issueId: string, stateId: string) => void;
+  onPriorityChange: (issueId: string, priorityId: string) => void;
+  onAssigneeChange: (issueId: string, assigneeId: string) => void;
+  onTeamChange: (issueId: string, teamId: string) => void;
+  onProjectChange: (issueId: string, projectId: string) => void;
+  onDelete: (issueId: string) => void;
+  deletePending?: boolean;
+}
 
-  function getAssigneeInitials(name?: string | null): string {
-    if (!name) return "?";
-    return name
-      .split(" ")
-      .map((part) => part.charAt(0))
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+export function IssuesTable({
+  orgSlug,
+  issues,
+  states,
+  priorities,
+  members,
+  teams,
+  projects,
+  onStateChange,
+  onPriorityChange,
+  onAssigneeChange,
+  onTeamChange,
+  onProjectChange,
+  onDelete,
+  deletePending = false,
+}: IssuesTableProps) {
+  if (issues.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="mb-4 text-4xl">📋</div>
+          <h3 className="mb-2 text-lg font-semibold">No issues found</h3>
+          <p className="text-muted-foreground mb-6">
+            Get started by creating your first issue.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[50%]">Issue</TableHead>
-          <TableHead className="w-[20%]">Created</TableHead>
-          <TableHead className="w-[15%]">Assignee</TableHead>
-          <TableHead className="w-[15%] text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+    <div className="divide-y">
+      <AnimatePresence initial={false}>
         {issues.map((issue) => {
-          // Get priority icon component and styling
+          // Priority icon / color
           const PriorityIcon = issue.priorityIcon
             ? getDynamicIcon(issue.priorityIcon) || Circle
             : Circle;
           const priorityColor = issue.priorityColor || "#94a3b8";
 
-          // Get state icon component and styling
+          // State icon / color
           const StateIcon = issue.stateIcon
             ? getDynamicIcon(issue.stateIcon) || Circle
             : Circle;
           const stateColor = issue.stateColor || "#94a3b8";
 
           return (
-            <TableRow key={issue.id} className="h-12">
-              <TableCell className="py-2">
-                <div className="flex items-center gap-2">
-                  {/* Priority Icon */}
-                  <div className="flex-shrink-0">
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              key={issue.id}
+              className="hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors"
+            >
+              {/* Priority Selector */}
+              <PrioritySelector
+                priorities={priorities}
+                selectedPriority={issue.priorityId || ""}
+                onPrioritySelect={(pid) => onPriorityChange(issue.id, pid)}
+                displayMode="labelOnly"
+                trigger={
+                  <div className="flex-shrink-0 cursor-pointer">
                     <PriorityIcon
                       className="size-4"
                       style={{ color: priorityColor }}
                     />
                   </div>
+                }
+                className="border-none bg-transparent p-0 shadow-none"
+              />
 
-                  {/* Issue Key */}
-                  <span className="text-muted-foreground flex-shrink-0 font-mono text-xs">
-                    {issue.key}
-                  </span>
+              {/* Issue Key */}
+              <span className="text-muted-foreground flex-shrink-0 font-mono text-xs">
+                {issue.key}
+              </span>
 
-                  {/* State Icon */}
-                  <div className="flex-shrink-0">
+              {/* State Selector */}
+              <StateSelector
+                states={states}
+                selectedState={issue.stateId || ""}
+                onStateSelect={(sid) => onStateChange(issue.id, sid)}
+                displayMode="labelOnly"
+                trigger={
+                  <div className="flex-shrink-0 cursor-pointer">
                     <StateIcon
                       className="size-4"
                       style={{ color: stateColor }}
                     />
                   </div>
+                }
+                className="border-none bg-transparent p-0 shadow-none"
+              />
 
-                  {/* Title */}
-                  <Link
-                    href={`/${orgSlug}/issues/${issue.key}`}
-                    className="hover:text-primary min-w-0 flex-1 truncate text-sm font-medium"
-                  >
-                    {issue.title}
-                  </Link>
-                </div>
-              </TableCell>
+              {/* Title */}
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/${orgSlug}/issues/${issue.key}`}
+                  className="hover:text-primary block truncate text-sm font-medium transition-colors"
+                >
+                  {issue.title}
+                </Link>
+              </div>
 
-              {/* Created Date */}
-              <TableCell className="py-2">
+              {/* Team / Project selectors */}
+              {issue.teamKey && (
+                <TeamSelector
+                  teams={teams as Team[]}
+                  selectedTeam={
+                    teams.find((t) => t.key === issue.teamKey)?.id || ""
+                  }
+                  onTeamSelect={(tid) => onTeamChange(issue.id, tid)}
+                />
+              )}
+
+              {issue.projectKey && (
+                <ProjectSelector
+                  projects={projects as Project[]}
+                  selectedProject={
+                    projects.find((p) => p.key === issue.projectKey)?.id || ""
+                  }
+                  onProjectSelect={(pid) => onProjectChange(issue.id, pid)}
+                />
+              )}
+
+              {/* Last Updated */}
+              <div className="flex-shrink-0">
                 <span className="text-muted-foreground text-xs">
-                  {formatDateHuman(issue.createdAt)}
+                  {formatDateHuman(issue.updatedAt)}
                 </span>
-              </TableCell>
+              </div>
 
-              {/* Assignee */}
-              <TableCell className="py-2">
-                {issue.assigneeId ? (
-                  <div className="flex items-center gap-2">
-                    <Avatar className="size-6">
-                      <AvatarFallback className="text-xs">
-                        {getAssigneeInitials(issue.assigneeName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-muted-foreground truncate text-xs">
-                      {issue.assigneeName}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-xs">—</span>
-                )}
-              </TableCell>
+              {/* Assignee Selector */}
+              <AssigneeSelector
+                members={members as Member[]}
+                selectedAssignee={issue.assigneeId || ""}
+                onAssigneeSelect={(aid) => onAssigneeChange(issue.id, aid)}
+                displayMode="labelOnly"
+                trigger={
+                  issue.assigneeId ? (
+                    <div className="flex cursor-pointer items-center gap-2">
+                      <Avatar className="size-6">
+                        <AvatarFallback className="text-xs">
+                          {getAssigneeInitials(
+                            issue.assigneeName,
+                            issue.assigneeEmail,
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  ) : (
+                    <div className="flex size-6 cursor-pointer items-center justify-center">
+                      <span className="text-muted-foreground text-xs">—</span>
+                    </div>
+                  )
+                }
+                className="border-none bg-transparent p-0 shadow-none"
+              />
 
               {/* Actions */}
-              <TableCell className="py-2">
-                <div className="flex justify-end gap-1">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/${orgSlug}/issues/${issue.key}`}>Open</Link>
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={deleteMutation.isPending}
-                    onClick={() => {
-                      if (
-                        !confirm(
-                          "Delete this issue? This action cannot be undone.",
-                        )
-                      )
-                        return;
-                      deleteMutation.mutate({ issueId: issue.id });
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
+              <div className="flex-shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      aria-label="Open issue actions"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      variant="destructive"
+                      disabled={deletePending}
+                      onClick={() => onDelete(issue.id)}
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </motion.div>
           );
         })}
-      </TableBody>
-    </Table>
+      </AnimatePresence>
+    </div>
   );
 }

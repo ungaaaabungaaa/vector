@@ -15,7 +15,7 @@ const envSchema = z.object({
   SMTP_PORT: z.string().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().email().optional(),
+  SMTP_FROM: z.string().optional(),
 });
 
 // Load environment variables from .env files **before** validation.
@@ -45,10 +45,16 @@ for (const file of envFiles) {
 const _env = envSchema.safeParse(process.env);
 
 if (!_env.success) {
-  console.error(
-    "❌ Invalid environment variables:",
-    _env.error.flatten().fieldErrors,
-  );
+  console.error("\n================ ENV VALIDATION ERROR ================");
+  console.error("❌ Invalid environment variables:");
+  console.error(_env.error);
+  console.error("Field errors:", _env.error.flatten().fieldErrors);
+  console.error("Current process.env values:");
+  for (const k of Object.keys(envSchema.shape)) {
+    // Only print relevant env vars
+    console.error(`  ${k} =`, process.env[k]);
+  }
+  console.error("======================================================\n");
   throw new Error("Invalid environment variables. See logs above.");
 }
 

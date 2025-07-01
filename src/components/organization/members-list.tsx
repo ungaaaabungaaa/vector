@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Mail, Calendar, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Mail, Trash2, MoreHorizontal, Send } from "lucide-react";
 import { OrgRoleBadge } from "@/components/organization/role-badge";
 import { RoleSelector } from "@/components/organization/role-selector";
 import { InviteDialog } from "@/components/organization/invite-dialog";
@@ -16,15 +16,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { formatDateHuman } from "@/lib/date";
-import { useRouter } from "next/navigation";
-
-interface Member {
-  userId: string;
-  name: string;
-  email: string;
-  role: string;
-  joinedAt: string;
-}
+import { CustomRolesManager } from "@/components/organization/custom-roles-manager";
 
 interface Invite {
   id: string;
@@ -55,21 +47,38 @@ export function MembersList({
   currentUserId: string;
   memberCount: number;
 }) {
-  const { data: members, isLoading } = trpc.organization.listMembers.useQuery({
-    orgSlug,
-  });
+  const utils = trpc.useUtils();
+  const { data: members, isLoading } =
+    trpc.organization.listMembersWithRoles.useQuery({
+      orgSlug,
+    });
   const { data: invites } = trpc.organization.listInvites.useQuery(
     { orgSlug },
     { enabled: isAdmin },
   );
   const [showInvite, setShowInvite] = useState(false);
 
-  const router = useRouter();
   const removeMemberMutation = trpc.organization.removeMember.useMutation({
     onSuccess: () => {
-      router.refresh();
+      utils.organization.listMembersWithRoles.invalidate({ orgSlug });
     },
   });
+
+  const revokeInviteMutation = trpc.organization.revokeInvite.useMutation({
+    onSuccess: () => {
+      utils.organization.listInvites.invalidate({ orgSlug });
+    },
+  });
+
+  const resendInviteMutation = trpc.organization.resendInvite.useMutation({
+    onSuccess: () => {
+      utils.organization.listInvites.invalidate({ orgSlug });
+    },
+  });
+
+  const handleRoleChange = () => {
+    utils.organization.listMembersWithRoles.invalidate({ orgSlug });
+  };
 
   if (isLoading) {
     return (
@@ -123,9 +132,9 @@ export function MembersList({
             )}
           </div>
 
-          <div className="divide-y rounded-lg border">
+          <div className="divide-y">
             <AnimatePresence initial={false}>
-              {members.map((member: Member) => (
+              {members.map((member) => (
                 <motion.div
                   layout
                   initial={{ opacity: 0, y: -8 }}
@@ -133,10 +142,10 @@ export function MembersList({
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.2 }}
                   key={member.userId}
-                  className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
+                  className="hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors"
                 >
                   {/* Avatar */}
-                  <Avatar className="size-8">
+                  <Avatar className="size-6">
                     <AvatarFallback className="text-xs">
                       {getInitials(member.name, member.email)}
                     </AvatarFallback>
@@ -152,45 +161,76 @@ export function MembersList({
                   </div>
 
                   {/* Role Badge / Selector */}
-                  <div className="flex-shrink-0">
+                  <div className="flex flex-shrink-0 items-center gap-1">
                     {isAdmin ? (
-                      <RoleSelector
-                        orgSlug={orgSlug}
-                        userId={member.userId}
-                        currentRole={member.role as "member" | "admin"}
-                      />
+                      <>
+                        <RoleSelector
+                          orgSlug={orgSlug}
+                          userId={member.userId}
+                          currentRole={member.role as "member" | "admin"}
+                        />
+                        <CustomRolesManager
+                          orgSlug={orgSlug}
+                          userId={member.userId}
+                          assignedRoles={member.customRoles}
+                          onRoleChange={handleRoleChange}
+                        />
+                      </>
                     ) : (
-                      <OrgRoleBadge role={member.role} />
+                      <>
+                        <OrgRoleBadge role={member.role} />
+                        <CustomRolesManager
+                          orgSlug={orgSlug}
+                          userId={member.userId}
+                          assignedRoles={member.customRoles}
+                          disabled={true}
+                        />
+                      </>
                     )}
                   </div>
 
                   {/* Join Date */}
-                  <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                    <Calendar className="size-3" />
+                  <div className="text-muted-foreground flex-shrink-0 text-xs">
                     {formatDateHuman(new Date(member.joinedAt))}
                   </div>
 
-                  {/* Remove action */}
+                  {/* Actions */}
                   {isAdmin && member.userId !== currentUserId && (
-                    <button
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `Remove ${member.name || member.email} from organization?`,
-                          )
-                        ) {
-                          removeMemberMutation.mutate({
-                            orgSlug,
-                            userId: member.userId,
-                          });
-                        }
-                      }}
-                      disabled={removeMemberMutation.isPending}
-                      className="text-destructive hover:bg-destructive/10 flex h-6 w-6 items-center justify-center rounded transition-colors"
-                      title="Remove member"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
+                    <div className="flex-shrink-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            aria-label="Open member actions"
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            variant="destructive"
+                            disabled={removeMemberMutation.isPending}
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  `Remove ${member.name || member.email} from organization?`,
+                                )
+                              ) {
+                                removeMemberMutation.mutate({
+                                  orgSlug,
+                                  userId: member.userId,
+                                });
+                              }
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                            Remove Member
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   )}
                 </motion.div>
               ))}
@@ -205,7 +245,7 @@ export function MembersList({
           <h4 className="text-muted-foreground mb-4 flex items-center gap-2 text-sm font-semibold">
             Pending Invitations ({invites.length})
           </h4>
-          <div className="divide-y rounded-lg border">
+          <div className="divide-y">
             <AnimatePresence initial={false}>
               {invites.map((invite: Invite) => (
                 <motion.div
@@ -215,10 +255,10 @@ export function MembersList({
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.2 }}
                   key={invite.id}
-                  className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
+                  className="hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors"
                 >
                   {/* Avatar Placeholder */}
-                  <Avatar className="size-8">
+                  <Avatar className="size-6">
                     <AvatarFallback className="text-xs opacity-60">
                       {getInitials("", invite.email)}
                     </AvatarFallback>
@@ -238,8 +278,7 @@ export function MembersList({
                   </div>
 
                   {/* Invite Date */}
-                  <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                    <Calendar className="size-3" />
+                  <div className="text-muted-foreground flex-shrink-0 text-xs">
                     {formatDateHuman(new Date(invite.createdAt))}
                   </div>
 
@@ -257,13 +296,33 @@ export function MembersList({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Mail className="mr-2 size-4" />
+                        <DropdownMenuItem
+                          disabled={resendInviteMutation.isPending}
+                          onClick={() => {
+                            resendInviteMutation.mutate({
+                              token: invite.id,
+                              orgSlug,
+                            });
+                          }}
+                        >
+                          <Send className="size-4" />
                           Resend Invitation
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="mr-2 size-4" />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={revokeInviteMutation.isPending}
+                          onClick={() => {
+                            if (
+                              confirm(`Revoke invitation for ${invite.email}?`)
+                            ) {
+                              revokeInviteMutation.mutate({
+                                token: invite.id,
+                              });
+                            }
+                          }}
+                        >
+                          <Trash2 className="size-4" />
                           Revoke Invitation
                         </DropdownMenuItem>
                       </DropdownMenuContent>

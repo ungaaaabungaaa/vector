@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SquareDashed, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { IconPicker } from "@/components/ui/icon-picker";
@@ -115,6 +120,8 @@ export function PrioritiesManagementDialog({
 
   const isEditing = !!priority;
 
+  const dialogTitle = isEditing ? "Edit Priority" : "Add Priority";
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -151,6 +158,7 @@ export function PrioritiesManagementDialog({
     <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
       <DialogContent showCloseButton={false} className="gap-2 p-2 sm:max-w-md">
         <DialogHeader>
+          <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
           {/* Properties */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">

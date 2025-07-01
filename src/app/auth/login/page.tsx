@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import {
   Card,
@@ -19,6 +19,9 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/";
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [identifier, setIdentifier] = useState("");
@@ -34,7 +37,6 @@ export default function LoginPage() {
       ? await authClient.signIn.email({
           email: identifier,
           password,
-          callbackURL: "/",
         })
       : await authClient.signIn.username({
           username: identifier,
@@ -46,7 +48,7 @@ export default function LoginPage() {
       setError(result.error.message ?? "Authentication failed");
     } else {
       router.refresh();
-      router.push("/");
+      router.push(redirectTo);
     }
   };
 

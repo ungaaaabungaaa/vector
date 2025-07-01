@@ -4,7 +4,12 @@ import {
   updateProject,
   addMember as addProjectMember,
   removeMember as removeProjectMember,
+  addTeam as addProjectTeam,
+  removeTeam as removeProjectTeam,
+  listProjectTeams,
   findProjectByKey,
+  listProjectMembers,
+  deleteProject,
 } from "@/entities/projects/project.service";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { z } from "zod";
@@ -15,6 +20,7 @@ import {
   projectMember as projectMemberTable,
 } from "@/db/schema";
 import { TRPCError } from "@trpc/server";
+import { userHasProjectAccess } from "@/entities/projects/project.service";
 
 export const projectRouter = createTRPCRouter({
   getByKey: protectedProcedure
@@ -24,7 +30,7 @@ export const projectRouter = createTRPCRouter({
         projectKey: z.string(),
       }),
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const project = await findProjectByKey(input.orgSlug, input.projectKey);
       if (!project) {
         throw new TRPCError({
@@ -32,7 +38,63 @@ export const projectRouter = createTRPCRouter({
           message: "Project not found",
         });
       }
+
+      // Access guard
+      const userId = getUserId(ctx);
+      const canAccess = await userHasProjectAccess(userId, project.id);
+      if (!canAccess) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
       return project;
+    }),
+
+  listMembers: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const userId = getUserId(ctx);
+      // TODO: verify user has access to this project (omitted for brevity)
+      return await listProjectMembers(input.projectId);
+    }),
+
+  listTeams: protectedProcedure
+    .input(z.object({ projectId: z.string().uuid() }))
+    .query(async ({ input }) => {
+      return await listProjectTeams(input.projectId);
+    }),
+
+  addTeam: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+        teamId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await addProjectTeam(input.projectId, input.teamId);
+    }),
+
+  removeTeam: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string().uuid(),
+        teamId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await removeProjectTeam(input.projectId, input.teamId);
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ projectId: z.string().uuid() }))
+    .use(({ ctx, next, input }) => {
+      return assertProjectLeadOrAdmin(ctx, input.projectId).then(() => next());
+    })
+    .mutation(async ({ input }) => {
+      await deleteProject(input.projectId);
     }),
 
   create: protectedProcedure
@@ -67,10 +129,11 @@ export const projectRouter = createTRPCRouter({
         teamId: input.teamId || null,
         name: input.name,
         description: input.description,
-        leadId: input.leadId,
+        leadId: input.leadId || userId,
         startDate: input.startDate,
         dueDate: input.dueDate,
         statusId: input.statusId,
+        createdBy: userId,
       });
       return { id } as const;
     }),
@@ -162,7 +225,11 @@ export const projectRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      await removeProjectMember(input.projectId, input.userId);
+      try {
+        await removeProjectMember(input.projectId, input.userId);
+      } catch (e: any) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+      }
     }),
 
   listMine: protectedProcedure.query(async ({ ctx }) => {

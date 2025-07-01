@@ -13,6 +13,7 @@ import {
   InferSelectModel,
   and,
   like,
+  count,
 } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
@@ -162,6 +163,16 @@ export async function removeMember(
         eq(teamMemberTable.userId, userId),
       ),
     );
+
+  // After deletion ensure not empty
+  const remaining = await db
+    .select({ cnt: count() })
+    .from(teamMemberTable)
+    .where(eq(teamMemberTable.teamId, teamId));
+
+  if ((remaining[0]?.cnt ?? 0) === 0) {
+    throw new Error("Cannot remove the last member from the team");
+  }
 }
 
 /**

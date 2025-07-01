@@ -249,6 +249,14 @@ export function StatesManagementDialog({
   const typeOptions =
     type === "issue" ? ISSUE_STATE_TYPES : PROJECT_STATUS_TYPES;
 
+  const dialogTitle = isEditing
+    ? type === "issue"
+      ? "Edit Issue State"
+      : "Edit Project Status"
+    : type === "issue"
+      ? "Add Issue State"
+      : "Add Project Status";
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -288,10 +296,7 @@ export function StatesManagementDialog({
     <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
       <DialogContent showCloseButton={false} className="gap-2 p-2 sm:max-w-md">
         <DialogHeader>
-          {/* <DialogTitle className="flex items-center gap-2 text-base">
-            <IconComponent className="size-4" />
-            {title}
-          </DialogTitle> */}
+          <DialogTitle className="sr-only">{dialogTitle}</DialogTitle>
 
           {/* Properties */}
           <div className="flex justify-between gap-2">

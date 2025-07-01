@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { ArrowLeft, Save, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/projects/project-selectors";
 import { TeamSelector } from "@/components/teams/team-selector";
 import { toast } from "sonner";
+import { ProjectMembersSection } from "@/components/projects/project-members";
 
 interface ProjectViewClientProps {
   params: { orgId: string; projectKey: string };
@@ -26,11 +27,16 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const [titleValue, setTitleValue] = useState("");
   const [descriptionValue, setDescriptionValue] = useState("");
 
+  const router = useRouter();
+
   // Queries
-  const projectQuery = trpc.project.getByKey.useQuery({
-    orgSlug: params.orgId,
-    projectKey: params.projectKey,
-  });
+  const projectQuery = trpc.project.getByKey.useQuery(
+    {
+      orgSlug: params.orgId,
+      projectKey: params.projectKey,
+    },
+    { retry: false },
+  );
 
   const statusesQuery = trpc.organization.listProjectStatuses.useQuery({
     orgSlug: params.orgId,
@@ -150,6 +156,15 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
     email: member.email,
   }));
 
+  useEffect(() => {
+    if (
+      projectQuery.error?.data?.code === "FORBIDDEN" ||
+      projectQuery.error?.data?.code === "UNAUTHORIZED"
+    ) {
+      router.replace("/403");
+    }
+  }, [projectQuery.error, router]);
+
   if (projectQuery.isLoading) {
     return (
       <div className="bg-background h-full overflow-y-auto">
@@ -168,6 +183,10 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
         </div>
       </div>
     );
+  }
+
+  if (projectQuery.error?.data?.code === "FORBIDDEN") {
+    return null; // redirected
   }
 
   if (!project) {
@@ -405,6 +424,14 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
               <div className="text-muted-foreground rounded-lg border p-8 text-center">
                 Activity feed coming soon...
               </div>
+            </div>
+
+            {/* Members */}
+            <div>
+              <ProjectMembersSection
+                orgSlug={params.orgId}
+                projectId={project.id}
+              />
             </div>
           </div>
         </div>

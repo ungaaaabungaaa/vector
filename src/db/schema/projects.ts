@@ -60,6 +60,10 @@ export const project = pgTable(
     /** Owning team (optional – projects can span teams) */
     teamId: uuid("team_id").references(() => team.id, { onDelete: "set null" }),
     leadId: text("lead_id").references(() => user.id, { onDelete: "set null" }),
+    /** Creator of the project (immutable) */
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
     startDate: date("start_date"),
     dueDate: date("due_date"),
     statusId: uuid("status_id").references(() => projectStatus.id, {
@@ -95,5 +99,20 @@ export const projectMember = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.projectId, table.userId] }),
+  }),
+);
+
+export const projectTeam = pgTable(
+  "project_team",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => team.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.projectId, table.teamId] }),
   }),
 );

@@ -1,7 +1,12 @@
 import { createTRPCRouter, protectedProcedure, getUserId } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { eq, and } from "drizzle-orm";
-import { projectMember as projectMemberTable } from "@/db/schema";
+import {
+  projectMember as projectMemberTable,
+  teamMember as teamMemberTable,
+  issueAssignee as assignmentTable,
+  project as projectTable,
+} from "@/db/schema";
 import {
   createIssue,
   changeState,
@@ -36,15 +41,74 @@ export const issueRouter = createTRPCRouter({
         issueKey: z.string(),
       }),
     )
-    .query(async ({ input }) => {
-      const issue = await findIssueByKey(input.orgSlug, input.issueKey);
-      if (!issue) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Issue not found",
-        });
+    .query(async ({ input, ctx }) => {
+      const issueRecord = await findIssueByKey(input.orgSlug, input.issueKey);
+
+      if (!issueRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Issue not found" });
       }
-      return issue;
+
+      const userId = getUserId(ctx);
+
+      // Short-circuit for admins → can access everything.
+      if (ctx.session.user.role === "admin") {
+        return issueRecord;
+      }
+
+      // 1) Reporter can access their own issues
+      if (issueRecord.reporterId === userId) {
+        return issueRecord;
+      }
+
+      // 2) Check if user is assigned to the issue
+      const assignmentRow = await ctx.db
+        .select({ id: assignmentTable.id })
+        .from(assignmentTable)
+        .where(
+          and(
+            eq(assignmentTable.issueId, issueRecord.id),
+            eq(assignmentTable.assigneeId, userId),
+          ),
+        )
+        .limit(1);
+
+      if (assignmentRow.length > 0) {
+        return issueRecord;
+      }
+
+      // 3) Check team membership relation
+      if (issueRecord.teamId) {
+        const teamMembership = await ctx.db
+          .select({ userId: teamMemberTable.userId })
+          .from(teamMemberTable)
+          .where(
+            and(
+              eq(teamMemberTable.teamId, issueRecord.teamId),
+              eq(teamMemberTable.userId, userId),
+            ),
+          )
+          .limit(1);
+
+        if (teamMembership.length > 0) {
+          return issueRecord;
+        }
+      }
+
+      // 4) Check if user is project lead (project they created)
+      if (issueRecord.projectId) {
+        const proj = await ctx.db
+          .select({ leadId: projectTable.leadId })
+          .from(projectTable)
+          .where(eq(projectTable.id, issueRecord.projectId))
+          .limit(1);
+
+        if (proj[0]?.leadId === userId) {
+          return issueRecord;
+        }
+      }
+
+      // If none of the conditions matched → deny access
+      throw new TRPCError({ code: "FORBIDDEN" });
     }),
 
   create: protectedProcedure

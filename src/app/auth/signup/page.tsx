@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import {
   Card,
@@ -19,6 +19,9 @@ import Link from "next/link";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/";
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -35,7 +38,6 @@ export default function SignupPage() {
       username,
       password,
       name: username || email,
-      callbackURL: "/",
     });
 
     setLoading(false);
@@ -43,7 +45,7 @@ export default function SignupPage() {
       setError(error.message ?? "Failed to create account");
     } else {
       router.refresh();
-      router.push("/");
+      router.push(redirectTo);
     }
   };
 

@@ -2,13 +2,22 @@ import { db } from "@/db";
 import {
   project as projectTable,
   projectMember as projectMemberTable,
+  projectTeam as projectTeamTable,
   team as teamTable,
   teamMember as teamMemberTable,
   projectStatus,
   organization as organizationTable,
   user as userTable,
 } from "@/db/schema";
-import { eq, and, InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+  eq,
+  and,
+  inArray,
+  InferInsertModel,
+  InferSelectModel,
+  desc,
+  or,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { formatDateForDb } from "@/lib/date";
 
@@ -25,7 +34,10 @@ export type CreateProjectParams =
   // everything except internal audit columns …
   Omit<ProjectInsertModel, "id" | "createdAt" | "updatedAt"> &
     // … but make these core fields mandatory
-    Required<Pick<ProjectInsertModel, "organizationId" | "name" | "key">>;
+    Required<Pick<ProjectInsertModel, "organizationId" | "name" | "key">> & {
+      /** Optional array of team IDs; falls back to single `teamId` for legacy */
+      teamIds?: string[];
+    };
 
 export interface UpdateProjectParams {
   id: string;
@@ -66,14 +78,16 @@ export async function createProject(
     startDate,
     dueDate,
     statusId,
+    teamIds = teamId ? [teamId] : [],
+    createdBy,
   } = params;
 
-  // 1) Validate team–organization relationship (if teamId provided)
-  if (teamId) {
+  // 1) Validate team–organization relationship for each teamId
+  for (const tId of teamIds) {
     const teamRow = await db
       .select({ organizationId: teamTable.organizationId })
       .from(teamTable)
-      .where(eq(teamTable.id, teamId))
+      .where(eq(teamTable.id, tId))
       .limit(1);
 
     if (teamRow.length === 0) {
@@ -105,21 +119,21 @@ export async function createProject(
     }
   }
 
-  // 3) If lead provided and team exists – ensure member of the team
-  if (leadId && teamId) {
+  // 3) If lead provided and teams exist – ensure member of at least one team
+  if (leadId && teamIds.length > 0) {
     const membership = await db
       .select({ userId: teamMemberTable.userId })
       .from(teamMemberTable)
       .where(
         and(
-          eq(teamMemberTable.teamId, teamId),
+          inArray(teamMemberTable.teamId, teamIds),
           eq(teamMemberTable.userId, leadId),
         ),
       )
       .limit(1);
 
     if (membership.length === 0) {
-      throw new Error("Lead must be a member of the team");
+      throw new Error("Lead must be a member of at least one team");
     }
   }
 
@@ -138,6 +152,7 @@ export async function createProject(
       key: params.key,
       description,
       leadId,
+      createdBy,
       startDate: formatDateForDb(startDate),
       dueDate: formatDateForDb(dueDate),
       statusId,
@@ -152,7 +167,18 @@ export async function createProject(
 
     insertedProjectId = inserted.id;
 
-    // 5) Insert lead as project member (role = "lead")
+    // 5) Insert team associations
+    if (teamIds.length > 0) {
+      await Promise.all(
+        teamIds.map((tid) =>
+          tx
+            .insert(projectTeamTable)
+            .values({ projectId: inserted.id, teamId: tid }),
+        ),
+      );
+    }
+
+    // 6) Insert lead as project member (role = "lead")
     if (leadId) {
       await tx.insert(projectMemberTable).values({
         projectId: insertedProjectId,
@@ -194,33 +220,37 @@ export async function addMember(
   userId: string,
   role: string = "member",
 ): Promise<void> {
-  // 1) Fetch project & owning team
-  const proj = await db
-    .select({ teamId: projectTable.teamId })
+  // 1) Ensure project exists
+  const exists = await db
+    .select({ id: projectTable.id })
     .from(projectTable)
     .where(eq(projectTable.id, projectId))
     .limit(1);
 
-  if (proj.length === 0) {
+  if (exists.length === 0) {
     throw new Error("Project does not exist");
   }
 
-  const teamId = proj[0].teamId!;
+  // 2) Validate membership against ANY associated team (if any)
+  const teamIds = await listProjectTeams(projectId);
 
-  // 2) Ensure user is part of the team
-  const membership = await db
-    .select({ userId: teamMemberTable.userId })
-    .from(teamMemberTable)
-    .where(
-      and(
-        eq(teamMemberTable.teamId, teamId),
-        eq(teamMemberTable.userId, userId),
-      ),
-    )
-    .limit(1);
+  if (teamIds.length > 0) {
+    const membershipRows = await db
+      .select({ userId: teamMemberTable.userId })
+      .from(teamMemberTable)
+      .where(
+        and(
+          inArray(teamMemberTable.teamId, teamIds),
+          eq(teamMemberTable.userId, userId),
+        ),
+      )
+      .limit(1);
 
-  if (membership.length === 0) {
-    throw new Error("User is not a member of the owning team");
+    if (membershipRows.length === 0) {
+      throw new Error(
+        "User is not a member of any associated team for this project",
+      );
+    }
   }
 
   const now = new Date();
@@ -235,6 +265,41 @@ export async function removeMember(
   projectId: string,
   userId: string,
 ): Promise<void> {
+  // Check if the user being removed is a lead
+  const rows = await db
+    .select({ role: projectMemberTable.role })
+    .from(projectMemberTable)
+    .where(
+      and(
+        eq(projectMemberTable.projectId, projectId),
+        eq(projectMemberTable.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (rows.length === 0) return; // nothing to remove
+
+  // Total members count
+  const allMembers = await db
+    .select({
+      userId: projectMemberTable.userId,
+      role: projectMemberTable.role,
+    })
+    .from(projectMemberTable)
+    .where(eq(projectMemberTable.projectId, projectId));
+
+  if (allMembers.length <= 1) {
+    throw new Error("Cannot remove the last member from the project");
+  }
+
+  // Lead constraint
+  if (rows[0].role === "lead") {
+    const leadCount = allMembers.filter((m) => m.role === "lead").length;
+    if (leadCount <= 1) {
+      throw new Error("Cannot remove the last lead from the project");
+    }
+  }
+
   await db
     .delete(projectMemberTable)
     .where(
@@ -277,6 +342,7 @@ export async function findProjectByKey(
       teamKey: teamTable.key,
       // Lead details
       leadId: projectTable.leadId,
+      createdBy: projectTable.createdBy,
       leadName: leadUser.name,
       leadEmail: leadUser.email,
     })
@@ -297,4 +363,118 @@ export async function findProjectByKey(
     .limit(1);
 
   return result[0] || null;
+}
+
+export async function listProjectMembers(projectId: string) {
+  // Returns all members of a project with user details ordered by join date (newest first)
+  return await db
+    .select({
+      userId: projectMemberTable.userId,
+      role: projectMemberTable.role,
+      joinedAt: projectMemberTable.joinedAt,
+      name: userTable.name,
+      email: userTable.email,
+    })
+    .from(projectMemberTable)
+    .innerJoin(userTable, eq(projectMemberTable.userId, userTable.id))
+    .where(eq(projectMemberTable.projectId, projectId))
+    .orderBy(desc(projectMemberTable.joinedAt));
+}
+
+// -----------------------------------------------------------------------------
+// Team helpers
+// -----------------------------------------------------------------------------
+
+/**
+ * Returns the team IDs associated with a project (includes legacy `teamId` column).
+ */
+export async function listProjectTeams(projectId: string): Promise<string[]> {
+  const legacy = await db
+    .select({ teamId: projectTable.teamId })
+    .from(projectTable)
+    .where(eq(projectTable.id, projectId))
+    .limit(1);
+
+  const viaJoin = await db
+    .select({ teamId: projectTeamTable.teamId })
+    .from(projectTeamTable)
+    .where(eq(projectTeamTable.projectId, projectId));
+
+  const ids = new Set<string>();
+  if (legacy[0]?.teamId) ids.add(legacy[0].teamId);
+  viaJoin.forEach((r) => ids.add(r.teamId));
+  return Array.from(ids);
+}
+
+export async function addTeam(
+  projectId: string,
+  teamId: string,
+): Promise<void> {
+  const now = new Date();
+  await db
+    .insert(projectTeamTable)
+    .values({ projectId, teamId })
+    .onConflictDoNothing();
+
+  // Keep legacy column (first team wins) if not set
+  const proj = await db
+    .select({ teamId: projectTable.teamId })
+    .from(projectTable)
+    .where(eq(projectTable.id, projectId))
+    .limit(1);
+  if (proj.length && !proj[0].teamId) {
+    await db
+      .update(projectTable)
+      .set({ teamId, updatedAt: now })
+      .where(eq(projectTable.id, projectId));
+  }
+}
+
+export async function removeTeam(
+  projectId: string,
+  teamId: string,
+): Promise<void> {
+  await db
+    .delete(projectTeamTable)
+    .where(
+      and(
+        eq(projectTeamTable.projectId, projectId),
+        eq(projectTeamTable.teamId, teamId),
+      ),
+    );
+}
+
+// -----------------------------------------------------------------------------
+// Access helpers
+// -----------------------------------------------------------------------------
+
+export async function userHasProjectAccess(
+  userId: string,
+  projectId: string,
+): Promise<boolean> {
+  // Quick check using joins
+  const pm = alias(projectMemberTable, "pm");
+  const pt = alias(projectTeamTable, "pt");
+  const tm = alias(teamMemberTable, "tm");
+
+  const rows = await db
+    .select({ id: projectTable.id })
+    .from(projectTable)
+    .leftJoin(pm, and(eq(pm.projectId, projectTable.id), eq(pm.userId, userId)))
+    .leftJoin(pt, eq(pt.projectId, projectTable.id))
+    .leftJoin(tm, and(eq(tm.teamId, pt.teamId), eq(tm.userId, userId)))
+    .where(
+      and(
+        eq(projectTable.id, projectId),
+        or(
+          eq(projectTable.leadId, userId),
+          eq(projectTable.createdBy, userId),
+          eq(pm.userId, userId),
+          eq(tm.userId, userId),
+        ),
+      ),
+    )
+    .limit(1);
+
+  return rows.length > 0;
 }

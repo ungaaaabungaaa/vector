@@ -11,12 +11,15 @@ import {
   issueState,
   issuePriority,
   issueAssignee,
+  teamMember as teamMemberTable,
+  projectMember as projectMemberTable,
+  projectTeam as projectTeamTable,
 } from "@/db/schema";
-import { eq, and, count, desc } from "drizzle-orm";
+import { eq, and, or, inArray, count, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { randomUUID } from "crypto";
 import { env } from "@/env";
-import { notify } from "@/notifications/core";
+import { notify } from "@/notifications";
 
 export class OrganizationService {
   /**
@@ -161,6 +164,7 @@ export class OrganizationService {
         teamKey: team.key,
         // Lead details
         leadId: project.leadId,
+        createdBy: project.createdBy,
         leadName: leadUser.name,
         leadEmail: leadUser.email,
       })
@@ -176,7 +180,7 @@ export class OrganizationService {
   /**
    * Get recent issues for organization
    */
-  static async getRecentIssues(orgSlug: string, limit = 5) {
+  static async getRecentIssues(orgSlug: string, userId: string, limit = 5) {
     const orgRow = await db
       .select({ id: organization.id })
       .from(organization)
@@ -186,9 +190,57 @@ export class OrganizationService {
     const orgId = orgRow[0]?.id;
     if (!orgId) return [];
 
+    // ------------------------------------------------------------------
+    //  Gather visibility context for the requesting user
+    // ------------------------------------------------------------------
+
+    // Teams the user belongs to (limit to current organisation)
+    const teamRows = await db
+      .select({ id: team.id })
+      .from(teamMemberTable)
+      .innerJoin(team, eq(teamMemberTable.teamId, team.id))
+      .where(
+        and(eq(teamMemberTable.userId, userId), eq(team.organizationId, orgId)),
+      );
+
+    const teamIds = teamRows.map((r) => r.id);
+
+    // Projects led by the user (within org)
+    const projectRows = await db
+      .select({ id: project.id })
+      .from(project)
+      .where(
+        and(eq(project.leadId, userId), eq(project.organizationId, orgId)),
+      );
+
+    const projectIds = projectRows.map((r) => r.id);
+
+    // ------------------------------------------------------------------
+    //  Build the base query with visibility filter
+    // ------------------------------------------------------------------
+
     const assigneeUser = alias(user, "assigneeUser");
     const reporterUser = alias(user, "reporterUser");
     const assignment = alias(issueAssignee, "assignment");
+
+    // Visibility OR conditions
+    const visibilityClauses = [
+      eq(issue.reporterId, userId),
+      eq(assignment.assigneeId, userId),
+    ];
+
+    if (teamIds.length > 0) {
+      visibilityClauses.push(inArray(issue.teamId, teamIds));
+    }
+
+    if (projectIds.length > 0) {
+      visibilityClauses.push(inArray(issue.projectId, projectIds));
+    }
+
+    const visibilityCondition =
+      visibilityClauses.length === 1
+        ? visibilityClauses[0]
+        : or(...visibilityClauses);
 
     return await db
       .select({
@@ -226,7 +278,7 @@ export class OrganizationService {
       .leftJoin(issuePriority, eq(issue.priorityId, issuePriority.id))
       .leftJoin(assigneeUser, eq(assignment.assigneeId, assigneeUser.id))
       .leftJoin(reporterUser, eq(issue.reporterId, reporterUser.id))
-      .where(eq(issue.organizationId, orgId))
+      .where(and(eq(issue.organizationId, orgId), visibilityCondition))
       .orderBy(desc(issue.updatedAt))
       .limit(limit);
   }
@@ -335,6 +387,69 @@ export class OrganizationService {
       .orderBy(member.createdAt);
   }
 
+  /** Get members with their assigned custom roles */
+  static async listMembersWithRoles(orgId: string) {
+    // First get all members
+    const members = await db
+      .select({
+        userId: member.userId,
+        name: user.name,
+        email: user.email,
+        role: member.role,
+        joinedAt: member.createdAt,
+      })
+      .from(member)
+      .innerJoin(user, eq(member.userId, user.id))
+      .where(eq(member.organizationId, orgId))
+      .orderBy(member.createdAt);
+
+    // Then get custom role assignments for all members
+    const { orgRole, orgRoleAssignment } = await import(
+      "@/db/schema/org-roles"
+    );
+
+    const roleAssignments = await db
+      .select({
+        userId: orgRoleAssignment.userId,
+        roleId: orgRole.id,
+        roleName: orgRole.name,
+        roleDescription: orgRole.description,
+      })
+      .from(orgRoleAssignment)
+      .innerJoin(orgRole, eq(orgRoleAssignment.roleId, orgRole.id))
+      .where(
+        and(
+          eq(orgRoleAssignment.organizationId, orgId),
+          eq(orgRole.system, false), // Only custom roles
+        ),
+      );
+
+    // Group role assignments by userId
+    const rolesByUser = roleAssignments.reduce(
+      (acc, assignment) => {
+        if (!acc[assignment.userId]) {
+          acc[assignment.userId] = [];
+        }
+        acc[assignment.userId].push({
+          id: assignment.roleId,
+          name: assignment.roleName,
+          description: assignment.roleDescription,
+        });
+        return acc;
+      },
+      {} as Record<
+        string,
+        Array<{ id: string; name: string; description: string | null }>
+      >,
+    );
+
+    // Combine members with their custom roles
+    return members.map((member) => ({
+      ...member,
+      customRoles: rolesByUser[member.userId] || [],
+    }));
+  }
+
   /** Invite a member (owner/admin only) */
   static async inviteMember(
     orgId: string,
@@ -421,6 +536,73 @@ export class OrganizationService {
       .where(eq(invitation.id, token));
   }
 
+  static async resendInvitation(token: string, inviterId: string) {
+    // Get invitation details
+    const rows = await db
+      .select()
+      .from(invitation)
+      .where(eq(invitation.id, token))
+      .limit(1);
+
+    if (rows.length === 0) throw new Error("Invalid invitation token");
+    const invite = rows[0];
+    if (invite.status !== "pending")
+      throw new Error("Cannot resend non-pending invitation");
+
+    // Extend expiry by 7 days from now
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7);
+
+    await db
+      .update(invitation)
+      .set({ expiresAt, inviterId })
+      .where(eq(invitation.id, token));
+
+    // Get inviter name for email
+    const inviterName =
+      (
+        await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, inviterId))
+      )[0]?.name ?? "Someone";
+
+    // Send notification again
+    await notify(
+      "organization.invite",
+      {
+        inviterName,
+        inviteLink: `${env.APP_URL}/invite/${token}`,
+      },
+      {
+        email: { to: invite.email },
+      },
+    );
+  }
+
+  static async getInvitationDetails(token: string) {
+    const rows = await db
+      .select({
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        createdAt: invitation.createdAt,
+        organizationId: invitation.organizationId,
+        organizationName: organization.name,
+        organizationSlug: organization.slug,
+        inviterName: user.name,
+      })
+      .from(invitation)
+      .innerJoin(organization, eq(invitation.organizationId, organization.id))
+      .innerJoin(user, eq(invitation.inviterId, user.id))
+      .where(eq(invitation.id, token))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
+
   static async listPendingInvites(orgId: string) {
     return await db
       .select()
@@ -466,7 +648,12 @@ export class OrganizationService {
       .where(and(eq(member.organizationId, orgId), eq(member.userId, userId)));
   }
 
-  static async getIssuesPaged(orgSlug: string, page = 1, pageSize = 25) {
+  static async getIssuesPaged(
+    orgSlug: string,
+    userId: string,
+    page = 1,
+    pageSize = 25,
+  ) {
     const orgRow = await db
       .select({ id: organization.id })
       .from(organization)
@@ -475,10 +662,54 @@ export class OrganizationService {
     const orgId = orgRow[0]?.id;
     if (!orgId) return { issues: [], total: 0, counts: {} } as const;
 
-    // Base query assembling issue rows similar to getRecentIssues
+    // --------------------------------------------------------------
+    //  Gather visibility context
+    // --------------------------------------------------------------
+
+    const teamRows = await db
+      .select({ id: team.id })
+      .from(teamMemberTable)
+      .innerJoin(team, eq(teamMemberTable.teamId, team.id))
+      .where(
+        and(eq(teamMemberTable.userId, userId), eq(team.organizationId, orgId)),
+      );
+
+    const teamIds = teamRows.map((r) => r.id);
+
+    const projectRows = await db
+      .select({ id: project.id })
+      .from(project)
+      .where(
+        and(eq(project.leadId, userId), eq(project.organizationId, orgId)),
+      );
+
+    const projectIds = projectRows.map((r) => r.id);
+
+    // --------------------------------------------------------------
+    //  Build the base query with visibility filter
+    // --------------------------------------------------------------
+
     const assigneeUser = alias(user, "assigneeUser");
     const reporterUser = alias(user, "reporterUser");
     const assignment = alias(issueAssignee, "assignment");
+
+    const visibilityClauses = [
+      eq(issue.reporterId, userId),
+      eq(assignment.assigneeId, userId),
+    ];
+
+    if (teamIds.length > 0) {
+      visibilityClauses.push(inArray(issue.teamId, teamIds));
+    }
+
+    if (projectIds.length > 0) {
+      visibilityClauses.push(inArray(issue.projectId, projectIds));
+    }
+
+    const visibilityCondition =
+      visibilityClauses.length === 1
+        ? visibilityClauses[0]
+        : or(...visibilityClauses);
 
     const issues = await db
       .select({
@@ -517,7 +748,7 @@ export class OrganizationService {
       .leftJoin(issuePriority, eq(issue.priorityId, issuePriority.id))
       .leftJoin(assigneeUser, eq(assignment.assigneeId, assigneeUser.id))
       .leftJoin(reporterUser, eq(issue.reporterId, reporterUser.id))
-      .where(eq(issue.organizationId, orgId))
+      .where(and(eq(issue.organizationId, orgId), visibilityCondition))
       .orderBy(desc(issue.updatedAt))
       .limit(pageSize)
       .offset((page - 1) * pageSize);
@@ -526,7 +757,8 @@ export class OrganizationService {
     const totalRows = await db
       .select({ cnt: count() })
       .from(issue)
-      .where(eq(issue.organizationId, orgId));
+      .leftJoin(assignment, eq(issue.id, assignment.issueId))
+      .where(and(eq(issue.organizationId, orgId), visibilityCondition));
 
     const total = totalRows[0]?.cnt ?? 0;
 
@@ -536,7 +768,7 @@ export class OrganizationService {
       .from(issue)
       .leftJoin(assignment, eq(issue.id, assignment.issueId))
       .leftJoin(issueState, eq(assignment.stateId, issueState.id))
-      .where(eq(issue.organizationId, orgId))
+      .where(and(eq(issue.organizationId, orgId), visibilityCondition))
       .groupBy(issueState.type);
 
     const counts: Record<string, number> = {};
@@ -586,6 +818,7 @@ export class OrganizationService {
         teamKey: team.key,
         // Lead details
         leadId: project.leadId,
+        createdBy: project.createdBy,
         leadName: leadUser.name,
         leadEmail: leadUser.email,
       })
@@ -690,5 +923,225 @@ export class OrganizationService {
       .leftJoin(issueState, eq(issueAssignee.stateId, issueState.id))
       .where(eq(issueAssignee.issueId, issueId))
       .orderBy(issueAssignee.createdAt);
+  }
+
+  // ------------------------------------------------------------------
+  // Visibility helpers
+  // ------------------------------------------------------------------
+
+  /** Returns team IDs where user is lead or member */
+  static async getUserTeamIds(orgId: string, userId: string) {
+    const leadTeams = await db
+      .select({ id: team.id })
+      .from(team)
+      .where(and(eq(team.organizationId, orgId), eq(team.leadId, userId)));
+
+    const memberTeams = await db
+      .select({ teamId: teamMemberTable.teamId })
+      .from(teamMemberTable)
+      .where(eq(teamMemberTable.userId, userId));
+
+    const ids = new Set<string>();
+    leadTeams.forEach((t) => ids.add(t.id));
+    memberTeams.forEach((t) => ids.add(t.teamId));
+    return Array.from(ids);
+  }
+
+  /** List teams user belongs to or leads */
+  static async getUserTeams(orgSlug: string, userId: string) {
+    const orgRow = await db
+      .select({ id: organization.id })
+      .from(organization)
+      .where(eq(organization.slug, orgSlug))
+      .limit(1);
+    const orgId = orgRow[0]?.id;
+    if (!orgId) return [];
+
+    // Build query with left join for efficient OR
+    return await db
+      .select({
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        key: team.key,
+        icon: team.icon,
+        color: team.color,
+        createdAt: team.createdAt,
+      })
+      .from(team)
+      .leftJoin(
+        teamMemberTable,
+        and(
+          eq(teamMemberTable.teamId, team.id),
+          eq(teamMemberTable.userId, userId),
+        ),
+      )
+      .where(
+        and(
+          eq(team.organizationId, orgId),
+          or(eq(team.leadId, userId), eq(teamMemberTable.userId, userId)),
+        ),
+      )
+      .orderBy(desc(team.createdAt));
+  }
+
+  /** Paged version */
+  static async getUserTeamsPaged(
+    orgSlug: string,
+    userId: string,
+    page = 1,
+    pageSize = 25,
+  ) {
+    const orgRow = await db
+      .select({ id: organization.id })
+      .from(organization)
+      .where(eq(organization.slug, orgSlug))
+      .limit(1);
+    const orgId = orgRow[0]?.id;
+    if (!orgId) return { teams: [], total: 0 } as const;
+
+    const baseQuery = db
+      .select({
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        key: team.key,
+        icon: team.icon,
+        color: team.color,
+        createdAt: team.createdAt,
+      })
+      .from(team)
+      .leftJoin(
+        teamMemberTable,
+        and(
+          eq(teamMemberTable.teamId, team.id),
+          eq(teamMemberTable.userId, userId),
+        ),
+      )
+      .where(
+        and(
+          eq(team.organizationId, orgId),
+          or(eq(team.leadId, userId), eq(teamMemberTable.userId, userId)),
+        ),
+      );
+
+    const teams = await baseQuery
+      .orderBy(desc(team.createdAt))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    const totalRows = await db
+      .select({ cnt: count() })
+      .from(baseQuery.as("sub"));
+
+    const total = Number(totalRows[0]?.cnt ?? 0);
+    return { teams, total } as const;
+  }
+
+  /** Paged projects visible to user */
+  static async getUserProjectsPaged(
+    orgSlug: string,
+    userId: string,
+    page = 1,
+    pageSize = 25,
+  ) {
+    const orgRow = await db
+      .select({ id: organization.id })
+      .from(organization)
+      .where(eq(organization.slug, orgSlug))
+      .limit(1);
+    const orgId = orgRow[0]?.id;
+    if (!orgId) return { projects: [], total: 0, counts: {} } as const;
+
+    const leadUser = alias(user, "leadUser");
+    const { projectStatus } = await import("@/db/schema/projects");
+
+    // Subqueries for visibility joins
+    const pm = alias(projectMemberTable, "pm");
+    const pt = alias(projectTeamTable, "pt");
+    const tm = alias(teamMemberTable, "tm");
+
+    const visibleQuery = db
+      .select({ id: project.id })
+      .from(project)
+      .leftJoin(pm, and(eq(pm.projectId, project.id), eq(pm.userId, userId)))
+      .leftJoin(pt, eq(pt.projectId, project.id))
+      .leftJoin(tm, and(eq(tm.teamId, pt.teamId), eq(tm.userId, userId)))
+      .where(
+        and(
+          eq(project.organizationId, orgId),
+          or(
+            eq(project.leadId, userId),
+            eq(project.createdBy, userId),
+            eq(pm.userId, userId),
+            eq(tm.userId, userId),
+          ),
+        ),
+      );
+
+    const idsSub = visibleQuery.as("vis");
+
+    const projectsRows = await db
+      .select({
+        id: project.id,
+        key: project.key,
+        name: project.name,
+        description: project.description,
+        updatedAt: project.updatedAt,
+        createdAt: project.createdAt,
+        startDate: project.startDate,
+        dueDate: project.dueDate,
+        // Status details
+        statusId: project.statusId,
+        statusName: projectStatus.name,
+        statusColor: projectStatus.color,
+        statusIcon: projectStatus.icon,
+        statusType: projectStatus.type,
+        // Team (primary) details
+        teamId: project.teamId,
+        teamName: team.name,
+        teamKey: team.key,
+        // Lead details
+        leadId: project.leadId,
+        createdBy: project.createdBy,
+        leadName: leadUser.name,
+        leadEmail: leadUser.email,
+      })
+      .from(project)
+      .innerJoin(idsSub, eq(idsSub.id, project.id))
+      .leftJoin(projectStatus, eq(project.statusId, projectStatus.id))
+      .leftJoin(team, eq(project.teamId, team.id))
+      .leftJoin(leadUser, eq(project.leadId, leadUser.id))
+      .orderBy(desc(project.updatedAt))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    const totalRows = await db.select({ cnt: count() }).from(idsSub);
+
+    const total = Number(totalRows[0]?.cnt ?? 0);
+
+    const countsRows = await db
+      .select({ type: projectStatus.type, cnt: count() })
+      .from(project)
+      .innerJoin(idsSub, eq(idsSub.id, project.id))
+      .leftJoin(projectStatus, eq(project.statusId, projectStatus.id))
+      .groupBy(projectStatus.type);
+
+    const counts: Record<string, number> = {};
+    countsRows.forEach((r) => {
+      counts[r.type as unknown as string] = Number(r.cnt);
+    });
+
+    return { projects: projectsRows, total, counts } as const;
+  }
+
+  /** Get recent visible projects (no pagination) */
+  static async getRecentUserProjects(
+    orgSlug: string,
+    userId: string,
+    limit = 100,
+  ) {
+    return (await this.getUserProjectsPaged(orgSlug, userId, 1, limit))
+      .projects;
   }
 }

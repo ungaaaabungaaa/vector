@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth/auth";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { OrgSidebar, OrgOptionsDropdown } from "@/components/organization";
+import { UserMenu } from "@/components/user-menu";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -65,6 +66,11 @@ export default async function MainLayout({
           {/* Navigation */}
           <div className="flex-1 overflow-y-auto">
             <OrgSidebar orgId={orgSlug} />
+          </div>
+
+          {/* User menu at bottom */}
+          <div className="border-border border-t p-2">
+            <UserMenu user={session.user} />
           </div>
         </div>
       </aside>

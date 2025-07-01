@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { CreateTeamButton, TeamsTable } from "@/components/teams";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { PageSkeleton } from "@/components/ui/table-skeleton";
 
 interface TeamsPageContentProps {
   orgSlug: string;
@@ -64,14 +65,16 @@ export function TeamsPageContent({
   // --------------------------------------------------
   // Render
   // --------------------------------------------------
-  // Loading state – match Issues page skeleton
+  // Loading state
   if (isLoading && teams.length === 0) {
     return (
-      <div className="p-4">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground text-sm">Loading teams...</div>
-        </div>
-      </div>
+      <PageSkeleton
+        showTabs={true}
+        tabCount={1}
+        showCreateButton={isAdminOrOwner}
+        tableRows={8}
+        tableColumns={4}
+      />
     );
   }
 

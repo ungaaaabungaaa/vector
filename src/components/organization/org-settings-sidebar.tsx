@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building, Users, Settings2, type LucideIcon } from "lucide-react";
+import {
+  Building,
+  Users,
+  Settings2,
+  Shield,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SettingsNavItem {
@@ -43,17 +49,17 @@ export function OrgSettingsSidebar({
       requiresAdmin: true,
     },
     {
+      label: "Roles",
+      href: `/${orgId}/settings/roles`,
+      icon: Shield,
+      description: "Manage custom roles and permissions",
+      requiresAdmin: true,
+    },
+    {
       label: "States",
       href: `/${orgId}/settings/states`,
       icon: Settings2,
       description: "Configure issue and project states",
-      requiresAdmin: true,
-    },
-    {
-      label: "Priorities",
-      href: `/${orgId}/settings/priorities`,
-      icon: Settings2,
-      description: "Configure issue priority levels",
       requiresAdmin: true,
     },
   ];

@@ -2,6 +2,8 @@
 
 import type React from "react";
 import { CreateProjectDialog } from "./create-project-dialog";
+import { PermissionGate } from "@/hooks/use-permissions";
+import { PERMISSIONS } from "@/auth/permission-constants";
 
 /**
  * Thin wrapper kept for backwards-compatibility. Accepts the previous props
@@ -15,8 +17,13 @@ interface LegacyCreateProjectButtonProps
 
 export function CreateProjectButton({
   size: _size,
+  orgSlug,
   ...rest
 }: LegacyCreateProjectButtonProps) {
   // `_size` is ignored – sizing is handled internally.
-  return <CreateProjectDialog {...rest} />;
+  return (
+    <PermissionGate orgSlug={orgSlug} permission={PERMISSIONS.PROJECT_CREATE}>
+      <CreateProjectDialog orgSlug={orgSlug} {...rest} />
+    </PermissionGate>
+  );
 }

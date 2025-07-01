@@ -4,3 +4,4 @@ export * from "./teams";
 export * from "./projects";
 export * from "./issues";
 export * from "./issue-config";
+export * from "./org-roles";

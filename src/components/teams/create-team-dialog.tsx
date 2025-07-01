@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 // Import the LeadSelector to maintain consistency
 import { LeadSelector } from "@/components/projects/project-selectors";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 // ---------------------------------------------------------------------------
 // 🧩 Internal content component (dialog body)
@@ -72,73 +73,82 @@ function CreateTeamDialogContent({
   // Auto-generate key from name (alphanumeric, max 10 chars)
   const handleNameChange = (value: string) => {
     setName(value);
-    if (
-      !key ||
-      key ===
-        value
-          .replace(/[^A-Z0-9]/gi, "")
-          .slice(0, 10)
-          .toUpperCase()
-    ) {
-      setKey(
-        value
-          .replace(/[^A-Z0-9]/gi, "")
-          .slice(0, 10)
-          .toUpperCase(),
-      );
-    }
+    setKey(
+      value
+        .replace(/\s+/g, "-") // replace spaces with hyphens
+        .replace(/[^A-Z0-9-]/gi, "") // allow only alphanumeric and hyphens
+        .slice(0, 10)
+        .toUpperCase(),
+    );
   };
 
   return (
     <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
+      <DialogHeader className="sr-only">
+        <DialogTitle>Create Team</DialogTitle>
+      </DialogHeader>
       <DialogContent showCloseButton={false} className="gap-2 p-2 sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <div className="text-muted-foreground flex w-full items-center gap-2 text-sm">
-              {/* Properties Row */}
-              <div className="flex flex-wrap gap-2">
-                <LeadSelector
-                  members={orgMembers}
-                  selectedLead={selectedLead}
-                  onLeadSelect={setSelectedLead}
-                  displayMode="iconWhenUnselected"
-                />
-              </div>
-              <div className="ml-auto">
-                <code className="bg-muted flex h-8 items-center rounded-md px-2.5 font-mono text-sm">
-                  {key || "TEAM"}
-                </code>
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-2">
           {/* Team Name */}
-          <Input
-            placeholder="Team name"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            className="text-base"
-            autoFocus
-          />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Input
+                placeholder="Team name"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                className="pr-20 text-base"
+                autoFocus
+              />
+              <span className="text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs">
+                Name
+              </span>
+            </div>
+
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <div>
+                  <LeadSelector
+                    members={orgMembers}
+                    selectedLead={selectedLead}
+                    onLeadSelect={setSelectedLead}
+                    displayMode="iconWhenUnselected"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center">
+                <span>Select a team lead</span>
+              </TooltipContent>
+            </Tooltip>
+          </div>
 
           {/* Team Key */}
-          <Input
-            placeholder="TEAM-KEY"
-            value={key}
-            onChange={(e) => setKey(e.target.value.toUpperCase().slice(0, 10))}
-            maxLength={10}
-            className="h-9"
-          />
+          <div className="relative">
+            <Input
+              placeholder="TEAM-KEY"
+              value={key}
+              onChange={(e) =>
+                setKey(e.target.value.toUpperCase().slice(0, 10))
+              }
+              maxLength={10}
+              className="h-9 pr-20 text-base"
+            />
+            <span className="text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs">
+              Key
+            </span>
+          </div>
 
           {/* Description */}
-          <Textarea
-            placeholder="Add description..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[120px] w-full resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-          />
+          <div className="relative">
+            <Textarea
+              placeholder="Add description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[120px] w-full resize-none rounded-md border px-3 py-2 pr-20 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            />
+            <span className="text-muted-foreground bg-background pointer-events-none absolute right-2 bottom-2 rounded px-2 py-0.5 text-xs">
+              Description
+            </span>
+          </div>
         </form>
 
         <div className="flex w-full flex-row items-center justify-between gap-2">

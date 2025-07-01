@@ -15,6 +15,27 @@
       "when": 1751300934188,
       "tag": "0001_smart_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1751358643456,
+      "tag": "0002_tidy_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1751359449519,
+      "tag": "0003_tearful_wolf_cub",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1751364033560,
+      "tag": "0004_flashy_moon_knight",
+      "breakpoints": true
     }
   ]
 }

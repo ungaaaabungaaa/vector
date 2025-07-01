@@ -94,79 +94,90 @@ function CreateProjectDialogContent({
   // Auto-generate key from name
   const handleNameChange = (value: string) => {
     setName(value);
-    if (!key) {
-      const generatedKey = value
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .slice(0, 20);
-      setKey(generatedKey);
-    }
+    // Auto-generate key similar to team dialog
+    setKey(
+      value
+        .replace(/\s+/g, "-") // replace spaces with hyphens
+        .replace(/[^A-Z0-9-]/gi, "") // allow only alphanumeric and hyphens
+        .slice(0, 20) // max 20 chars for projects
+        .toLowerCase(), // projects use lowercase
+    );
   };
 
   return (
     <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
       <DialogContent showCloseButton={false} className="gap-2 p-2 sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <div className="text-muted-foreground flex w-full items-center gap-2 text-sm">
-              {/* Properties Row */}
-              <div className="flex flex-wrap gap-2">
-                <TeamSelector
-                  teams={teams}
-                  selectedTeam={selectedTeam}
-                  onTeamSelect={setSelectedTeam}
-                  displayMode="iconWhenUnselected"
-                />
-
-                <AssigneeSelector
-                  members={members}
-                  selectedAssignee={selectedLead}
-                  onAssigneeSelect={setSelectedLead}
-                  displayMode="iconWhenUnselected"
-                />
-
-                <StatusSelector
-                  statuses={statuses}
-                  selectedStatus={selectedStatus}
-                  onStatusSelect={setSelectedStatus}
-                  displayMode="iconWhenUnselected"
-                />
-              </div>
-              <div className="ml-auto">
-                <code className="bg-muted flex h-8 items-center rounded-md px-2.5 font-mono text-sm">
-                  {key || "project-key"}
-                </code>
-              </div>
-            </div>
-          </DialogTitle>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Create Project</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-2">
           {/* Project Name */}
-          <Input
-            placeholder="Project name"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            className="text-base"
-            autoFocus
-          />
+          <div className="relative">
+            <Input
+              placeholder="Project name"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              className="pr-20 text-base"
+              autoFocus
+            />
+            <span className="text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs">
+              Name
+            </span>
+          </div>
 
           {/* Project Key */}
-          <Input
-            placeholder="project-key"
-            value={key}
-            onChange={(e) => setKey(e.target.value.toLowerCase())}
-            className="h-9"
-          />
+          <div className="relative">
+            <Input
+              placeholder="project-key"
+              value={key}
+              onChange={(e) =>
+                setKey(e.target.value.toLowerCase().slice(0, 20))
+              }
+              maxLength={20}
+              className="h-9 pr-20 text-base"
+            />
+            <span className="text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs">
+              Key
+            </span>
+          </div>
+
+          {/* Properties Row */}
+          <div className="flex flex-wrap gap-2 py-2">
+            <TeamSelector
+              teams={teams}
+              selectedTeam={selectedTeam}
+              onTeamSelect={setSelectedTeam}
+              displayMode="iconWhenUnselected"
+            />
+
+            <AssigneeSelector
+              members={members}
+              selectedAssignee={selectedLead}
+              onAssigneeSelect={setSelectedLead}
+              displayMode="iconWhenUnselected"
+            />
+
+            <StatusSelector
+              statuses={statuses}
+              selectedStatus={selectedStatus}
+              onStatusSelect={setSelectedStatus}
+              displayMode="iconWhenUnselected"
+            />
+          </div>
 
           {/* Description */}
-          <Textarea
-            placeholder="Add description..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[120px] w-full resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-          />
+          <div className="relative">
+            <Textarea
+              placeholder="Add description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[120px] w-full resize-none rounded-md border px-3 py-2 pr-20 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            />
+            <span className="text-muted-foreground bg-background pointer-events-none absolute right-2 bottom-2 rounded px-2 py-0.5 text-xs">
+              Description
+            </span>
+          </div>
         </form>
 
         <div className="flex w-full flex-row items-center justify-between gap-2">

@@ -4,6 +4,7 @@ import { teamRouter } from "./team.router";
 import { projectRouter } from "./project.router";
 import { issueRouter } from "./issue.router";
 import { organizationRouter } from "./organization.router";
+import { roleRouter } from "./role.router";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -11,6 +12,7 @@ export const appRouter = createTRPCRouter({
   project: projectRouter,
   issue: issueRouter,
   organization: organizationRouter,
+  role: roleRouter,
 });
 
 // Export type definition of API

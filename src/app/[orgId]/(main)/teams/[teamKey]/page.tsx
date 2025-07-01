@@ -147,17 +147,13 @@ function AddMemberDialog({
 
   return (
     <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="size-4" />
-            Add team member
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Member</label>
+      <DialogHeader className="sr-only">
+        <DialogTitle>Add team member</DialogTitle>
+      </DialogHeader>
+      <DialogContent showCloseButton={false} className="gap-2 p-2 sm:max-w-2xl">
+        <form onSubmit={handleSubmit} className="space-y-2">
+          {/* Member Selection */}
+          <div className="relative">
             <Popover
               open={memberComboboxOpen}
               onOpenChange={setMemberComboboxOpen}
@@ -167,7 +163,7 @@ function AddMemberDialog({
                   variant="outline"
                   role="combobox"
                   aria-expanded={memberComboboxOpen}
-                  className="h-9 w-full justify-between"
+                  className="h-9 w-full justify-between pr-20 text-base"
                 >
                   {selectedMember
                     ? orgMembers.find(
@@ -211,10 +207,13 @@ function AddMemberDialog({
                 </Command>
               </PopoverContent>
             </Popover>
+            <span className="text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs">
+              Member
+            </span>
           </div>
         </form>
 
-        <DialogFooter>
+        <div className="flex w-full flex-row items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
           </Button>
@@ -225,7 +224,7 @@ function AddMemberDialog({
           >
             {addMemberMutation.isPending ? "Adding…" : "Add member"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -303,13 +302,8 @@ function MembersList({
             </div>
 
             {/* Role */}
-            <div className="flex-shrink-0">
-              <Badge
-                variant={member.role === "lead" ? "default" : "secondary"}
-                className="text-xs"
-              >
-                {member.role || "member"}
-              </Badge>
+            <div className="flex-shrink-0 text-xs capitalize">
+              {member.role || "member"}
             </div>
 
             {/* Actions */}

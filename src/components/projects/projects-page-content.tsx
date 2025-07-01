@@ -9,6 +9,7 @@ import { CreateProjectButton } from "./create-project-button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { projectStatusTypeEnum } from "@/db/schema/projects";
+import { PageSkeleton } from "@/components/ui/table-skeleton";
 
 type StatusType = (typeof projectStatusTypeEnum.enumValues)[number];
 type FilterType = "all" | StatusType;
@@ -92,6 +93,16 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
     },
   });
 
+  const deleteMutation = trpc.project.delete.useMutation({
+    onSuccess: () => {
+      pagedQuery.refetch();
+      toast.success("Project deleted");
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    },
+  });
+
   // Event handlers
   const handleStatusChange = (projectId: string, statusId: string) => {
     changeStatusMutation.mutate({
@@ -118,8 +129,8 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
   };
 
   const handleDelete = (projectId: string) => {
-    // TODO: Implement delete mutation when available
-    toast.error("Delete functionality not yet implemented");
+    if (!confirm("Delete this project? This cannot be undone.")) return;
+    deleteMutation.mutate({ projectId });
   };
 
   // Transform data - convert string dates to Date objects
@@ -180,26 +191,13 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
 
   if (isLoading) {
     return (
-      <div className="h-full p-1">
-        <div className="bg-background h-full overflow-hidden rounded-lg border">
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b p-1">
-              <div className="bg-muted h-6 w-32 animate-pulse rounded" />
-              <div className="bg-muted h-6 w-24 animate-pulse rounded" />
-            </div>
-            <div className="flex-1 p-4">
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-muted h-12 animate-pulse rounded"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageSkeleton
+        showTabs={true}
+        tabCount={visibleTabs.length || 6}
+        showCreateButton={true}
+        tableRows={8}
+        tableColumns={6}
+      />
     );
   }
 
@@ -243,6 +241,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
             onTeamChange={handleTeamChange}
             onLeadChange={handleLeadChange}
             onDelete={handleDelete}
+            deletePending={deleteMutation.isPending}
           />
         </div>
 

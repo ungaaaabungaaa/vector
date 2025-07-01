@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Settings2, Plus, Clock, Pencil } from "lucide-react";
 import { StatesManagementDialog } from "@/components/organization";
+import { PrioritiesManagementDialog } from "@/components/organization/priorities-management-dialog";
 import { issueStateTypeEnum } from "@/db/schema/issue-config";
 import { projectStatusTypeEnum } from "@/db/schema/projects";
 import { trpc } from "@/lib/trpc";
@@ -17,6 +18,14 @@ interface WorkflowState {
   color: string | null;
   icon: string | null;
   type: string;
+}
+
+interface Priority {
+  id: string;
+  name: string;
+  weight: number;
+  color: string | null;
+  icon: string | null;
 }
 
 interface StatesPageContentProps {
@@ -59,6 +68,9 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
   );
   const { data: projectStatuses = [] } =
     trpc.organization.listProjectStatuses.useQuery({ orgSlug });
+
+  const { data: priorities = [] } =
+    trpc.organization.listIssuePriorities.useQuery({ orgSlug });
 
   const createIssueState = trpc.organization.createIssueState.useMutation({
     onSuccess: () => {
@@ -115,6 +127,31 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
       },
     });
 
+  const createPriority = trpc.organization.createIssuePriority.useMutation({
+    onSuccess: () => {
+      utils.organization.listIssuePriorities
+        .invalidate({ orgSlug })
+        .catch(() => {});
+    },
+  });
+
+  const updatePriority = trpc.organization.updateIssuePriority.useMutation({
+    onSuccess: () => {
+      utils.organization.listIssuePriorities
+        .invalidate({ orgSlug })
+        .catch(() => {});
+    },
+  });
+
+  const resetPriorities = trpc.organization.resetIssuePriorities.useMutation({
+    onSuccess: () => {
+      utils.organization.listIssuePriorities
+        .invalidate({ orgSlug })
+        .catch(() => {});
+      toast.success("Priorities reset to defaults");
+    },
+  });
+
   const [dialogState, setDialogState] = useState<{
     isOpen: boolean;
     type: "issue" | "project";
@@ -122,6 +159,13 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
   }>({
     isOpen: false,
     type: "issue",
+  });
+
+  const [priorityDialogState, setPriorityDialogState] = useState<{
+    isOpen: boolean;
+    editingPriority?: Priority;
+  }>({
+    isOpen: false,
   });
 
   const handleAddState = (type: "issue" | "project") => {
@@ -193,6 +237,39 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
   const closeDialog = () => {
     setDialogState({ isOpen: false, type: "issue" });
   };
+
+  const handleAddPriority = () => {
+    setPriorityDialogState({ isOpen: true });
+  };
+
+  const handleEditPriority = (priority: Priority) => {
+    setPriorityDialogState({ isOpen: true, editingPriority: priority });
+  };
+
+  const handleSavePriority = (data: Omit<Priority, "id">) => {
+    if (priorityDialogState.editingPriority) {
+      updatePriority.mutate({
+        orgSlug,
+        priorityId: priorityDialogState.editingPriority.id,
+        name: data.name,
+        weight: data.weight,
+        color: data.color ?? "#94a3b8",
+        icon: data.icon,
+      });
+    } else {
+      createPriority.mutate({
+        orgSlug,
+        name: data.name,
+        weight: data.weight,
+        color: data.color ?? "#94a3b8",
+        icon: data.icon,
+      });
+    }
+
+    setPriorityDialogState({ isOpen: false });
+  };
+
+  const closePriorityDialog = () => setPriorityDialogState({ isOpen: false });
 
   const issueGroups = groupStatesByType(issueStates as WorkflowState[], true);
   const projectGroups = groupStatesByType(
@@ -370,6 +447,78 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
         </div>
       </div>
 
+      {/* Issue Priorities Section */}
+      <div className="mt-20 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Settings2 className="text-muted-foreground size-5" />
+            <h2 className="text-lg font-semibold">Issue Priorities</h2>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => resetPriorities.mutate({ orgSlug })}
+              className="h-7 text-xs"
+            >
+              Reset
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAddPriority}
+              className="h-7 text-xs"
+            >
+              <Plus className="mr-1 size-3" />
+              Add Priority
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {priorities.map((priority) => (
+            <button
+              key={priority.id}
+              className="bg-background hover:bg-muted/30 group flex w-full cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-left transition-colors"
+              onClick={() => handleEditPriority(priority as Priority)}
+            >
+              {priority.icon ? (
+                (() => {
+                  const IconComponent = getDynamicIcon(priority.icon) ?? null;
+                  return IconComponent ? (
+                    <IconComponent
+                      className="size-3 flex-shrink-0"
+                      style={{ color: priority.color || "#94a3b8" }}
+                    />
+                  ) : (
+                    <span
+                      className="size-2.5 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: priority.color || "#94a3b8" }}
+                    />
+                  );
+                })()
+              ) : (
+                <span
+                  className="size-2.5 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: priority.color || "#94a3b8" }}
+                />
+              )}
+              <span className="truncate text-sm font-medium">
+                {priority.name}
+              </span>
+
+              <span className="text-muted-foreground ml-auto text-xs">
+                {priority.weight}
+              </span>
+            </button>
+          ))}
+          {priorities.length === 0 && (
+            <div className="text-muted-foreground px-2 py-1.5 text-xs italic">
+              No priorities configured
+            </div>
+          )}
+        </div>
+      </div>
+
       {dialogState.isOpen && (
         <StatesManagementDialog
           type={dialogState.type}
@@ -382,6 +531,17 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
           orgSlug={orgSlug}
           onClose={closeDialog}
           onSave={handleSaveState}
+        />
+      )}
+
+      {/* Priorities Dialog */}
+      {priorityDialogState.isOpen && (
+        <PrioritiesManagementDialog
+          priority={priorityDialogState.editingPriority}
+          existingPriorities={priorities as Priority[]}
+          onClose={closePriorityDialog}
+          onSave={handleSavePriority}
+          orgSlug={orgSlug}
         />
       )}
     </div>

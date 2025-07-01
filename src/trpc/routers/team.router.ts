@@ -76,7 +76,7 @@ export const teamRouter = createTRPCRouter({
         key: input.key,
         name: input.name,
         description: input.description,
-        leadId: input.leadId,
+        leadId: input.leadId || userId,
       });
       return { id } as const;
     }),
@@ -141,6 +141,10 @@ export const teamRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      await removeTeamMember(input.teamId, input.userId);
+      try {
+        await removeTeamMember(input.teamId, input.userId);
+      } catch (e: any) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+      }
     }),
 });

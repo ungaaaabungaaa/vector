@@ -191,17 +191,6 @@ export function IssueAssignments({
                   handleStateChange(assignment.id, stateId)
                 }
                 align="end"
-                // displayMode="iconOnly"
-                // trigger={
-                //   <div className="flex-shrink-0 cursor-pointer">
-                //     {StateIcon && (
-                //       <StateIcon
-                //         className="size-4"
-                //         style={{ color: stateColor }}
-                //       />
-                //     )}
-                //   </div>
-                // }
                 className="border-none bg-transparent p-0 shadow-none"
               />
 

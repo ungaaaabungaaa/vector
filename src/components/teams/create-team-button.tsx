@@ -2,6 +2,8 @@
 
 import type React from "react";
 import { CreateTeamDialog } from "./create-team-dialog";
+import { PermissionGate } from "@/hooks/use-permissions";
+import { PERMISSIONS } from "@/auth/permission-constants";
 
 /**
  * Thin wrapper kept for backwards-compatibility. Accepts the previous props
@@ -16,9 +18,14 @@ interface LegacyCreateTeamButtonProps
 
 export function CreateTeamButton({
   size: _size,
+  orgSlug,
   ...rest
 }: LegacyCreateTeamButtonProps) {
   // `_size` is intentionally ignored – sizing is handled internally by the
   // new dialog component. All other props are forwarded through untouched.
-  return <CreateTeamDialog {...rest} />;
+  return (
+    <PermissionGate orgSlug={orgSlug} permission={PERMISSIONS.TEAM_CREATE}>
+      <CreateTeamDialog orgSlug={orgSlug} {...rest} />
+    </PermissionGate>
+  );
 }

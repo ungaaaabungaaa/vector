@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { issueStateTypeEnum } from "@/db/schema/issue-config";
 import { authClient } from "@/lib/auth-client";
 import { IssuesTable } from "@/components/issues/issues-table";
+import { PageSkeleton } from "@/components/ui/table-skeleton";
 
 type StateType = (typeof issueStateTypeEnum.enumValues)[number];
 type FilterType = "all" | StateType;
@@ -200,11 +201,13 @@ export default function IssuesPage() {
 
   if (isLoading && issues.length === 0) {
     return (
-      <div className="p-4">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground text-sm">Loading issues...</div>
-        </div>
-      </div>
+      <PageSkeleton
+        showTabs={true}
+        tabCount={5}
+        showCreateButton={true}
+        tableRows={8}
+        tableColumns={6}
+      />
     );
   }
 

@@ -10,6 +10,9 @@ import { WorkflowService } from "@/entities/workflow/state.service";
 import { issueStateTypeEnum } from "@/db/schema/issue-config";
 import { projectStatusTypeEnum } from "@/db/schema/projects";
 
+import { hasPermission, requirePermission } from "@/auth/permissions";
+import { PERMISSIONS } from "@/auth/permission-constants";
+
 // Derive type-safe Zod enum based on DB enum values (excluding "owner" for invite/update)
 const roleEnum = ((): ReturnType<typeof import("zod").z.enum> => {
   const values = memberRoleEnum.enumValues.filter((v) => v !== "owner") as [
@@ -37,17 +40,20 @@ export const organizationRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const userId = getUserId(ctx);
 
-      // Verify user is admin or owner of org
+      // Verify user has org management permission
       const membership = await OrganizationService.verifyUserOrganizationAccess(
         userId,
         input.orgSlug,
       );
-      if (
-        !membership ||
-        (membership.role !== "admin" && membership.role !== "owner")
-      ) {
+      if (!membership) {
         throw new Error("FORBIDDEN");
       }
+
+      await requirePermission(
+        userId,
+        membership.organizationId,
+        PERMISSIONS.ORG_MANAGE,
+      );
 
       const updated = await OrganizationService.updateOrganization(
         membership.organizationId,
@@ -65,6 +71,19 @@ export const organizationRouter = createTRPCRouter({
       );
       if (!membership) throw new Error("FORBIDDEN");
       return OrganizationService.listMembers(membership.organizationId);
+    }),
+
+  listMembersWithRoles: protectedProcedure
+    .input(z.object({ orgSlug: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const membership = await OrganizationService.verifyUserOrganizationAccess(
+        getUserId(ctx),
+        input.orgSlug,
+      );
+      if (!membership) throw new Error("FORBIDDEN");
+      return OrganizationService.listMembersWithRoles(
+        membership.organizationId,
+      );
     }),
 
   invite: protectedProcedure
@@ -98,6 +117,26 @@ export const organizationRouter = createTRPCRouter({
     .input(z.object({ token: z.string() }))
     .mutation(async ({ input, ctx }) => {
       return OrganizationService.revokeInvitation(input.token);
+    }),
+
+  resendInvite: protectedProcedure
+    .input(z.object({ token: z.string(), orgSlug: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const userId = getUserId(ctx);
+
+      // Verify user is admin/owner of the organization
+      const membership = await OrganizationService.verifyUserOrganizationAccess(
+        userId,
+        input.orgSlug,
+      );
+      if (
+        !membership ||
+        (membership.role !== "admin" && membership.role !== "owner")
+      ) {
+        throw new Error("FORBIDDEN");
+      }
+
+      return OrganizationService.resendInvitation(input.token, userId);
     }),
 
   listInvites: protectedProcedure
@@ -158,7 +197,7 @@ export const organizationRouter = createTRPCRouter({
         input.orgSlug,
       );
       if (!membership) throw new Error("FORBIDDEN");
-      return OrganizationService.getOrganizationTeams(input.orgSlug);
+      return OrganizationService.getUserTeams(input.orgSlug, getUserId(ctx));
     }),
 
   // New paginated teams endpoint -------------------------------------------------
@@ -176,8 +215,9 @@ export const organizationRouter = createTRPCRouter({
         input.orgSlug,
       );
       if (!membership) throw new Error("FORBIDDEN");
-      return OrganizationService.getTeamsPaged(
+      return OrganizationService.getUserTeamsPaged(
         input.orgSlug,
+        getUserId(ctx),
         input.page,
         input.pageSize,
       );
@@ -191,7 +231,11 @@ export const organizationRouter = createTRPCRouter({
         input.orgSlug,
       );
       if (!membership) throw new Error("FORBIDDEN");
-      return OrganizationService.getRecentProjects(input.orgSlug, 100); // Get all projects
+      return OrganizationService.getRecentUserProjects(
+        input.orgSlug,
+        getUserId(ctx),
+        100,
+      );
     }),
 
   listProjectsPaged: protectedProcedure
@@ -208,8 +252,9 @@ export const organizationRouter = createTRPCRouter({
         input.orgSlug,
       );
       if (!membership) throw new Error("FORBIDDEN");
-      return OrganizationService.getProjectsPaged(
+      return OrganizationService.getUserProjectsPaged(
         input.orgSlug,
+        getUserId(ctx),
         input.page,
         input.pageSize,
       );
@@ -223,7 +268,11 @@ export const organizationRouter = createTRPCRouter({
         input.orgSlug,
       );
       if (!membership) throw new Error("FORBIDDEN");
-      return OrganizationService.getRecentIssues(input.orgSlug, 100); // Get all issues
+      return OrganizationService.getRecentIssues(
+        input.orgSlug,
+        getUserId(ctx),
+        100,
+      ); // Get all issues
     }),
 
   listIssuesPaged: protectedProcedure
@@ -242,6 +291,7 @@ export const organizationRouter = createTRPCRouter({
       if (!membership) throw new Error("FORBIDDEN");
       return OrganizationService.getIssuesPaged(
         input.orgSlug,
+        getUserId(ctx),
         input.page,
         input.pageSize,
       );
@@ -619,5 +669,44 @@ export const organizationRouter = createTRPCRouter({
         throw new Error("FORBIDDEN");
 
       await WorkflowService.resetIssuePriorities(input.orgSlug);
+    }),
+
+  // -------------------------------------------------------------------------
+  //  Permission checking
+  // -------------------------------------------------------------------------
+
+  hasPermission: protectedProcedure
+    .input(z.object({ orgSlug: z.string(), permission: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const membership = await OrganizationService.verifyUserOrganizationAccess(
+        getUserId(ctx),
+        input.orgSlug,
+      );
+      if (!membership) return false;
+      return hasPermission(
+        getUserId(ctx),
+        membership.organizationId,
+        input.permission,
+      );
+    }),
+
+  hasPermissions: protectedProcedure
+    .input(z.object({ orgSlug: z.string(), permissions: z.string().array() }))
+    .query(async ({ input, ctx }) => {
+      const membership = await OrganizationService.verifyUserOrganizationAccess(
+        getUserId(ctx),
+        input.orgSlug,
+      );
+      if (!membership) return {};
+
+      const results: Record<string, boolean> = {};
+      for (const permission of input.permissions) {
+        results[permission] = await hasPermission(
+          getUserId(ctx),
+          membership.organizationId,
+          permission,
+        );
+      }
+      return results;
     }),
 });

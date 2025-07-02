@@ -17,7 +17,6 @@ interface LegacyCreateTeamButtonProps
 }
 
 export function CreateTeamButton({
-  size: _size,
   orgSlug,
   ...rest
 }: LegacyCreateTeamButtonProps) {

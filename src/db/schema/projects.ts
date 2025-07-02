@@ -5,7 +5,6 @@ import {
   timestamp,
   date,
   integer,
-  boolean,
   index,
   primaryKey,
   pgEnum,

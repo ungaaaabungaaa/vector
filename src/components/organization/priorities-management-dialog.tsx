@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SquareDashed, Users } from "lucide-react";
+import { SquareDashed } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { IconPicker } from "@/components/ui/icon-picker";
 import {

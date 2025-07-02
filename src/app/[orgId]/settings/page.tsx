@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { auth } from "@/auth/auth";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { Building } from "lucide-react";
@@ -49,7 +50,7 @@ export default async function OrgSettingsPage({
           Organization Information
         </h1>
         <p className="text-muted-foreground text-sm">
-          Manage your organization's basic information and branding
+          Manage your organization&apos;s basic information and branding
         </p>
       </div>
 
@@ -69,7 +70,7 @@ export default async function OrgSettingsPage({
               </div>
             )}
             <p className="text-muted-foreground text-xs">
-              This is your organization's display name
+              This is your organization&apos;s display name
             </p>
           </div>
 
@@ -83,7 +84,7 @@ export default async function OrgSettingsPage({
               </div>
             )}
             <p className="text-muted-foreground text-xs">
-              Used in your organization's URL (example.com/{orgSlug})
+              Used in your organization&apos;s URL (example.com/{orgSlug})
             </p>
           </div>
 
@@ -95,9 +96,11 @@ export default async function OrgSettingsPage({
                 initialValue={org.organizationLogo}
               />
             ) : org.organizationLogo ? (
-              <img
+              <Image
                 src={`/api/files/${org.organizationLogo}`}
                 alt="Org logo"
+                width={64}
+                height={64}
                 className="size-16 rounded border object-cover"
               />
             ) : (

@@ -239,9 +239,13 @@ export async function createIssue(
       });
 
       return { id, key: issueKey } as const;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 23505 is unique_violation in Postgres
-      const isDupKey = err?.code === "23505";
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code?: string }).code
+          : undefined;
+      const isDupKey = code === "23505";
       if (!isDupKey || attempts >= 5) throw err;
 
       // Recompute sequence/key based on format and retry

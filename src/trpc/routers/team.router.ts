@@ -10,7 +10,6 @@ import {
 } from "@/entities/teams/team.service";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { z } from "zod";
-import { assertTeamLeadOrPermission } from "@/trpc/permissions";
 import { PERMISSIONS } from "@/auth/permission-constants";
 import { TRPCError } from "@trpc/server";
 import { PermissionPolicy } from "@/auth/policy-engine";
@@ -186,8 +185,9 @@ export const teamRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         await removeTeamMember(input.teamId, input.userId);
-      } catch (e: any) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+      } catch (e: unknown) {
+        const error = e as Error;
+        throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
       }
     }),
 });

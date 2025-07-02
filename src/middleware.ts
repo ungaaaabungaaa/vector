@@ -9,12 +9,8 @@ export default async function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const { pathname } = request.nextUrl;
 
-  // Define routes that never require auth (root, assets etc.)
-  const alwaysPublic = [/^\/$/, /^\/setup-admin$/];
-
   // Auth pages - separate login/signup from org-setup
-  const loginPages = [/^\/auth(\/.*)?$/];
-  const setupPages = [/^\/org-setup$/];
+  const setupPages = [/^\/setup-admin$/, /^\/org-setup$/];
 
   // Organization-scoped routes pattern: /<orgId>/...
   const orgScopedRoutes =
@@ -23,13 +19,10 @@ export default async function middleware(request: NextRequest) {
   // Global user routes that don't require organization context
   const globalUserRoutes = [/^\/settings\/profile$/];
 
-  const isAlwaysPublic = alwaysPublic.some((re) => re.test(pathname));
-  const isLoginPage = loginPages.some((re) => re.test(pathname));
   const isSetupPage = setupPages.some((re) => re.test(pathname));
   const isOrgScopedRoute = orgScopedRoutes.test(pathname);
   const isGlobalUserRoute = globalUserRoutes.some((re) => re.test(pathname));
 
-  const isPublic = isAlwaysPublic || isLoginPage || isSetupPage;
   const requiresAuth = isOrgScopedRoute || isGlobalUserRoute || isSetupPage;
 
   // ---------------------------------------------------------------------

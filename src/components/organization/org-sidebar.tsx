@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   Users,
   FolderKanban,
-  Bug,
   type LucideIcon,
   CheckSquare,
 } from "lucide-react";

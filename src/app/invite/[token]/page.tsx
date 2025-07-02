@@ -1,18 +1,12 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/auth/auth";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Users,
-  Calendar,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
+import { Users, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { formatDateHuman } from "@/lib/date";
 
 interface InvitePageProps {
@@ -177,24 +171,6 @@ export default async function InvitePage({
               </div>
             </div>
 
-            {/* Authentication Required */}
-            {!session?.user && (
-              <div className="text-center">
-                <p className="text-muted-foreground mb-3 text-xs">
-                  Sign in to accept this invitation
-                </p>
-                <Button
-                  asChild
-                  className="w-full"
-                  disabled={isExpired || isAlreadyUsed}
-                >
-                  <a href={`/auth/login?redirectTo=/invite/${token}`}>
-                    Sign In
-                  </a>
-                </Button>
-              </div>
-            )}
-
             {/* Email Mismatch Warning */}
             {session?.user && session.user.email !== email && (
               <div className="flex items-center gap-2 rounded-md bg-orange-50 p-3 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400">
@@ -202,8 +178,8 @@ export default async function InvitePage({
                 <div className="text-xs">
                   <p className="font-medium">Email mismatch</p>
                   <p>
-                    This invitation was sent to {email}, but you're signed in as{" "}
-                    {session.user.email}
+                    This invitation was sent to {email}, but you&apos;re signed
+                    in as {session.user.email}
                   </p>
                 </div>
               </div>
@@ -231,7 +207,25 @@ export default async function InvitePage({
             {session?.user && (isExpired || isAlreadyUsed) && (
               <div className="text-center">
                 <Button variant="outline" size="sm" asChild>
-                  <a href="/">Go to Dashboard</a>
+                  <Link href="/">Go to Dashboard</Link>
+                </Button>
+              </div>
+            )}
+
+            {/* Authentication Required */}
+            {!session?.user && (
+              <div className="text-center">
+                <p className="text-muted-foreground mb-3 text-xs">
+                  Sign in to accept this invitation
+                </p>
+                <Button
+                  asChild
+                  className="w-full"
+                  disabled={isExpired || isAlreadyUsed}
+                >
+                  <Link href={`/auth/login?redirectTo=/invite/${token}`}>
+                    Sign In
+                  </Link>
                 </Button>
               </div>
             )}

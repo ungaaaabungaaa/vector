@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { ChevronsUpDown, X } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
 
@@ -232,7 +232,7 @@ export function IconPicker({
         <div className="pb-3">
           {filteredIcons.length === 0 && (
             <div className="text-muted-foreground p-8 text-center text-sm">
-              No icons found matching "{searchQuery}"
+              No icons found matching &quot;{searchQuery}&quot;
             </div>
           )}
         </div>

@@ -43,11 +43,7 @@ export async function POST(
     const extension = fileType.split("/")[1] || "png";
     const key = `org-logos/${orgId}/${Date.now()}.${extension}`;
 
-    const { uploadUrl, publicUrl } = await getPresignedUploadUrl(
-      key,
-      fileType,
-      60,
-    );
+    const { uploadUrl } = await getPresignedUploadUrl(key, fileType, 60);
 
     return NextResponse.json({ uploadUrl, key });
   } catch (err) {

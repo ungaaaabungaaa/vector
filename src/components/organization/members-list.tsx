@@ -40,12 +40,11 @@ export function MembersList({
   orgSlug,
   isAdmin,
   currentUserId,
-  memberCount,
 }: {
   orgSlug: string;
   isAdmin: boolean;
   currentUserId: string;
-  memberCount: number;
+  memberCount?: number;
 }) {
   const utils = trpc.useUtils();
   const { data: members, isLoading } =

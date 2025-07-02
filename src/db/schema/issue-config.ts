@@ -4,10 +4,8 @@ import {
   text,
   integer,
   timestamp,
-  boolean,
   primaryKey,
   pgEnum,
-  index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organization } from "./users-and-auth";

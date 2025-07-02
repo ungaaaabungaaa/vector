@@ -1,17 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { db } from "@/db";
 import {
-  projectMember as projectMemberTable,
   issue as issueTable,
   issueAssignee as assignmentTable,
   team as teamTable,
   project as projectTable,
-  member,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import type { ProtectedContext } from "@/trpc/init";
 import { PERMISSIONS, type Permission } from "@/auth/permission-constants";
-import { hasPermission, requirePermission } from "./permissions";
+import { requirePermission } from "./permissions";
 
 // Platform-level admin check
 export function isPlatformAdmin(ctx: ProtectedContext): boolean {
@@ -94,7 +92,7 @@ export class PermissionPolicy {
       default:
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Unknown resource type: ${(resource as any).type}`,
+          message: `Unknown resource type: ${(resource as { type: string }).type}`,
         });
     }
   }
@@ -117,13 +115,20 @@ export class PermissionPolicy {
       .limit(1);
 
     if (projectRows.length === 0) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Project not found",
+      });
     }
 
-    const { leadId, organizationId } = projectRows[0];
+    const { organizationId } = projectRows[0];
 
     // Project lead can do most actions
-    if (leadId === userId && this.isLeadAction(action)) {
+    if (
+      projectRows.length > 0 &&
+      projectRows[0].leadId === userId &&
+      this.isLeadAction(action)
+    ) {
       return;
     }
 
@@ -149,13 +154,20 @@ export class PermissionPolicy {
       .limit(1);
 
     if (teamRows.length === 0) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Team not found",
+      });
     }
 
-    const { leadId, organizationId } = teamRows[0];
+    const { organizationId } = teamRows[0];
 
     // Team lead can do most actions
-    if (leadId === userId && this.isLeadAction(action)) {
+    if (
+      teamRows.length > 0 &&
+      teamRows[0].leadId === userId &&
+      this.isLeadAction(action)
+    ) {
       return;
     }
 
@@ -183,7 +195,10 @@ export class PermissionPolicy {
       .limit(1);
 
     if (issueRows.length === 0) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Issue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Issue not found",
+      });
     }
 
     const { reporterId, projectId, teamId, organizationId } = issueRows[0];
@@ -284,7 +299,10 @@ export class PermissionPolicy {
       .limit(1);
 
     if (issueRows.length === 0) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Issue not found" });
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Issue not found",
+      });
     }
 
     // Fall back to org-level assignment management permission
@@ -297,27 +315,27 @@ export class PermissionPolicy {
 
   // Helper methods to categorize actions
   private static isLeadAction(action: Permission): boolean {
-    const leadActions = [
+    const leadActions: Permission[] = [
       PERMISSIONS.PROJECT_UPDATE,
       PERMISSIONS.PROJECT_DELETE,
       PERMISSIONS.TEAM_UPDATE,
       PERMISSIONS.TEAM_DELETE,
       PERMISSIONS.ISSUE_UPDATE,
       PERMISSIONS.ISSUE_DELETE,
-    ] as const;
-    return leadActions.includes(action as any);
+    ];
+    return leadActions.includes(action);
   }
 
   private static isAuthorAction(action: Permission): boolean {
-    const authorActions = [
+    const authorActions: Permission[] = [
       PERMISSIONS.ISSUE_UPDATE,
       PERMISSIONS.ISSUE_DELETE,
-    ] as const;
-    return authorActions.includes(action as any);
+    ];
+    return authorActions.includes(action);
   }
 
   private static isAssigneeAction(action: Permission): boolean {
-    const assigneeActions = [PERMISSIONS.ISSUE_UPDATE] as const;
-    return assigneeActions.includes(action as any);
+    const assigneeActions: Permission[] = [PERMISSIONS.ISSUE_UPDATE];
+    return assigneeActions.includes(action);
   }
 }

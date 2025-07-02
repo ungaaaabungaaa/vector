@@ -174,9 +174,13 @@ export class OrgRoleService {
         organizationId: orgId,
         assignedAt: new Date(),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Postgres unique_violation error code
-      if (err.code === "23505") {
+      const code =
+        typeof err === "object" && err !== null && "code" in err
+          ? (err as { code?: string }).code
+          : undefined;
+      if (code === "23505") {
         // Role already assigned – silently ignore
         return;
       }

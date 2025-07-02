@@ -10,13 +10,12 @@ import { PageSkeleton } from "@/components/ui/table-skeleton";
 interface TeamsPageContentProps {
   orgSlug: string;
   isAdminOrOwner: boolean;
-  orgName: string;
+  orgName?: string;
 }
 
 export function TeamsPageContent({
   orgSlug,
   isAdminOrOwner,
-  orgName: _orgName,
 }: TeamsPageContentProps) {
   // --------------------------------------------------
   // Pagination (server-side)

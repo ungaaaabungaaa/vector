@@ -144,7 +144,7 @@ export const organizationRouter = createTRPCRouter({
 
   revokeInvite: protectedProcedure
     .input(z.object({ token: z.string() }))
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       return OrganizationService.revokeInvitation(input.token);
     }),
 

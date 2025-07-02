@@ -120,8 +120,8 @@ export function OrgSetupForm() {
           />
         </div>
         <p className="text-muted-foreground text-sm">
-          This will be used in your organization's URL. Only lowercase letters,
-          numbers, and hyphens are allowed.
+          This will be used in your organization&apos;s URL. Only lowercase
+          letters, numbers, and hyphens are allowed.
         </p>
       </div>
 

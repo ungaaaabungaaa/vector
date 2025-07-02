@@ -213,7 +213,7 @@ function AddMemberDialog({
                   <CommandList>
                     <CommandEmpty>No member found.</CommandEmpty>
                     <CommandGroup>
-                      {orgMembers.map((member: any) => (
+                      {orgMembers.map((member) => (
                         <CommandItem
                           key={member.userId}
                           value={member.name}

@@ -2,10 +2,9 @@ import { db } from "@/db";
 import {
   comment as commentTable,
   issueActivity as activityTable,
-  issueActivityTypeEnum as activityEnum,
 } from "@/db/schema";
 import { randomUUID } from "crypto";
-import { InferInsertModel, InferSelectModel, eq, and } from "drizzle-orm";
+import { InferInsertModel, InferSelectModel, eq } from "drizzle-orm";
 
 // -----------------------------------------------------------------------------
 // Types

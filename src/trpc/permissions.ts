@@ -1,16 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { db } from "@/db";
-import {
-  projectMember as projectMemberTable,
-  issue as issueTable,
-  issueAssignee as assignmentTable,
-  team as teamTable,
-  project as projectTable,
-} from "@/db/schema";
-import { eq, and } from "drizzle-orm";
 import type { Context, ProtectedContext } from "@/trpc/init";
 import { PERMISSIONS, type Permission } from "@/auth/permission-constants";
-import { hasPermission } from "@/auth/permissions";
 import { PermissionPolicy, isPlatformAdmin } from "@/auth/policy-engine";
 
 /**

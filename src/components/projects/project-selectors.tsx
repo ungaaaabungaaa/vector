@@ -193,7 +193,7 @@ interface TeamSelectorProps {
   className?: string;
 }
 
-// Deprecated local implementation renamed to avoid export conflicts
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _DeprecatedTeamSelector({
   teams,
   selectedTeam,
@@ -201,7 +201,9 @@ function _DeprecatedTeamSelector({
   displayMode = "full",
   className,
 }: TeamSelectorProps) {
-  const [open, setOpen] = useState(false);
+  const open = false;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setOpen = (_unused: boolean) => {};
 
   const selectedTeamObj = teams.find((t) => t.id === selectedTeam);
 

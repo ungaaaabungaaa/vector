@@ -152,6 +152,7 @@ export class UserService {
 
     try {
       // Helper to fetch slug with arbitrary additional conditions
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fetchSlug = async (additionalWhere?: any) => {
         const rows = await db
           .select({ slug: organization.slug })

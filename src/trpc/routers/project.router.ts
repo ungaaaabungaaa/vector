@@ -10,11 +10,9 @@ import {
   findProjectByKey,
   listProjectMembers,
   deleteProject,
-  userHasProjectAccess,
 } from "@/entities/projects/project.service";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { z } from "zod";
-import { assertProjectLeadOrPermission } from "@/trpc/permissions";
 import { eq } from "drizzle-orm";
 import {
   project as projectTable,
@@ -210,7 +208,7 @@ export const projectRouter = createTRPCRouter({
         id: input.projectId,
       }).then(() => next());
     })
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       await updateProject({
         id: input.projectId,
         data: { statusId: input.statusId },
@@ -231,7 +229,7 @@ export const projectRouter = createTRPCRouter({
         id: input.projectId,
       }).then(() => next());
     })
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       await updateProject({
         id: input.projectId,
         data: { teamId: input.teamId },
@@ -252,7 +250,7 @@ export const projectRouter = createTRPCRouter({
         id: input.projectId,
       }).then(() => next());
     })
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ input }) => {
       await updateProject({
         id: input.projectId,
         data: { leadId: input.leadId },
@@ -293,8 +291,10 @@ export const projectRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       try {
         await removeProjectMember(input.projectId, input.userId);
-      } catch (e: any) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "Failed to remove project member";
+        throw new TRPCError({ code: "BAD_REQUEST", message });
       }
     }),
 

@@ -233,7 +233,9 @@ export function IssueAssignments({
         <div className="text-muted-foreground py-6 text-center">
           <User className="mx-auto mb-2 h-8 w-8 opacity-50" />
           <p className="text-sm">No assignees yet</p>
-          <p className="text-xs">Click "Add" to assign someone to this issue</p>
+          <p className="text-xs">
+            Click &quot;Add&quot; to assign someone to this issue
+          </p>
         </div>
       )}
 

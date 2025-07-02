@@ -70,5 +70,8 @@ export type CustomPermission = string & { _brand: "custom" };
 
 // Helper to validate permissions at runtime
 export function isValidPermission(perm: string): perm is Permission {
-  return perm === WILDCARD || PERMISSION_LIST.includes(perm as any);
+  return (
+    perm === WILDCARD ||
+    PERMISSION_LIST.includes(perm as (typeof PERMISSION_LIST)[number])
+  );
 }

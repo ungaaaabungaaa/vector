@@ -16,7 +16,6 @@ interface LegacyCreateProjectButtonProps
 }
 
 export function CreateProjectButton({
-  size: _size,
   orgSlug,
   ...rest
 }: LegacyCreateProjectButtonProps) {

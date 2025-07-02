@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, X, Tag, ArrowLeft } from "lucide-react";
+import { Save, X, ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
@@ -14,13 +14,10 @@ import Link from "next/link";
 
 // Re-use shared issue selectors
 import {
-  StateSelector as StatusSelector,
   PrioritySelector,
-  AssigneeSelector,
   TeamSelector,
   ProjectSelector,
 } from "@/components/issues/issue-selectors";
-import { Separator } from "@/components/ui/separator";
 import { IssueAssignments } from "@/components/issues/issue-assignments";
 
 interface IssueViewPageProps {
@@ -28,11 +25,7 @@ interface IssueViewPageProps {
 }
 
 // Loading skeleton component that matches the actual layout
-function IssueLoadingSkeleton({
-  resolvedParams,
-}: {
-  resolvedParams: { orgId: string; issueKey: string } | null;
-}) {
+function IssueLoadingSkeleton() {
   return (
     <div className="bg-background h-full overflow-y-auto">
       <div className="h-full">
@@ -172,10 +165,6 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     },
   });
 
-  const changeStateMutation = trpc.issue.changeState.useMutation({
-    onSuccess: () => refetchIssue(),
-  });
-
   const changePriorityMutation = trpc.issue.changePriority.useMutation({
     onSuccess: () => refetchIssue(),
   });
@@ -196,9 +185,8 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     }
   }, [issue]);
 
-  if (!resolvedParams) return <IssueLoadingSkeleton resolvedParams={null} />;
-  if (issueLoading)
-    return <IssueLoadingSkeleton resolvedParams={resolvedParams} />;
+  if (!resolvedParams) return <IssueLoadingSkeleton />;
+  if (issueLoading) return <IssueLoadingSkeleton />;
   if (!issue) return notFound();
 
   const handleTitleSave = () => {
@@ -216,15 +204,6 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
       issueId: issue.id,
       actorId: session.user.id,
       description: descriptionValue.trim() || null,
-    });
-  };
-
-  const handleStateChange = (stateId: string) => {
-    if (!session?.user?.id) return;
-    changeStateMutation.mutate({
-      issueId: issue.id,
-      actorId: session.user.id,
-      stateId,
     });
   };
 

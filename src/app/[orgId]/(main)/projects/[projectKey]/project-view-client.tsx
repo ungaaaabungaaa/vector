@@ -72,7 +72,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       setEditingTitle(false);
       toast.success("Project title updated");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to update title: ${error.message}`);
     },
   });
@@ -83,7 +83,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       setEditingDescription(false);
       toast.success("Project description updated");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to update description: ${error.message}`);
     },
   });
@@ -93,7 +93,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       projectQuery.refetch();
       toast.success("Project status updated");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to update status: ${error.message}`);
     },
   });
@@ -103,7 +103,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       projectQuery.refetch();
       toast.success("Project team updated");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to update team: ${error.message}`);
     },
   });
@@ -113,7 +113,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       projectQuery.refetch();
       toast.success("Project lead updated");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to update lead: ${error.message}`);
     },
   });

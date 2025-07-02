@@ -73,8 +73,9 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
       pagedQuery.refetch();
       toast.success("Project status updated");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update status: ${error.message}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to update status: ${message}`);
     },
   });
 
@@ -83,8 +84,9 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
       pagedQuery.refetch();
       toast.success("Project team updated");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update team: ${error.message}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to update team: ${message}`);
     },
   });
 
@@ -93,8 +95,9 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
       pagedQuery.refetch();
       toast.success("Project lead updated");
     },
-    onError: (error: any) => {
-      toast.error(`Failed to update lead: ${error.message}`);
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to update lead: ${message}`);
     },
   });
 
@@ -103,8 +106,10 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
       pagedQuery.refetch();
       toast.success("Project deleted");
     },
-    onError: (err: any) => {
-      toast.error(err.message);
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete project";
+      toast.error(message);
     },
   });
 

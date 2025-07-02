@@ -101,7 +101,7 @@ export function CustomRolesManager({
             <CommandEmpty>No custom roles found.</CommandEmpty>
 
             <CommandGroup>
-              {customRoles.map((role: any) => {
+              {customRoles.map((role) => {
                 const isAssigned = assignedRoleIds.has(role.id);
                 const isProcessing =
                   (assignMutation.isPending &&

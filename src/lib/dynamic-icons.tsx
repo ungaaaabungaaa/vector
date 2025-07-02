@@ -184,7 +184,7 @@ interface DynamicIconProps {
   name?: string | null;
   className?: string;
   style?: React.CSSProperties;
-  fallback?: React.ComponentType<any>;
+  fallback?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }
 
 export function DynamicIcon({

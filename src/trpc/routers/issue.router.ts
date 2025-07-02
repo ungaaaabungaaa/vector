@@ -36,7 +36,6 @@ import { z } from "zod";
 import { assertAssigneeOrLeadOrAdmin } from "@/trpc/permissions";
 import { OrganizationService } from "@/entities/organizations/organization.service";
 import { PermissionPolicy } from "@/auth/policy-engine";
-import { requirePermission } from "@/auth/permissions";
 import { PERMISSIONS } from "@/auth/permission-constants";
 
 export const issueRouter = createTRPCRouter({
@@ -472,7 +471,7 @@ export const issueRouter = createTRPCRouter({
   // Fetch all assignments for a specific issue (alias used by frontend)
   getAssignments: protectedProcedure
     .input(z.object({ issueId: z.string().uuid() }))
-    .query(async ({ input, ctx }) => {
+    .query(async ({ input }) => {
       return OrganizationService.getIssueAssignments(input.issueId);
     }),
 

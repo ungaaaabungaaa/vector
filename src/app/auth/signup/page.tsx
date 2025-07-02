@@ -160,8 +160,8 @@ export default function SignupPage() {
                   </span>
                 </div>
                 <blockquote className="text-slate-200 italic">
-                  "AIKP has transformed how I work. It's like having a brilliant
-                  assistant available 24/7."
+                  &ldquo;AIKP has transformed how I work. It&apos;s like having
+                  a brilliant assistant available 24/7.&rdquo;
                 </blockquote>
                 <cite className="text-sm text-slate-400">
                   — Sarah Chen, Product Manager

@@ -5,14 +5,13 @@ import {
   issueActivityTypeEnum as activityEnum,
 } from "@/db/schema";
 import { randomUUID } from "crypto";
-import { InferInsertModel, InferSelectModel, eq, and } from "drizzle-orm";
+import { InferSelectModel, eq, and } from "drizzle-orm";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
-type AssignmentInsertModel = InferInsertModel<typeof assignmentTable>;
-export type IssueAssignment = InferSelectModel<typeof assignmentTable>;
+export type Assignment = InferSelectModel<typeof assignmentTable>;
 
 export interface CreateAssignmentParams {
   issueId: string;

@@ -5,14 +5,9 @@ import {
   orgRole,
   orgRolePermission,
   orgRoleAssignment,
-  type MemberRole,
 } from "@/db/schema";
-import { eq, inArray, and } from "drizzle-orm";
-import {
-  PERMISSIONS,
-  WILDCARD,
-  type Permission,
-} from "@/auth/permission-constants";
+import { eq, and } from "drizzle-orm";
+import { WILDCARD, type Permission } from "@/auth/permission-constants";
 import { BUILTIN_ROLE_PERMISSIONS } from "./builtin-role-permissions";
 
 // -----------------------------------------------------------------------------

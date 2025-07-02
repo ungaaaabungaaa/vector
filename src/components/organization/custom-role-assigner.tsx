@@ -75,7 +75,7 @@ export function CustomRoleAssigner({
           <CommandList>
             <CommandEmpty>No custom roles.</CommandEmpty>
             <CommandGroup>
-              {customRoles.map((role: any) => (
+              {customRoles.map((role) => (
                 <CommandItem
                   key={role.id}
                   value={role.name}

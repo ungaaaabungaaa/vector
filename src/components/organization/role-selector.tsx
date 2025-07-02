@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { OrgRoleBadge } from "@/components/organization/role-badge";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Popover,

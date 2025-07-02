@@ -22,16 +22,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Settings2,
-  Clock,
-  Check,
-  ChevronsUpDown,
-  Plus,
-  Users,
-  SquareDashedKanban,
-  SquareDashed,
-} from "lucide-react";
+import { Check, SquareDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { IconPicker } from "@/components/ui/icon-picker";

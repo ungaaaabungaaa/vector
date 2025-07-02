@@ -13,7 +13,6 @@ import {
   Plus,
   MoreHorizontal,
   Trash2,
-  UserPlus,
   ChevronsUpDown,
 } from "lucide-react";
 import { IconPicker } from "@/components/ui/icon-picker";
@@ -35,7 +34,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Command,

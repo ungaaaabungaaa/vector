@@ -49,9 +49,15 @@ export default async function Home() {
       redirect("/org-setup");
     }
   } catch (error) {
+    // Check if this is a NEXT_REDIRECT error (expected behavior)
+    const errorObj = error as Error;
+    if (errorObj.message === "NEXT_REDIRECT") {
+      // This is an expected redirect, re-throw it to let Next.js handle it
+      throw error;
+    }
+
     console.error("Error during platform setup check:", error);
     // If we can't check, assume setup is needed (fail safe)
-    const errorObj = error as Error;
     console.error("Platform setup check failed:", errorObj.message);
     // Redirect to setup page on error
     redirect("/setup-admin");

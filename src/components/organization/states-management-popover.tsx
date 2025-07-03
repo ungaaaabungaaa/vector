@@ -16,7 +16,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, SquareDashed, Pencil } from "lucide-react";
+import { Check, SquareDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { IconPicker } from "@/components/ui/icon-picker";

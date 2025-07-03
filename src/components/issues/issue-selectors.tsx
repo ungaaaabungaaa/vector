@@ -32,7 +32,7 @@ import { getDynamicIcon } from "@/lib/dynamic-icons";
 import { trpc } from "@/lib/trpc";
 
 // Icons
-import { FolderOpen, User, Check, Circle } from "lucide-react";
+import { FolderOpen, User, Check, Circle, Calendar, Clock } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // 🧩 Type inference – derive types directly from tRPC router outputs
@@ -551,6 +551,210 @@ export function AssigneeSelector({
             </CommandGroup>
           </CommandList>
         </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Date Selectors ----------------------------------------------------------------
+interface DateSelectorProps {
+  selectedDate: string;
+  onDateSelect: (date: string) => void;
+  displayMode?: SelectorDisplayMode;
+  trigger?: React.ReactElement;
+  className?: string;
+  placeholder?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  /** Position of the popover relative to its trigger. */
+  align?: "start" | "center" | "end";
+}
+
+export function DateSelector({
+  selectedDate,
+  onDateSelect,
+  displayMode,
+  trigger,
+  className,
+  placeholder = "Select date",
+  icon: Icon = Calendar,
+  align = "start",
+}: DateSelectorProps & { align?: "start" | "center" | "end" }) {
+  const [open, setOpen] = useState(false);
+
+  const hasSelection = selectedDate !== "";
+  const { showIcon, showLabel } = resolveVisibility(displayMode, hasSelection);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year:
+        date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+    });
+  };
+
+  const DefaultBtn = (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn("bg-muted/30 hover:bg-muted/50 h-8 gap-2", className)}
+    >
+      {showIcon && <Icon className="h-3 w-3" />}
+      {showLabel && (selectedDate ? formatDate(selectedDate) : placeholder)}
+    </Button>
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{trigger ?? DefaultBtn}</PopoverTrigger>
+      <PopoverContent align={align} className="w-64 p-3">
+        <div className="space-y-3">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => {
+              onDateSelect(e.target.value);
+              setOpen(false);
+            }}
+            className="border-input bg-background ring-offset-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          />
+          {selectedDate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onDateSelect("");
+                setOpen(false);
+              }}
+              className="w-full"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Time Estimates Selector ----------------------------------------------------
+interface TimeEstimatesSelectorProps {
+  estimatedTimes: { [key: string]: number };
+  onEstimatedTimesChange: (times: { [key: string]: number }) => void;
+  states: readonly State[] | State[];
+  displayMode?: SelectorDisplayMode;
+  trigger?: React.ReactElement;
+  className?: string;
+  /** Position of the popover relative to its trigger. */
+  align?: "start" | "center" | "end";
+}
+
+export function TimeEstimatesSelector({
+  estimatedTimes,
+  onEstimatedTimesChange,
+  states,
+  displayMode,
+  trigger,
+  className,
+  align = "start",
+}: TimeEstimatesSelectorProps & { align?: "start" | "center" | "end" }) {
+  const [open, setOpen] = useState(false);
+
+  const totalHours = Object.values(estimatedTimes).reduce(
+    (sum, hours) => sum + (hours || 0),
+    0,
+  );
+  const hasEstimates = totalHours > 0;
+  const { showIcon, showLabel } = resolveVisibility(displayMode, hasEstimates);
+
+  const formatHours = (hours: number) => {
+    if (hours === 0) return "";
+    if (hours < 1) return `${Math.round(hours * 60)}m`;
+    if (hours % 1 === 0) return `${hours}h`;
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  };
+
+  const DefaultBtn = (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn("bg-muted/30 hover:bg-muted/50 h-8 gap-2", className)}
+    >
+      {showIcon && <Clock className="h-3 w-3" />}
+      {showLabel &&
+        (hasEstimates ? `${formatHours(totalHours)} total` : "Estimates")}
+    </Button>
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{trigger ?? DefaultBtn}</PopoverTrigger>
+      <PopoverContent align={align} className="w-80 p-3">
+        <div className="space-y-3">
+          <div className="text-sm font-medium">Time Estimates by State</div>
+          <div className="text-muted-foreground text-xs">
+            Estimate how long the issue will spend in each state
+          </div>
+          <div className="max-h-60 space-y-2 overflow-y-auto">
+            {states.map((state) => {
+              const StateIcon = state.icon ? getDynamicIcon(state.icon) : null;
+              return (
+                <div key={state.id} className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {StateIcon ? (
+                      <StateIcon
+                        className="h-3 w-3 flex-shrink-0"
+                        style={{ color: state.color || "#94a3b8" }}
+                      />
+                    ) : (
+                      <div
+                        className="h-2 w-2 flex-shrink-0 rounded-full"
+                        style={{ backgroundColor: state.color || "#94a3b8" }}
+                      />
+                    )}
+                    <span className="truncate text-sm">{state.name}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="0"
+                    className="border-input bg-background ring-offset-background focus-visible:ring-ring w-20 rounded-md border px-2 py-1 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                    value={estimatedTimes[state.id] || ""}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      onEstimatedTimesChange({
+                        ...estimatedTimes,
+                        [state.id]: isNaN(value) ? 0 : value,
+                      });
+                    }}
+                  />
+                  <span className="text-muted-foreground w-8 text-xs">hrs</span>
+                </div>
+              );
+            })}
+          </div>
+          {hasEstimates && (
+            <div className="flex items-center justify-between border-t pt-3">
+              <span className="text-sm font-medium">
+                Total: {formatHours(totalHours)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onEstimatedTimesChange({});
+                }}
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

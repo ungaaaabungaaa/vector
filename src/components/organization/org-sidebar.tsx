@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Users,
-  FolderKanban,
-  type LucideIcon,
-  CheckSquare,
-  Plus,
-  FolderOpen,
-  Circle,
-} from "lucide-react";
+import { type LucideIcon, CheckSquare, FolderOpen, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateIssueDialog } from "@/components/issues/create-issue-dialog";
 import { CreateTeamButton } from "@/components/teams/create-team-button";

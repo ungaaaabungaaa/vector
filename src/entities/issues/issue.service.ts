@@ -2,7 +2,6 @@ import { db } from "@/db";
 import {
   issue as issueTable,
   issueActivity as activityTable,
-  issueActivityTypeEnum as activityEnum,
   project as projectTable,
   organization as organizationTable,
   team as teamTable,
@@ -35,12 +34,15 @@ export type Issue = InferSelectModel<typeof issueTable>;
 type BaseCreateIssueParams = Pick<
   IssueInsertModel,
   "teamId" | "reporterId" | "title" | "description" | "projectId" | "priorityId"
-> & {
-  /** Initial workflow state for first assignment */
-  stateId: string;
-  /** Initial assignee for first assignment (nullable) */
-  assigneeId?: string | null;
-};
+> &
+  Partial<
+    Pick<IssueInsertModel, "startDate" | "dueDate" | "estimatedTimes">
+  > & {
+    /** Initial workflow state for first assignment */
+    stateId: string;
+    /** Initial assignee for first assignment (nullable) */
+    assigneeId?: string | null;
+  };
 
 export type CreateIssueParams = BaseCreateIssueParams & {
   orgSlug: string;
@@ -144,6 +146,9 @@ export async function createIssue(
     stateId,
     assigneeId,
     issueKeyFormat,
+    startDate,
+    dueDate,
+    estimatedTimes,
   } = params;
 
   let seq: number;
@@ -214,6 +219,9 @@ export async function createIssue(
           projectId,
           priorityId,
           organizationId,
+          startDate: startDate ?? null,
+          dueDate: dueDate ?? null,
+          estimatedTimes: estimatedTimes ?? null,
           createdAt: now,
           updatedAt: now,
         });
@@ -233,7 +241,7 @@ export async function createIssue(
           id: randomUUID(),
           issueId: id,
           actorId: reporterId!,
-          type: activityEnum.enumValues[6]!, // "created"
+          type: "created",
           createdAt: now,
         });
       });
@@ -418,6 +426,34 @@ export async function updateDescription(
       issueId,
       actorId: actorId!,
       type: "description_changed",
+      createdAt: now,
+    });
+  });
+}
+
+export async function updateEstimatedTimes(
+  issueId: string,
+  actorId: string,
+  estimatedTimes: Record<string, number> | null,
+): Promise<void> {
+  const now = new Date();
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(issueTable)
+      .set({
+        estimatedTimes,
+        updatedAt: now,
+      })
+      .where(eq(issueTable.id, issueId));
+
+    await tx.insert(activityTable).values({
+      id: randomUUID(),
+      issueId,
+      actorId,
+      // Reusing "comment_added" activity type to log estimate changes
+      type: "comment_added",
+      payload: { estimatedTimes },
       createdAt: now,
     });
   });

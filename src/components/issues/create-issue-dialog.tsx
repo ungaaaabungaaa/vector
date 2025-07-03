@@ -34,6 +34,8 @@ import {
   StateSelector,
   PrioritySelector,
   AssigneeSelector,
+  DateSelector,
+  TimeEstimatesSelector,
 } from "./issue-selectors";
 
 // ---------------------------------------------------------------------------
@@ -167,6 +169,11 @@ function CreateIssueDialogContent({
   const [manualFormatOverride, setManualFormatOverride] = useState<
     "team" | "project" | "org" | null
   >(null);
+  const [startDate, setStartDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [estimatedTimes, setEstimatedTimes] = useState<{
+    [key: string]: number;
+  }>({});
 
   const utils = trpc.useUtils();
 
@@ -267,6 +274,10 @@ function CreateIssueDialogContent({
       assigneeId:
         selectedAssignees.length > 0 ? selectedAssignees[0] : undefined,
       issueKeyFormat: effectiveFormat,
+      startDate: startDate || undefined,
+      dueDate: dueDate || undefined,
+      estimatedTimes:
+        Object.keys(estimatedTimes).length > 0 ? estimatedTimes : undefined,
     });
   };
 
@@ -298,6 +309,9 @@ function CreateIssueDialogContent({
     // Org default
     return `${orgSlug.toUpperCase()}-${nextNumber}`;
   };
+
+  const isDateRangeValid =
+    !startDate || !dueDate || new Date(startDate) <= new Date(dueDate);
 
   return (
     <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
@@ -339,6 +353,27 @@ function CreateIssueDialogContent({
                   selectedPriority={selectedPriority}
                   onPrioritySelect={setSelectedPriority}
                 />
+
+                <DateSelector
+                  selectedDate={startDate}
+                  onDateSelect={setStartDate}
+                  placeholder="Start date"
+                  displayMode="iconWhenUnselected"
+                />
+
+                <DateSelector
+                  selectedDate={dueDate}
+                  onDateSelect={setDueDate}
+                  placeholder="Due date"
+                  displayMode="iconWhenUnselected"
+                />
+
+                <TimeEstimatesSelector
+                  estimatedTimes={estimatedTimes}
+                  onEstimatedTimesChange={setEstimatedTimes}
+                  states={states}
+                  displayMode="iconWhenUnselected"
+                />
               </div>
               <div className="ml-auto">
                 <KeyFormatSelector
@@ -351,7 +386,7 @@ function CreateIssueDialogContent({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <Input
             placeholder="Issue title"
@@ -380,7 +415,17 @@ function CreateIssueDialogContent({
               !title.trim() ||
               createMutation.isPending ||
               (effectiveFormat === "team" && !selectedTeam) ||
-              (effectiveFormat === "project" && !selectedProject)
+              (effectiveFormat === "project" && !selectedProject) ||
+              !isDateRangeValid
+            }
+            title={
+              !title.trim()
+                ? "Title is required"
+                : !selectedState
+                  ? "State is required"
+                  : !isDateRangeValid
+                    ? "Start date must be before or equal to due date"
+                    : ""
             }
             onClick={handleSubmit}
           >

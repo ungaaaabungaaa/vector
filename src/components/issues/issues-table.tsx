@@ -220,7 +220,7 @@ export function IssuesTable({
         new Date(a.row.updatedAt).getTime()
       );
     });
-  }, [groupedIssues, activeFilter, currentUserId]);
+  }, [groupedIssues, activeFilter]);
 
   if (issues.length === 0) {
     return (

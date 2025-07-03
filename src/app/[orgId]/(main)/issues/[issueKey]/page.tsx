@@ -5,20 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, X, ArrowLeft } from "lucide-react";
-import { notFound } from "next/navigation";
+import { ArrowLeft, Circle, Save, X, Pencil } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/lib/trpc";
 import { formatDateHuman } from "@/lib/date";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { issueState } from "@/db/schema/issue-config";
+import { InferSelectModel } from "drizzle-orm";
+import type { Issue } from "@/entities/issues/issue.service";
 
 // Re-use shared issue selectors
+import { IssueAssignments } from "@/components/issues/issue-assignments";
 import {
-  PrioritySelector,
   TeamSelector,
   ProjectSelector,
+  StateSelector,
+  PrioritySelector,
 } from "@/components/issues/issue-selectors";
-import { IssueAssignments } from "@/components/issues/issue-assignments";
+import { getDynamicIcon } from "@/lib/dynamic-icons";
+
+type IssueState = InferSelectModel<typeof issueState>;
 
 interface IssueViewPageProps {
   params: Promise<{ orgId: string; issueKey: string }>;
@@ -99,9 +106,17 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     issueKey: string;
   } | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [editingDescription, setEditingDescription] = useState(false);
   const [titleValue, setTitleValue] = useState("");
+  const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState("");
+  const [editingEstimates, setEditingEstimates] = useState<
+    Record<string, boolean>
+  >({});
+  const [estimatesValue, setEstimatesValue] = useState<Record<string, number>>(
+    {},
+  );
+  // Track the primary workflow state for this issue (derived from first assignment)
+  const [currentStateId, setCurrentStateId] = useState<string>("");
 
   // Resolve params
   useEffect(() => {
@@ -110,6 +125,9 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
 
   // Get current user session
   const { data: session } = authClient.useSession();
+
+  // tRPC utils for cache invalidation
+  const utils = trpc.useUtils();
 
   // Fetch issue data
   const {
@@ -122,33 +140,34 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
       issueKey: resolvedParams?.issueKey || "",
     },
     { enabled: !!resolvedParams },
-  );
+  ) as { data: Issue | undefined; isLoading: boolean; refetch: () => void };
 
   // Fetch states and priorities
   const { data: states } = trpc.organization.listIssueStates.useQuery(
     { orgSlug: resolvedParams?.orgId || "" },
     { enabled: !!resolvedParams },
-  );
-
-  const { data: priorities } = trpc.organization.listIssuePriorities.useQuery(
-    { orgSlug: resolvedParams?.orgId || "" },
-    { enabled: !!resolvedParams },
-  );
+  ) as { data: IssueState[] | undefined };
 
   const { data: members } = trpc.organization.listMembers.useQuery(
     { orgSlug: resolvedParams?.orgId || "" },
     { enabled: !!resolvedParams },
   );
 
-  const { data: teams } = trpc.organization.listTeams.useQuery(
+  const { data: teams = [] } = trpc.organization.listTeams.useQuery(
     { orgSlug: resolvedParams?.orgId || "" },
     { enabled: !!resolvedParams },
   );
 
-  const { data: projects } = trpc.organization.listProjects.useQuery(
+  const { data: projects = [] } = trpc.organization.listProjects.useQuery(
     { orgSlug: resolvedParams?.orgId || "" },
     { enabled: !!resolvedParams },
   );
+
+  const { data: priorities = [] } =
+    trpc.organization.listIssuePriorities.useQuery(
+      { orgSlug: resolvedParams?.orgId || "" },
+      { enabled: !!resolvedParams },
+    );
 
   // Mutations
   const updateTitleMutation = trpc.issue.updateTitle.useMutation({
@@ -165,17 +184,62 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     },
   });
 
-  const changePriorityMutation = trpc.issue.changePriority.useMutation({
-    onSuccess: () => refetchIssue(),
+  const updateEstimatesMutation = trpc.issue.updateEstimatedTimes.useMutation({
+    onSuccess: () => {
+      refetchIssue();
+      setEditingEstimates({});
+    },
   });
 
   const changeTeamMutation = trpc.issue.changeTeam.useMutation({
-    onSuccess: () => refetchIssue(),
+    onSuccess: () => {
+      refetchIssue();
+    },
   });
 
   const changeProjectMutation = trpc.issue.changeProject.useMutation({
-    onSuccess: () => refetchIssue(),
+    onSuccess: () => {
+      refetchIssue();
+    },
   });
+
+  const changePriorityMutation = trpc.issue.changePriority.useMutation({
+    onSuccess: () => {
+      refetchIssue();
+    },
+  });
+
+  const changeAssignmentStateMutation =
+    trpc.issue.changeAssignmentState.useMutation({
+      onSuccess: () => {
+        // Refetch assignments to update the UI immediately
+        utils.issue.getAssignments
+          .invalidate({ issueId: issue?.id || "" })
+          .catch(() => {});
+        refetchIssue();
+      },
+    });
+
+  // -----------------------------------------------------------------
+  //  Fetch assignments to derive the current main state of the issue
+  // -----------------------------------------------------------------
+  const { data: assignments } = trpc.issue.getAssignments.useQuery(
+    { issueId: issue?.id || "" },
+    { enabled: !!issue?.id },
+  );
+
+  // Check if current user is assigned to this issue
+  const currentUserAssignment = assignments?.find(
+    (assignment) => assignment.assigneeId === session?.user?.id,
+  );
+
+  // Whenever assignments are fetched, derive currentStateId from the
+  // first assignment (fallback to TODO/default state if none).
+  useEffect(() => {
+    if (assignments && assignments.length > 0) {
+      setCurrentStateId(assignments[0].stateId);
+    }
+  }, [assignments]);
 
   // Initialize editing values when issue loads
   useEffect(() => {
@@ -185,12 +249,24 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     }
   }, [issue]);
 
-  if (!resolvedParams) return <IssueLoadingSkeleton />;
-  if (issueLoading) return <IssueLoadingSkeleton />;
-  if (!issue) return notFound();
+  // Initialize estimates form when editing starts
+  useEffect(() => {
+    if (Object.keys(editingEstimates).length > 0 && issue?.estimatedTimes) {
+      setEstimatesValue(issue.estimatedTimes as Record<string, number>);
+    }
+  }, [editingEstimates, issue?.estimatedTimes]);
+
+  // Filter states for time estimates (only done)
+  const estimateStates =
+    states?.filter((state) => ["done"].includes(state.type)) || [];
+
+  // Show skeleton while loading or missing data
+  if (!resolvedParams || issueLoading || !issue || !states) {
+    return <IssueLoadingSkeleton />;
+  }
 
   const handleTitleSave = () => {
-    if (!session?.user?.id || !titleValue.trim()) return;
+    if (!session?.user?.id) return;
     updateTitleMutation.mutate({
       issueId: issue.id,
       actorId: session.user.id,
@@ -207,17 +283,18 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     });
   };
 
-  const handlePriorityChange = (priorityId: string) => {
-    if (!session?.user?.id) return;
-    changePriorityMutation.mutate({
+  const handleEstimatesSave = () => {
+    if (!issue || !session) return;
+    updateEstimatesMutation.mutate({
       issueId: issue.id,
       actorId: session.user.id,
-      priorityId,
+      estimatedTimes:
+        Object.keys(estimatesValue).length > 0 ? estimatesValue : null,
     });
   };
 
   const handleTeamChange = (teamId: string) => {
-    if (!session?.user?.id) return;
+    if (!issue || !session?.user?.id) return;
     changeTeamMutation.mutate({
       issueId: issue.id,
       actorId: session.user.id,
@@ -226,11 +303,22 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
   };
 
   const handleProjectChange = (projectId: string) => {
-    if (!session?.user?.id) return;
+    if (!issue || !session?.user?.id) return;
     changeProjectMutation.mutate({
       issueId: issue.id,
       actorId: session.user.id,
       projectId: projectId || null,
+    });
+  };
+
+  const handlePriorityChange = (priorityId: string) => {
+    if (!issue || !session?.user?.id) return;
+    if (priorityId === "") return; // no-op if nothing selected
+
+    changePriorityMutation.mutate({
+      issueId: issue.id,
+      actorId: session.user.id,
+      priorityId,
     });
   };
 
@@ -253,15 +341,14 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
               <div className="flex items-center">
                 {/* Team & Project selectors */}
                 <TeamSelector
-                  teams={teams || []}
+                  teams={teams}
                   selectedTeam={issue.teamId || ""}
                   onTeamSelect={handleTeamChange}
                   displayMode="iconWhenUnselected"
                   className="border-none bg-transparent shadow-none"
                 />
-                <div className="bg-muted-foreground/20 h-4 w-px" />
                 <ProjectSelector
-                  projects={projects || []}
+                  projects={projects}
                   selectedProject={issue.projectId || ""}
                   onProjectSelect={handleProjectChange}
                   displayMode="iconWhenUnselected"
@@ -269,15 +356,32 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                 />
               </div>
               <span className="text-muted-foreground text-sm">/</span>
-              <span className="text-sm font-medium">
-                {resolvedParams.issueKey}
-              </span>
+              <span className="text-sm font-medium">{issue.key}</span>
             </div>
 
             <div className="flex items-center">
-              {/* Priority */}
+              {/* Only show state selector if current user is assigned */}
+              {currentUserAssignment && (
+                <>
+                  <StateSelector
+                    states={states}
+                    selectedState={currentUserAssignment.stateId}
+                    onStateSelect={(stateId) => {
+                      if (!issue || !session?.user?.id) return;
+                      // Update the specific assignment state for this user
+                      changeAssignmentStateMutation.mutate({
+                        assignmentId: currentUserAssignment.id,
+                        stateId,
+                      });
+                    }}
+                    className="border-none bg-transparent shadow-none"
+                  />
+                  <div className="bg-muted-foreground/20 h-4 w-px" />
+                </>
+              )}
+
               <PrioritySelector
-                priorities={priorities || []}
+                priorities={priorities}
                 selectedPriority={issue.priorityId || ""}
                 onPrioritySelect={handlePriorityChange}
                 className="border-none bg-transparent shadow-none"
@@ -286,18 +390,18 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
           </div>
 
           {/* Main Content */}
-          <div className="px-4 py-4">
+          <div className="mx-auto max-w-5xl px-4 py-4">
             {/* Issue Header */}
-            <div className="mb-2 space-y-2">
+            <div className="mb-2 max-w-4xl space-y-2">
               <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                <span className="font-mono">{resolvedParams.issueKey}</span>
+                <span className="font-mono">{issue.key}</span>
                 <span>•</span>
                 <span>Updated {formatDateHuman(issue.updatedAt)}</span>
               </div>
 
               {/* Title */}
               {editingTitle ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <Input
                     value={titleValue}
                     onChange={(e) => setTitleValue(e.target.value)}
@@ -316,7 +420,9 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                     <Button
                       size="sm"
                       onClick={handleTitleSave}
-                      disabled={updateTitleMutation.isPending}
+                      disabled={
+                        updateTitleMutation.isPending || !titleValue.trim()
+                      }
                     >
                       <Save className="size-4" />
                     </Button>
@@ -334,7 +440,9 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                 </div>
               ) : (
                 <h1
-                  className="hover:text-muted-foreground cursor-pointer text-3xl leading-tight font-semibold transition-colors"
+                  className={cn(
+                    "hover:text-muted-foreground cursor-pointer text-3xl leading-tight font-semibold transition-colors",
+                  )}
                   onClick={() => setEditingTitle(true)}
                 >
                   {issue.title}
@@ -342,16 +450,45 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
               )}
             </div>
 
+            {/* Schedule Info */}
+            <div className="flex items-center gap-4">
+              {(issue.startDate || issue.dueDate) && (
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <span>Schedule:</span>
+                  {issue.startDate && (
+                    <span>From {formatDateHuman(issue.startDate)}</span>
+                  )}
+                  {issue.startDate && issue.dueDate && <span>→</span>}
+                  {issue.dueDate && (
+                    <span
+                      className={cn(
+                        "font-medium",
+                        new Date(issue.dueDate) < new Date() &&
+                          states &&
+                          !["done"].includes(
+                            states.find((s) => s.id === currentStateId)?.type ||
+                              "",
+                          )
+                          ? "text-red-500 dark:text-red-400"
+                          : "",
+                      )}
+                    >
+                      Due {formatDateHuman(issue.dueDate)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Description */}
             <div className="mb-8">
-              {/* <h2 className="mb-6 text-lg font-semibold">Description</h2> */}
               {editingDescription ? (
                 <div className="space-y-4">
                   <Textarea
                     value={descriptionValue}
                     onChange={(e) => setDescriptionValue(e.target.value)}
                     placeholder="Add a description..."
-                    className="min-h-[200px] resize-none text-base"
+                    className="min-h-[120px] resize-none text-base"
                     onKeyDown={(e) => {
                       if (e.key === "Escape") {
                         setDescriptionValue(issue.description || "");
@@ -383,7 +520,9 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                 <div>
                   {issue.description ? (
                     <div
-                      className="prose prose-sm text-muted-foreground hover:text-foreground max-w-none cursor-pointer transition-colors"
+                      className={cn(
+                        "prose prose-sm text-muted-foreground hover:text-foreground max-w-none cursor-pointer transition-colors",
+                      )}
                       onClick={() => setEditingDescription(true)}
                     >
                       <p className="whitespace-pre-wrap">{issue.description}</p>
@@ -412,19 +551,170 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
 
         {/* RIGHT SIDEBAR - Assignments */}
         <div className="bg-background w-80 overflow-y-auto border-l">
-          <div className="space-y-2">
-            {states && members && (
-              <IssueAssignments
-                orgSlug={resolvedParams.orgId}
-                issueId={issue.id}
-                states={states ?? []}
-                members={members ?? []}
-                defaultStateId={
-                  states?.find((s) => s.type === "todo")?.id ||
-                  states?.[0]?.id ||
-                  ""
-                }
-              />
+          <div className="flex h-full flex-col">
+            {/* Assignments Section with max height */}
+            <div className="max-h-96 overflow-y-auto">
+              {states && members && (
+                <IssueAssignments
+                  orgSlug={resolvedParams.orgId}
+                  issueId={issue.id}
+                  states={states ?? []}
+                  members={members ?? []}
+                  defaultStateId={
+                    states?.find((s) => s.type === "todo")?.id ||
+                    states?.[0]?.id ||
+                    ""
+                  }
+                />
+              )}
+            </div>
+
+            {/* Time Estimates Section */}
+            {estimateStates.length > 0 && (
+              <div className="border-t">
+                <div className="flex items-center justify-between border-b px-1 py-1 pl-2">
+                  <h4 className="text-sm">Time Estimates</h4>
+                </div>
+
+                <div className="divide-y">
+                  {estimateStates.map((state) => {
+                    const StateIcon = getDynamicIcon(state.icon) || Circle;
+                    const hours = (
+                      issue?.estimatedTimes as Record<string, number>
+                    )?.[state.id];
+                    const isEditing = editingEstimates[state.id];
+
+                    return (
+                      <div key={state.id}>
+                        <div className="flex h-10 items-center justify-between px-2 py-2">
+                          {/* State icon and name - consistent across both states */}
+                          <div className="flex items-center gap-2">
+                            <StateIcon
+                              className="size-4"
+                              style={{
+                                color: state.color || "currentColor",
+                              }}
+                            />
+                            <span className="text-sm">{state.name}</span>
+                          </div>
+
+                          {/* Right side - changes based on edit state */}
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                placeholder="Hours"
+                                className="h-7 w-20 text-sm"
+                                value={estimatesValue[state.id] || ""}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value);
+                                  setEstimatesValue((prev) => ({
+                                    ...prev,
+                                    [state.id]: isNaN(value) ? 0 : value,
+                                  }));
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleEstimatesSave();
+                                  }
+                                  if (e.key === "Escape") {
+                                    setEstimatesValue(
+                                      (issue?.estimatedTimes as Record<
+                                        string,
+                                        number
+                                      >) || {},
+                                    );
+                                    setEditingEstimates((prev) => ({
+                                      ...prev,
+                                      [state.id]: false,
+                                    }));
+                                  }
+                                }}
+                                autoFocus
+                              />
+                              <Button
+                                size="sm"
+                                className="h-7 w-7 cursor-pointer p-0"
+                                onClick={handleEstimatesSave}
+                                disabled={updateEstimatesMutation.isPending}
+                              >
+                                <Save className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 cursor-pointer p-0"
+                                onClick={() => {
+                                  setEstimatesValue(
+                                    (issue?.estimatedTimes as Record<
+                                      string,
+                                      number
+                                    >) || {},
+                                  );
+                                  setEditingEstimates((prev) => ({
+                                    ...prev,
+                                    [state.id]: false,
+                                  }));
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div
+                              className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded px-1 py-1 transition-colors"
+                              onClick={() => {
+                                setEstimatesValue(
+                                  (issue?.estimatedTimes as Record<
+                                    string,
+                                    number
+                                  >) || {},
+                                );
+                                setEditingEstimates((prev) => ({
+                                  ...prev,
+                                  [state.id]: true,
+                                }));
+                              }}
+                            >
+                              <span className="text-muted-foreground text-sm">
+                                {hours ? `${hours}h` : "—"}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-4 w-4 cursor-pointer p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEstimatesValue(
+                                    (issue?.estimatedTimes as Record<
+                                      string,
+                                      number
+                                    >) || {},
+                                  );
+                                  setEditingEstimates((prev) => ({
+                                    ...prev,
+                                    [state.id]: true,
+                                  }));
+                                }}
+                              >
+                                <Pencil className="size-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(!issue?.estimatedTimes ||
+                    Object.keys(issue.estimatedTimes).length === 0) && (
+                    <div className="text-muted-foreground py-4 text-center text-sm">
+                      No estimates yet
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>

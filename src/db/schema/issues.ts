@@ -43,6 +43,10 @@ export const issue = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
+    /** Planned start date for the issue */
+    startDate: date("start_date"),
+    /** Mapping of workflow state ID -> estimated hours to reach that state */
+    estimatedTimes: jsonb("estimated_times"),
     dueDate: date("due_date"),
     closedAt: timestamp("closed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

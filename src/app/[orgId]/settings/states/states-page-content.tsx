@@ -251,10 +251,6 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
     setPriorityDialogState({ isOpen: true });
   };
 
-  const handleEditPriority = (priority: Priority) => {
-    setPriorityDialogState({ isOpen: true, editingPriority: priority });
-  };
-
   const handleSavePriority = (data: Omit<Priority, "id">) => {
     if (priorityDialogState.editingPriority) {
       updatePriority.mutate({

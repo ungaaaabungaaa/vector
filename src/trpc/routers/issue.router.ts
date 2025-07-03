@@ -20,6 +20,7 @@ import {
   deleteIssue,
   changeProject,
   changeTeam,
+  updateEstimatedTimes,
 } from "@/entities/issues/issue.service";
 import {
   createComment,
@@ -128,6 +129,9 @@ export const issueRouter = createTRPCRouter({
         stateId: z.string().uuid(),
         assigneeId: z.string().optional(),
         issueKeyFormat: z.enum(["org", "project", "team"]).default("org"),
+        startDate: z.string().optional(),
+        dueDate: z.string().optional(),
+        estimatedTimes: z.record(z.string(), z.number()).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -571,5 +575,24 @@ export const issueRouter = createTRPCRouter({
       }
 
       return { success: true };
+    }),
+
+  updateEstimatedTimes: protectedProcedure
+    .input(
+      z.object({
+        issueId: z.string().uuid(),
+        actorId: z.string(),
+        estimatedTimes: z.record(z.string(), z.number()).nullable(),
+      }),
+    )
+    .use(({ ctx, next, input }) => {
+      return assertAssigneeOrLeadOrAdmin(ctx, input.issueId).then(() => next());
+    })
+    .mutation(async ({ input }) => {
+      await updateEstimatedTimes(
+        input.issueId,
+        input.actorId,
+        input.estimatedTimes,
+      );
     }),
 });

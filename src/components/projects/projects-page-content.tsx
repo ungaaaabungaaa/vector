@@ -131,50 +131,36 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
 
   // Event handlers
   const handleStatusChange = (projectId: string, statusId: string) => {
-    // Find the project by id to get the projectKey
-    const project = projects.find((p) => p.id === projectId);
-    if (project && statusId) {
+    if (statusId) {
       changeStatusMutation({
-        orgSlug,
-        projectKey: project.key,
+        projectId: projectId as Id<"projects">,
         data: { statusId: statusId as Id<"projectStatuses"> },
       });
     }
   };
 
   const handleTeamChange = (projectId: string, teamId: string) => {
-    // Find the project by id to get the projectKey
-    const project = projects.find((p) => p.id === projectId);
-    if (project && teamId) {
+    if (teamId) {
       changeTeamMutation({
-        orgSlug,
-        projectKey: project.key,
+        projectId: projectId as Id<"projects">,
         data: { teamId: teamId as Id<"teams"> },
       });
     }
   };
 
   const handleLeadChange = (projectId: string, leadId: string) => {
-    // Find the project by id to get the projectKey
-    const project = projects.find((p) => p.id === projectId);
-    if (project && leadId) {
+    if (leadId) {
       changeLeadMutation({
-        orgSlug,
-        projectKey: project.key,
+        projectId: projectId as Id<"projects">,
         data: { leadId: leadId as Id<"users"> },
       });
     }
   };
 
   const handleDelete = (projectId: string) => {
-    // Find the project by id to get the projectKey
-    const project = projects.find((p) => p.id === projectId);
-    if (project) {
-      deleteMutation({
-        orgSlug,
-        projectKey: project.key,
-      });
-    }
+    deleteMutation({
+      projectId: projectId as Id<"projects">,
+    });
   };
 
   // Filter projects based on active filter

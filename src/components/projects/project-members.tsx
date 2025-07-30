@@ -61,12 +61,13 @@ export function ProjectMembersSection({
 }) {
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
 
+  const project = useQuery(api.projects.getByKey, { orgSlug, projectKey });
+  const projectId = project?._id;
+
   // Fetch members for this project
   const members =
-    useQuery(api.projects.listMembers, {
-      orgSlug,
-      projectKey,
-    }) ?? [];
+    useQuery(api.projects.listMembers, projectId ? { projectId } : "skip") ??
+    [];
 
   // Fetch organization members for filtering
   const orgMembers =
@@ -78,7 +79,7 @@ export function ProjectMembersSection({
 
   const handleRemoveMember = (membershipId: Id<"projectMembers">) => {
     if (!confirm("Remove this member from the project?")) return;
-    removeMemberMutation({ orgSlug, projectKey, membershipId });
+    removeMemberMutation({ membershipId });
   };
 
   if (members === undefined) {
@@ -210,12 +211,13 @@ function AddMemberDialog({
       orgSlug,
     }) ?? [];
 
+  const project = useQuery(api.projects.getByKey, { orgSlug, projectKey });
+  const projectId = project?._id;
+
   // Fetch current project members to filter them out
   const projectMembers =
-    useQuery(api.projects.listMembers, {
-      orgSlug,
-      projectKey,
-    }) ?? [];
+    useQuery(api.projects.listMembers, projectId ? { projectId } : "skip") ??
+    [];
 
   const addMemberMutation = useMutation(api.projects.addMember);
 
@@ -226,8 +228,7 @@ function AddMemberDialog({
     setIsAddingMember(true);
     try {
       await addMemberMutation({
-        orgSlug,
-        projectKey,
+        projectId: projectId!,
         userId: selectedMember as Id<"users">,
         role: "member",
       });

@@ -591,31 +591,38 @@ export function AssigneeSelector({
           <CommandList>
             <CommandEmpty>No member found.</CommandEmpty>
             <CommandGroup>
-              {!multiple && (
-                <CommandItem
-                  value=""
-                  onSelect={() => {
-                    if (!canManageAll && currentUserId !== "") return; // cannot unassign others
+              <CommandItem
+                value=""
+                onSelect={() => {
+                  if (!canManageAll && currentUserId !== "") return; // cannot unassign others
+                  if (multiple && onAssigneesSelect) {
+                    onAssigneesSelect([]);
+                    setOpen(false);
+                  } else {
                     handleSelect("");
-                  }}
-                  disabled={!canManageAll && currentUserId !== ""}
+                  }
+                }}
+                disabled={!canManageAll && currentUserId !== ""}
+                className={cn(
+                  !canManageAll &&
+                    currentUserId !== "" &&
+                    "pointer-events-none opacity-50",
+                )}
+              >
+                <Check
                   className={cn(
-                    !canManageAll &&
-                      currentUserId !== "" &&
-                      "pointer-events-none opacity-50",
-                  )}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      (selectedAssignee || "") === ""
+                    "mr-2 h-4 w-4",
+                    multiple
+                      ? selectedAssignees.length === 0
+                        ? "opacity-100"
+                        : "opacity-0"
+                      : (selectedAssignee || "") === ""
                         ? "opacity-100"
                         : "opacity-0",
-                    )}
-                  />
-                  Unassign all
-                </CommandItem>
-              )}
+                  )}
+                />
+                Unassign all
+              </CommandItem>
               {members.map((member) => (
                 <CommandItem
                   key={member.userId}

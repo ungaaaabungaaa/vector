@@ -56,7 +56,6 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
-import { usePermission } from "@/hooks/use-permissions";
 import { PERMISSIONS } from "@/convex/_shared/permissions";
 import {
   usePermissionCheck,
@@ -356,23 +355,24 @@ export default function TeamViewPage() {
   const team = teamQuery.data;
 
   // Fetch team members
-  const teamMembersQuery = useQuery(api.teams.listMembers, {
-    teamId: team?._id,
-  });
+  const teamMembersQuery = useQuery(
+    api.teams.listMembers,
+    team?._id ? { teamId: team._id } : "skip",
+  );
   const teamMembers = teamMembersQuery.data ?? [];
 
   // Fetch team issues
-  const teamIssuesQuery = useQuery(api.issues.listIssues, {
-    orgSlug,
-    teamId: team?.key,
-  });
+  const teamIssuesQuery = useQuery(
+    api.issues.listIssues,
+    team?.key ? { orgSlug, teamId: team.key } : "skip",
+  );
   const teamIssuesData = teamIssuesQuery.data;
 
   // Fetch team projects
-  const teamProjectsQuery = useQuery(api.projects.list, {
-    orgSlug,
-    teamId: team?.key,
-  });
+  const teamProjectsQuery = useQuery(
+    api.projects.list,
+    team?.key ? { orgSlug, teamId: team.key } : "skip",
+  );
   const teamProjects = teamProjectsQuery.data ?? [];
 
   // Fetch supporting data for tables

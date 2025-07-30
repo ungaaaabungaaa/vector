@@ -159,7 +159,7 @@ function KeyFormatSelector({
           forced
         </span>
       )}
-      <code className="bg-muted flex h-8 items-center rounded-md px-2.5 font-mono text-sm">
+      <code className="bg-muted flex h-8 items-center overflow-hidden rounded-md px-2.5 font-mono text-sm">
         {preview}
       </code>
     </div>
@@ -197,9 +197,11 @@ function CreateIssueDialogContent({
   const [selectedState, setSelectedState] = useState<string>(
     defaultStates?.stateId || "",
   );
-  const [selectedAssignee, setSelectedAssignee] = useState<string>(
-    defaultStates?.assigneeIds?.[0] || "",
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
+    defaultStates?.assigneeIds || [],
   );
+  const [hasUserInteractedWithAssignees, setHasUserInteractedWithAssignees] =
+    useState(false);
   const [selectedPriority, setSelectedPriority] = useState<string>(
     defaultStates?.priorityId || "",
   );
@@ -277,12 +279,28 @@ function CreateIssueDialogContent({
     }
   }, [priorities, selectedPriority]);
 
-  // Auto-select current user as default assignee
+  // Auto-select current user as default assignee only if user hasn't interacted with assignees
   useEffect(() => {
-    if (currentUser && !selectedAssignee) {
-      setSelectedAssignee(currentUser._id);
+    if (
+      currentUser &&
+      selectedAssignees.length === 0 &&
+      !defaultStates?.assigneeIds &&
+      !hasUserInteractedWithAssignees
+    ) {
+      setSelectedAssignees([currentUser._id]);
     }
-  }, [currentUser, selectedAssignee]);
+  }, [
+    currentUser,
+    selectedAssignees.length,
+    defaultStates?.assigneeIds,
+    hasUserInteractedWithAssignees,
+  ]);
+
+  // Wrapper function to track user interaction with assignees
+  const handleAssigneesChange = (assignees: string[]) => {
+    setSelectedAssignees(assignees);
+    setHasUserInteractedWithAssignees(true);
+  };
 
   const createIssueMutation = useMutation(api.issues.create);
 
@@ -317,7 +335,10 @@ function CreateIssueDialogContent({
         priorityId: selectedPriority
           ? (selectedPriority as Id<"issuePriorities">)
           : undefined,
-        assigneeIds: selectedAssignee ? [selectedAssignee as Id<"users">] : [],
+        assigneeIds:
+          selectedAssignees.length > 0
+            ? selectedAssignees.map((id) => id as Id<"users">)
+            : [],
         visibility: selectedVisibility,
       },
     })
@@ -333,7 +354,8 @@ function CreateIssueDialogContent({
         setSelectedProject("");
         setSelectedState("");
         setSelectedPriority("");
-        setSelectedAssignee("");
+        setSelectedAssignees([]);
+        setHasUserInteractedWithAssignees(false);
         setSelectedVisibility("organization");
         setManualFormatOverride(null);
       })
@@ -395,8 +417,9 @@ function CreateIssueDialogContent({
 
                 <AssigneeSelector
                   members={members}
-                  selectedAssignee={selectedAssignee}
-                  onAssigneeSelect={setSelectedAssignee}
+                  selectedAssignees={selectedAssignees}
+                  onAssigneesSelect={handleAssigneesChange}
+                  multiple={true}
                   displayMode="iconWhenUnselected"
                   currentUserId={currentUser?._id || ""}
                   canManageAll={true}
@@ -407,7 +430,9 @@ function CreateIssueDialogContent({
                   selectedProject={selectedProject}
                   onProjectSelect={setSelectedProject}
                 />
+              </div>
 
+              <div className="ml-auto flex items-center gap-2">
                 <StateSelector
                   states={states}
                   selectedState={selectedState}
@@ -426,26 +451,28 @@ function CreateIssueDialogContent({
                   displayMode="iconOnly"
                 />
               </div>
-              <div className="ml-auto">
-                <KeyFormatSelector
-                  manualFormatOverride={manualFormatOverride}
-                  setManualFormatOverride={setManualFormatOverride}
-                  preview={getIssueKeyPreview()}
-                />
-              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-2">
-          {/* Title */}
-          <Input
-            placeholder="Issue title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="text-base"
-            autoFocus
-          />
+          {/* Title and Issue Key Preview */}
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Issue title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="flex-grow text-base"
+              autoFocus
+            />
+            <div className="flex-shrink-0">
+              <KeyFormatSelector
+                manualFormatOverride={manualFormatOverride}
+                setManualFormatOverride={setManualFormatOverride}
+                preview={getIssueKeyPreview()}
+              />
+            </div>
+          </div>
 
           {/* Description */}
           <Textarea

@@ -7,6 +7,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { PageSkeleton } from "@/components/ui/table-skeleton";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/lib/convex";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface TeamsPageContentProps {
   orgSlug: string;
@@ -58,11 +59,7 @@ export function TeamsPageContent({
   const deleteMutation = useMutation(api.teams.deleteTeam);
 
   const handleDelete = (teamId: string) => {
-    // Find the team by id to get the teamKey
-    const team = teams.find((t) => t.id === teamId);
-    if (team) {
-      deleteMutation({ orgSlug, teamKey: team.key });
-    }
+    deleteMutation({ teamId: teamId as Id<"teams"> });
   };
 
   // --------------------------------------------------

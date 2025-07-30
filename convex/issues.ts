@@ -192,22 +192,34 @@ export const create = mutation({
       createdBy: userId,
     });
 
-    // Create assignee relationships if provided
-    if (args.data.assigneeIds && args.data.assigneeIds.length > 0) {
-      // Get default state for new issues
-      const defaultState = await ctx.db
-        .query("issueStates")
-        .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
-        .first();
+    // Get the explicitly selected state, or fall back to the default "todo" state
+    const assigneeStateId =
+      args.data.stateId ||
+      (
+        await ctx.db
+          .query("issueStates")
+          .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
+          .filter((q) => q.eq(q.field("type"), "todo"))
+          .first()
+      )?._id;
 
-      if (defaultState) {
+    if (assigneeStateId) {
+      if (args.data.assigneeIds && args.data.assigneeIds.length > 0) {
+        // Create an assignment for each selected assignee
         for (const assigneeId of args.data.assigneeIds) {
           await ctx.db.insert("issueAssignees", {
             issueId,
             assigneeId,
-            stateId: defaultState._id,
+            stateId: assigneeStateId,
           });
         }
+      } else {
+        // No assignee chosen – create an "unassigned" entry so the issue still has a default state
+        await ctx.db.insert("issueAssignees", {
+          issueId,
+          assigneeId: undefined, // nullable field supports "unassigned"
+          stateId: assigneeStateId,
+        });
       }
     }
 

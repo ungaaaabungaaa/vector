@@ -174,7 +174,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
 
   const assignments = useQuery(
     api.issues.getAssignments,
-    issue ? { issueId: issue._id } : "skip",
+    issue?._id ? { issueId: issue._id } : "skip",
   );
 
   const currentUserAssignment = assignments?.find(

@@ -81,17 +81,17 @@ export function ProjectLeadSelector({
   // Fetch organization members (for project creation)
   const orgMembers: OrgMember[] =
     useQuery(api.organizations.listMembers, { orgSlug }) ?? [];
-  const projectMembers: ProjectMember[] =
-    useQuery(
-      api.projects.listMembers,
-      projectKey ? { orgSlug, projectKey } : "skip",
-    ) ?? [];
-
-  // Get project data to find the lead
   const project = useQuery(
     api.projects.getByKey,
     projectKey ? { orgSlug, projectKey } : "skip",
   );
+
+  // Fetch project members if projectKey and project ID are available
+  const projectMembers: ProjectMember[] =
+    useQuery(
+      api.projects.listMembers,
+      projectKey && project?._id ? { projectId: project._id } : "skip",
+    ) ?? [];
 
   // For existing projects, we need to include the project lead even if they're not explicitly added as project members
   const members: (ProjectMember | OrgMember)[] = projectKey

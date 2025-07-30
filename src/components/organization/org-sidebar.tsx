@@ -14,9 +14,6 @@ import { api } from "@/lib/convex";
 import { withIds } from "@/lib/convex-helpers";
 import type { ReactNode } from "react";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -98,7 +95,7 @@ export function OrgSidebar({ orgSlug }: OrgSidebarProps) {
                 {/* Create button (if any) */}
                 {item.createElement && (
                   <div
-                    className="flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="flex-shrink-0"
                     onClick={(e) => {
                       // Prevent row hover click-through
                       e.stopPropagation();

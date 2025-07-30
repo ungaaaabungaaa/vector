@@ -18,6 +18,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
 import { IconPicker } from "@/components/ui/icon-picker";
+import { Id } from "@/convex/_generated/dataModel";
 
 // Permission system
 import { PermissionAware } from "@/components/ui/permission-aware";
@@ -55,15 +56,10 @@ export function TeamsTable({
   const updateIconMutation = useMutation(api.teams.update);
 
   const handleIconChange = (teamId: string, iconName: string | null) => {
-    // Find the team by id to get the teamKey
-    const team = teams.find((t) => t.id === teamId);
-    if (team) {
-      updateIconMutation({
-        orgSlug,
-        teamKey: team.key,
-        data: { icon: iconName || undefined },
-      });
-    }
+    updateIconMutation({
+      teamId: teamId as Id<"teams">,
+      data: { icon: iconName || undefined },
+    });
   };
 
   const getInitials = (

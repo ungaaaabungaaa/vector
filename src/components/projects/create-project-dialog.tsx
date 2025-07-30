@@ -69,6 +69,7 @@ function CreateProjectDialogContent({
     name: team.name,
     icon: team.icon,
     color: team.color,
+    key: team.key,
   }));
 
   // Get project statuses from organization

@@ -1303,6 +1303,487 @@ export const resetIssuePriorities = mutation({
 });
 
 /**
+ * Delete an issue priority
+ */
+export const deleteIssuePriority = mutation({
+  args: {
+    orgSlug: v.string(),
+    priorityId: v.id("issuePriorities"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_DELETE_PRIORITY");
+    }
+
+    await ctx.db.delete(args.priorityId);
+  },
+});
+
+/**
+ * Create an issue state
+ */
+export const createIssueState = mutation({
+  args: {
+    orgSlug: v.string(),
+    name: v.string(),
+    position: v.number(),
+    color: v.string(),
+    icon: v.optional(v.string()),
+    type: v.union(
+      v.literal("backlog"),
+      v.literal("todo"),
+      v.literal("in_progress"),
+      v.literal("done"),
+      v.literal("canceled"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    // Find organization
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    // Verify user is admin or owner
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_CREATE_STATE");
+    }
+
+    const id = await ctx.db.insert("issueStates", {
+      organizationId: org._id,
+      name: args.name,
+      position: args.position,
+      color: args.color,
+      icon: args.icon,
+      type: args.type,
+    });
+
+    return { id } as const;
+  },
+});
+
+/**
+ * Update an issue state
+ */
+export const updateIssueState = mutation({
+  args: {
+    orgSlug: v.string(),
+    stateId: v.id("issueStates"),
+    name: v.string(),
+    position: v.number(),
+    color: v.string(),
+    icon: v.optional(v.string()),
+    type: v.union(
+      v.literal("backlog"),
+      v.literal("todo"),
+      v.literal("in_progress"),
+      v.literal("done"),
+      v.literal("canceled"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_UPDATE_STATE");
+    }
+
+    await ctx.db.patch(args.stateId, {
+      name: args.name,
+      position: args.position,
+      color: args.color,
+      icon: args.icon,
+      type: args.type,
+    });
+  },
+});
+
+/**
+ * Create a project status
+ */
+export const createProjectStatus = mutation({
+  args: {
+    orgSlug: v.string(),
+    name: v.string(),
+    position: v.number(),
+    color: v.string(),
+    icon: v.optional(v.string()),
+    type: v.union(
+      v.literal("backlog"),
+      v.literal("planned"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("canceled"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_CREATE_STATUS");
+    }
+
+    const id = await ctx.db.insert("projectStatuses", {
+      organizationId: org._id,
+      name: args.name,
+      position: args.position,
+      color: args.color,
+      icon: args.icon,
+      type: args.type,
+    });
+
+    return { id } as const;
+  },
+});
+
+/**
+ * Update a project status
+ */
+export const updateProjectStatus = mutation({
+  args: {
+    orgSlug: v.string(),
+    statusId: v.id("projectStatuses"),
+    name: v.string(),
+    position: v.number(),
+    color: v.string(),
+    icon: v.optional(v.string()),
+    type: v.union(
+      v.literal("backlog"),
+      v.literal("planned"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("canceled"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_UPDATE_STATUS");
+    }
+
+    await ctx.db.patch(args.statusId, {
+      name: args.name,
+      position: args.position,
+      color: args.color,
+      icon: args.icon,
+      type: args.type,
+    });
+  },
+});
+
+/**
+ * Delete an issue state
+ */
+export const deleteIssueState = mutation({
+  args: {
+    orgSlug: v.string(),
+    stateId: v.id("issueStates"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_DELETE_STATE");
+    }
+
+    await ctx.db.delete(args.stateId);
+  },
+});
+
+/**
+ * Delete a project status
+ */
+export const deleteProjectStatus = mutation({
+  args: {
+    orgSlug: v.string(),
+    statusId: v.id("projectStatuses"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_DELETE_STATUS");
+    }
+
+    await ctx.db.delete(args.statusId);
+  },
+});
+
+/**
+ * Reset issue states to defaults
+ */
+export const resetIssueStates = mutation({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_RESET_STATES");
+    }
+
+    // Delete existing states
+    const states = await ctx.db
+      .query("issueStates")
+      .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
+      .collect();
+
+    for (const s of states) {
+      await ctx.db.delete(s._id);
+    }
+
+    // Insert defaults
+    for (const state of ISSUE_STATE_DEFAULTS) {
+      await ctx.db.insert("issueStates", {
+        organizationId: org._id,
+        name: state.name,
+        position: state.position,
+        color: state.color,
+        icon: state.icon,
+        type: state.type,
+      });
+    }
+  },
+});
+
+/**
+ * Reset project statuses to defaults
+ */
+export const resetProjectStatuses = mutation({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_RESET_STATUSES");
+    }
+
+    // Delete existing statuses
+    const statuses = await ctx.db
+      .query("projectStatuses")
+      .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
+      .collect();
+
+    for (const s of statuses) {
+      await ctx.db.delete(s._id);
+    }
+
+    // Insert defaults
+    for (const status of PROJECT_STATUS_DEFAULTS) {
+      await ctx.db.insert("projectStatuses", {
+        organizationId: org._id,
+        name: status.name,
+        position: status.position,
+        color: status.color,
+        icon: status.icon,
+        type: status.type,
+      });
+    }
+  },
+});
+
+/**
  * Invite a user to the organization
  */
 export const invite = mutation({

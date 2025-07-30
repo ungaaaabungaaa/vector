@@ -187,7 +187,7 @@ export function ProjectsTable({
               >
                 <div className="flex-shrink-0">
                   <TeamSelector
-                    teams={teams as any}
+                    teams={teams}
                     selectedTeam={project.teamId || ""}
                     onTeamSelect={(tid) => onTeamChange(project.id, tid)}
                     displayMode="iconWhenUnselected"

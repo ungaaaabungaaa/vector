@@ -6,7 +6,6 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Save,
   X,
@@ -61,8 +60,6 @@ import { usePermission } from "@/hooks/use-permissions";
 import { PERMISSIONS } from "@/convex/_shared/permissions";
 import {
   usePermissionCheck,
-  PermissionAwareWrapper,
-  PermissionAwareButton,
   PermissionAware,
 } from "@/components/ui/permission-aware";
 import { toast } from "sonner";
@@ -76,50 +73,6 @@ import {
 
 import { Id } from "@/convex/_generated/dataModel";
 import { FunctionReturnType } from "convex/server";
-
-// Loading skeleton component
-function TeamLoadingSkeleton({}: {
-  resolvedParams: { orgSlug: string; teamKey: string } | null;
-}) {
-  return (
-    <div className="bg-background h-full overflow-y-auto">
-      <div className="h-full">
-        <div>
-          {/* Header Skeleton */}
-          <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 flex items-center justify-between border-b px-2 backdrop-blur">
-            <div className="flex h-8 flex-wrap items-center gap-2">
-              <div className="text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors">
-                <ArrowLeft className="size-3" />
-                Teams
-              </div>
-              <span className="text-muted-foreground text-sm">/</span>
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-6 w-20" />
-            </div>
-          </div>
-
-          {/* Main Content Skeleton */}
-          <div className="mx-auto max-w-5xl px-4 py-4">
-            <div className="mb-2 max-w-4xl space-y-2">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-3 w-16" />
-                <span>•</span>
-                <Skeleton className="h-3 w-24" />
-              </div>
-              <Skeleton className="h-9 w-1/2" />
-            </div>
-            <div className="mb-8 space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Add Member Dialog
 function AddMemberDialog({
@@ -394,10 +347,6 @@ export default function TeamViewPage() {
   // Check user permissions for team management
   const userQuery = useQuery(api.users.currentUser);
   const user = userQuery.data;
-  const { hasPermission: canUpdateTeam } = usePermission(
-    orgSlug,
-    PERMISSIONS.TEAM_EDIT,
-  );
 
   // Fetch team data
   const teamQuery = useQuery(api.teams.getByKey, {
@@ -456,12 +405,7 @@ export default function TeamViewPage() {
     orgSlug,
     PERMISSIONS.TEAM_EDIT,
     permissionScope,
-  );
-
-  const membersQuery = useQuery(api.organizations.listMembers, { orgSlug });
-  const members = membersQuery.data ?? [];
-
-  // Mutations with toast error handling - ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  ); // Mutations with toast error handling - ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const updateTeamMutation = useMutation(api.teams.update);
   const deleteMutation = useMutation(api.issues.deleteIssue);
   const changePriorityMutation = useMutation(api.issues.changePriority);
@@ -489,8 +433,7 @@ export default function TeamViewPage() {
     prioritiesQuery.isPending ||
     teamsQuery.isPending ||
     projectsQuery.isPending ||
-    statusesQuery.isPending ||
-    membersQuery.isPending;
+    statusesQuery.isPending;
 
   // Check for errors
   const hasError =
@@ -503,8 +446,7 @@ export default function TeamViewPage() {
     prioritiesQuery.isError ||
     teamsQuery.isError ||
     projectsQuery.isError ||
-    statusesQuery.isError ||
-    membersQuery.isError;
+    statusesQuery.isError;
 
   // Show loading state
   if (isLoading) {

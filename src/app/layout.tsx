@@ -4,7 +4,6 @@ import { Urbanist, Poppins } from "next/font/google";
 import "./globals.css";
 import { TopLoaderProvider } from "@/providers/top-loader-provider";
 import { ConvexAuthProvider } from "@/providers/convex-auth-provider";
-import { ConvexProviderWrapper } from "@/providers/convex-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Toaster } from "@/components/ui/sonner";
 

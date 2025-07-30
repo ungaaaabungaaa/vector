@@ -179,15 +179,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
 
   const currentUserAssignment = assignments?.find(
     (assignment) => assignment.assigneeId === user?._id,
-  );
-
-  // Permission check for state updates
-  const { isAllowed: canUpdateState } = usePermissionCheck(
-    resolvedParams?.orgSlug || "",
-    PERMISSIONS.ISSUE_STATE_UPDATE,
-  );
-
-  // Permission checks for issue editing
+  ); // Permission checks for issue editing
   const { isAllowed: canEditIssue } = usePermissionCheck(
     resolvedParams?.orgSlug || "",
     PERMISSIONS.ISSUE_EDIT,

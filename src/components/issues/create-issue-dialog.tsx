@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { PermissionAwareButton } from "@/components/ui/permission-aware";
 import { PERMISSIONS } from "@/convex/_shared/permissions";
-import { useSafeAction } from "@/hooks/use-safe-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,7 +30,7 @@ import {
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
-import { withIds, toConvexId } from "@/lib/convex-helpers";
+import { withIds } from "@/lib/convex-helpers";
 import { toast } from "sonner";
 
 // Extracted selector components
@@ -226,9 +225,18 @@ function CreateIssueDialogContent({
   // Transform data to maintain frontend compatibility
   const teams = teamsData ? withIds(teamsData) : [];
   const projects = projectsData ? withIds(projectsData) : [];
-  const states = statesData ? withIds(statesData) : [];
-  const members = membersData ? withIds(membersData) : [];
-  const priorities = prioritiesData ? withIds(prioritiesData) : [];
+  const states = useMemo(
+    () => (statesData ? withIds(statesData) : []),
+    [statesData],
+  );
+  const members = useMemo(
+    () => (membersData ? withIds(membersData) : []),
+    [membersData],
+  );
+  const priorities = useMemo(
+    () => (prioritiesData ? withIds(prioritiesData) : []),
+    [prioritiesData],
+  );
 
   // Auto-infer the format based on selections
   const getEffectiveFormat = (): "team" | "project" | "org" => {
@@ -329,7 +337,7 @@ function CreateIssueDialogContent({
         setSelectedVisibility("organization");
         setManualFormatOverride(null);
       })
-      .catch((error) => {
+      .catch(() => {
         toast.error("Failed to create issue");
       })
       .finally(() => {

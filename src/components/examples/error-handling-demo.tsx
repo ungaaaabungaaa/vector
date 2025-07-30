@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { useFormSubmission } from "@/hooks/use-error-handling";
+
+interface DemoError {
+  category?: string;
+  userMessage?: string;
+  message?: string;
+  retryable?: boolean;
+}
 
 /**
  * Demo component showing different error handling patterns
@@ -57,7 +63,7 @@ export function ErrorHandlingDemo() {
  */
 function BasicMutationDemo() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<DemoError | null>(null);
   const inviteMutation = useMutation(api.organizations.invite);
 
   const handleInvite = async () => {
@@ -72,7 +78,7 @@ function BasicMutationDemo() {
       });
       console.log("Success:", result);
     } catch (err) {
-      setError(err);
+      setError(err as DemoError);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +110,7 @@ function BasicMutationDemo() {
       </Button>
 
       <div className="text-muted-foreground text-xs">
-        <p>This will trigger a "User is already a member" error.</p>
+        <p>This will trigger a &quot;User is already a member&quot; error.</p>
       </div>
     </div>
   );
@@ -118,7 +124,7 @@ function FormSubmissionDemo() {
   const [role, setRole] = useState<"member" | "admin">("member");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<DemoError | null>(null);
   const inviteMutation = useMutation(api.organizations.invite);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,7 +143,7 @@ function FormSubmissionDemo() {
       setEmail("");
       setRole("member");
     } catch (err) {
-      setError(err);
+      setError(err as DemoError);
     } finally {
       setIsSubmitting(false);
     }
@@ -205,7 +211,7 @@ function FormSubmissionDemo() {
  */
 function RetryLogicDemo() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<DemoError | null>(null);
   const inviteMutation = useMutation(api.organizations.invite);
 
   const handleRetryDemo = async () => {
@@ -219,7 +225,7 @@ function RetryLogicDemo() {
         role: "member",
       });
     } catch (err) {
-      setError(err);
+      setError(err as DemoError);
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,4 @@
 import { OrgSetupForm } from "@/components/organization";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@/lib/convex";
 
 export default async function OrgSetupPage() {
   // This page is for first-time setup only. A check in a layout or middleware

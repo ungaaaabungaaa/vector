@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PERMISSIONS } from "@/convex/_shared/permissions";
 import { Edit, Trash, Plus } from "lucide-react";
+import type { Id } from "@/convex/_generated/dataModel";
 
 /**
  * Example component demonstrating proper usage of the permission system
@@ -184,7 +185,7 @@ export function PermissionUsageDemo() {
             permission={PERMISSIONS.ISSUE_EDIT}
             scope={{
               orgSlug,
-              teamId: "example-team-id" as any, // Demo purposes only
+              teamId: "example-team-id" as Id<"teams">,
             }}
             onClick={() => console.log("Edit team issue")}
             fallbackMessage="You cannot edit issues in this specific team"
@@ -197,7 +198,7 @@ export function PermissionUsageDemo() {
             permission={PERMISSIONS.PROJECT_EDIT}
             scope={{
               orgSlug,
-              projectId: "example-project-id" as any, // Demo purposes only
+              projectId: "example-project-id" as Id<"projects">,
             }}
             onClick={() => console.log("Edit project")}
             fallbackMessage="You cannot edit this specific project"
@@ -232,11 +233,11 @@ export function PermissionUsageDemo() {
             why access is denied
           </p>
           <p>
-            <strong>❌ DON'T:</strong> Rely only on client-side permission
+            <strong>❌ DON&apos;T:</strong> Rely only on client-side permission
             checks for security
           </p>
           <p>
-            <strong>❌ DON'T:</strong> Show UI elements that will always be
+            <strong>❌ DON&apos;T:</strong> Show UI elements that will always be
             disabled without explanation
           </p>
         </div>

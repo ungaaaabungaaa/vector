@@ -12,9 +12,7 @@ interface MembersSettingsPageProps {
   params: Promise<{ orgSlug: string }>;
 }
 
-export default function MembersSettingsPage({
-  params,
-}: MembersSettingsPageProps) {
+export default function MembersSettingsPage({}: MembersSettingsPageProps) {
   const paramsObj = useParams();
   const orgSlug = paramsObj.orgSlug as string;
 

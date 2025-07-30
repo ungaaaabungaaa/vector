@@ -105,7 +105,7 @@ export { TeamSelector } from "@/components/teams/team-selector";
 
 // Project Selector -----------------------------------------------------------
 interface ProjectSelectorProps {
-  projects: Project[];
+  projects: readonly Project[];
   selectedProject: string;
   onProjectSelect: (projectId: string) => void;
   displayMode?: SelectorDisplayMode;

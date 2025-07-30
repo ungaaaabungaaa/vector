@@ -1,6 +1,7 @@
 "use client";
 
 import { Building } from "lucide-react";
+import Image from "next/image";
 import {
   OrgLogoEditor,
   OrgNameEditor,
@@ -9,7 +10,6 @@ import {
 import { api } from "@/lib/convex";
 import { useQuery } from "convex/react";
 import { useParams } from "next/navigation";
-
 interface OrgSettingsPageClientProps {
   orgSlug: string;
 }
@@ -97,7 +97,7 @@ export default function OrgSettingsPageClient({
             {isAdmin ? (
               <OrgLogoEditor orgSlug={orgSlug} initialValue={org.logo} />
             ) : org.logo ? (
-              <img
+              <Image
                 src={`/api/files/${org.logo}`}
                 alt="Org logo"
                 width={64}

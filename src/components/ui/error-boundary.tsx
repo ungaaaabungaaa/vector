@@ -142,7 +142,7 @@ function UnauthorizedErrorFallback({ goHome }: { goHome: () => void }) {
             Access Denied
           </h2>
           <p className="text-muted-foreground text-sm">
-            You don't have permission to access this resource.
+            You don&apos;t have permission to access this resource.
           </p>
         </div>
 
@@ -179,7 +179,8 @@ function NotFoundErrorFallback({
         <div className="space-y-2">
           <h2 className="text-foreground text-xl font-semibold">Not Found</h2>
           <p className="text-muted-foreground text-sm">
-            The resource you're looking for doesn't exist or has been moved.
+            The resource you&apos;re looking for doesn&apos;t exist or has been
+            moved.
           </p>
         </div>
 

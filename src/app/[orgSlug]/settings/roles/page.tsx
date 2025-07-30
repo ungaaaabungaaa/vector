@@ -10,7 +10,7 @@ interface RolesSettingsPageProps {
   params: Promise<{ orgSlug: string }>;
 }
 
-export default function RolesSettingsPage({ params }: RolesSettingsPageProps) {
+export default function RolesSettingsPage({}: RolesSettingsPageProps) {
   const paramsObj = useParams();
   const orgSlug = paramsObj.orgSlug as string;
 

@@ -97,9 +97,12 @@ export function PermissionAware({
   fallbackMessage = "You don't have permission for this action",
   showTooltip = true,
 }: PermissionAwareProps) {
-  const { hasPermission, isLoading } = scope
-    ? useScopedPermission(scope, permission)
-    : usePermission(orgSlug, permission);
+  // Always call both hooks to maintain consistent order
+  const scopedResult = useScopedPermission(scope || { orgSlug }, permission);
+  const unscopeResult = usePermission(orgSlug, permission);
+
+  // Use the appropriate result based on whether scope is provided
+  const { hasPermission, isLoading } = scope ? scopedResult : unscopeResult;
 
   const contextValue: AccessContextValue = {
     viewOnly: !hasPermission,
@@ -215,16 +218,6 @@ export function usePermissionCheck(
   return {
     isAllowed: result.hasPermission,
     isLoading: result.isLoading,
-    checkPermission: (checkPermission: Permission) => {
-      const checkScopedResult = useScopedPermission(
-        scope || { orgSlug },
-        checkPermission,
-      );
-      const checkOrgResult = usePermission(orgSlug, checkPermission);
-      return scope
-        ? checkScopedResult.hasPermission
-        : checkOrgResult.hasPermission;
-    },
   };
 }
 
@@ -258,6 +251,87 @@ export function PermissionGate({
 /**
  * Page-level protection component that handles unauthorized access
  */
+
+// New component to check a single permission
+function SinglePermissionCheck({
+  orgSlug,
+  permission,
+  scope,
+  onResult,
+}: {
+  orgSlug: string;
+  permission: Permission;
+  scope?: PermissionScope;
+  onResult: (hasPermission: boolean, isLoading: boolean) => void;
+}) {
+  const scopedResult = useScopedPermission(scope || { orgSlug }, permission);
+  const orgResult = usePermission(orgSlug, permission);
+  const { hasPermission, isLoading } = scope ? scopedResult : orgResult;
+
+  React.useEffect(() => {
+    onResult(hasPermission, isLoading);
+  }, [hasPermission, isLoading, onResult]);
+
+  return null; // This component does not render anything itself
+}
+
+// New component to check multiple permissions
+function MultiPermissionChecker({
+  orgSlug,
+  permissions,
+  scope,
+  onFinished,
+}: {
+  orgSlug: string;
+  permissions: Permission[];
+  scope?: PermissionScope;
+  onFinished: (results: { allGranted: boolean; allFinished: boolean }) => void;
+}) {
+  const [permissionStates, setPermissionStates] = React.useState<
+    Record<string, { hasPermission: boolean; isLoading: boolean }>
+  >({});
+
+  const handleResult = React.useCallback(
+    (permission: Permission, hasPermission: boolean, isLoading: boolean) => {
+      setPermissionStates((prev) => ({
+        ...prev,
+        [permission]: { hasPermission, isLoading },
+      }));
+    },
+    [],
+  );
+
+  React.useEffect(() => {
+    const allFinished =
+      Object.keys(permissionStates).length === permissions.length &&
+      Object.values(permissionStates).every((state) => !state.isLoading);
+
+    const allGranted =
+      allFinished &&
+      Object.values(permissionStates).every((state) => state.hasPermission);
+
+    if (allFinished) {
+      onFinished({ allGranted, allFinished });
+    }
+  }, [permissionStates, permissions.length, onFinished]);
+
+  return (
+    <>
+      {permissions.map((permission) => (
+        <SinglePermissionCheck
+          key={permission}
+          orgSlug={orgSlug}
+          permission={permission}
+          scope={scope}
+          onResult={(hasPermission, isLoading) =>
+            handleResult(permission, hasPermission, isLoading)
+          }
+        />
+      ))}
+    </>
+  );
+}
+
 export function PageProtection({
   orgSlug,
   requiredPermissions,
@@ -265,71 +339,31 @@ export function PageProtection({
   children,
   fallbackPath = "/",
 }: PageProtectionProps) {
-  const [hasAllPermissions, setHasAllPermissions] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [permissionResult, setPermissionResult] = React.useState<{
+    allGranted: boolean;
+    allFinished: boolean;
+  }>({ allGranted: false, allFinished: false });
 
-  React.useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Check all required permissions
-        const permissionChecks = requiredPermissions.map((permission) => {
-          const result = scope
-            ? useScopedPermission(scope, permission)
-            : usePermission(orgSlug, permission);
-          return result.hasPermission;
-        });
-
-        const allPermissionsGranted = permissionChecks.every(Boolean);
-        setHasAllPermissions(allPermissionsGranted);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Permission check failed",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkPermissions();
-  }, [orgSlug, requiredPermissions, scope]);
-
-  if (isLoading) {
+  if (!permissionResult.allFinished) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="space-y-4 text-center">
-          <div className="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-b-2" />
-          <p className="text-muted-foreground">Checking permissions...</p>
+      <>
+        <MultiPermissionChecker
+          orgSlug={orgSlug}
+          permissions={requiredPermissions}
+          scope={scope}
+          onFinished={setPermissionResult}
+        />
+        <div className="flex h-screen w-full items-center justify-center">
+          <div className="space-y-4 text-center">
+            <div className="border-primary mx-auto h-8 w-8 animate-spin rounded-full border-b-2" />
+            <p className="text-muted-foreground">Checking permissions...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-background flex min-h-[400px] w-full items-center justify-center p-4">
-        <div className="max-w-md space-y-6 text-center">
-          <div className="flex justify-center">
-            <div className="bg-destructive/10 rounded-full p-4">
-              <AlertTriangle className="text-destructive size-12" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-foreground text-xl font-semibold">Error</h2>
-            <p className="text-muted-foreground text-sm">{error}</p>
-          </div>
-          <Button onClick={() => window.location.reload()} className="gap-2">
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasAllPermissions) {
+  if (!permissionResult.allGranted) {
     return (
       <div className="bg-background flex min-h-[400px] w-full items-center justify-center p-4">
         <div className="max-w-md space-y-6 text-center">
@@ -343,7 +377,7 @@ export function PageProtection({
               Access Denied
             </h2>
             <p className="text-muted-foreground text-sm">
-              You don't have permission to access this page.
+              You don&apos;t have permission to access this page.
             </p>
           </div>
           <div className="flex flex-col gap-3 pt-2">
@@ -429,9 +463,12 @@ export function PermissionAwareWrapper({
   fallbackMessage = "You don't have permission to perform this action",
   showPermissionIndicator = false, // Default to false since user doesn't like the lock icon
 }: PermissionAwareWrapperProps) {
-  const { hasPermission, isLoading } = scope
-    ? useScopedPermission(scope, permission)
-    : usePermission(orgSlug, permission);
+  // Always call both hooks to maintain consistent order
+  const scopedResult = useScopedPermission(scope || { orgSlug }, permission);
+  const orgResult = usePermission(orgSlug, permission);
+
+  // Use the appropriate result based on whether scope is provided
+  const { hasPermission, isLoading } = scope ? scopedResult : orgResult;
 
   if (isLoading) {
     return <div className="animate-pulse">{children}</div>;

@@ -88,7 +88,13 @@ export function RolesPageContent({ orgSlug }: RolesPageContentProps) {
 
   // Note: Custom roles functionality has been moved to team/project scoped roles
   // This page now focuses on organization-level role management
-  const roles: any[] = []; // Empty for now - custom org roles can be added later
+  const roles: Array<{
+    _id: Id<"orgRoles">;
+    name: string;
+    description: string | undefined;
+    permissions: string[];
+    createdAt: number;
+  }> = []; // Empty for now - custom org roles can be added later
 
   const handleDeleteRole = async (roleId: Id<"orgRoles">) => {
     if (confirm("Are you sure you want to delete this role?")) {

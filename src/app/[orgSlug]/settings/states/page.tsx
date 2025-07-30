@@ -11,9 +11,7 @@ interface StatesSettingsPageProps {
   params: Promise<{ orgSlug: string }>;
 }
 
-export default function StatesSettingsPage({
-  params,
-}: StatesSettingsPageProps) {
+export default function StatesSettingsPage({}: StatesSettingsPageProps) {
   const paramsObj = useParams();
   const orgSlug = paramsObj.orgSlug as string;
 

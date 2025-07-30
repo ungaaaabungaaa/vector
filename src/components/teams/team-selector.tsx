@@ -33,14 +33,45 @@ interface TeamData {
   color?: string;
   key?: string;
   // Optional fields that may or may not be present
-  lead?: any;
+  lead?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  } | null;
   memberCount?: number;
   leadId?: string;
-  [key: string]: any; // Allow additional properties
 }
 
+// Type for Convex team data
+type ConvexTeamData = {
+  _id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  key: string;
+  lead?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  } | null;
+  memberCount?: number;
+  leadId?: string;
+};
+
+// Type for legacy team data (used in project selectors)
+type LegacyTeamData = {
+  id: string;
+  name: string;
+  key: string;
+  icon?: string | null;
+  color?: string | null;
+};
+
 interface TeamSelectorProps {
-  teams: TeamData[];
+  teams:
+    | readonly TeamData[]
+    | readonly ConvexTeamData[]
+    | readonly LegacyTeamData[];
   selectedTeam: string;
   onTeamSelect: (teamId: string) => void;
   displayMode?: SelectorDisplayMode;
@@ -75,6 +106,11 @@ function resolveVisibility(
   }
 }
 
+// Helper function to get team ID that works with both _id and id properties
+function getTeamId(team: TeamData | ConvexTeamData | LegacyTeamData): string {
+  return "_id" in team ? team._id : team.id;
+}
+
 /**
  * Shared TeamSelector used across Issues & Projects.
  * Accepts a list of teams and shows a searchable combobox drop-down.
@@ -100,7 +136,7 @@ export function TeamSelector({
   const { showIcon, showLabel } = resolveVisibility(displayMode, hasSelection);
 
   // Get selected team data
-  const selectedTeamObj = teams.find((t) => t._id === selectedTeam);
+  const selectedTeamObj = teams.find((t) => getTeamId(t) === selectedTeam);
   const currentColor = selectedTeamObj?.color || "#94a3b8"; // Default grey
   const currentName = selectedTeamObj?.name || "Team";
   const currentIconName = selectedTeamObj?.icon;
@@ -167,13 +203,14 @@ export function TeamSelector({
                 const Icon = team.icon
                   ? getDynamicIcon(team.icon) || Circle
                   : Circle;
+                const teamId = getTeamId(team);
                 return (
                   <CommandItem
-                    key={team._id}
+                    key={teamId}
                     value={team.name}
                     onSelect={() => {
                       if (!viewOnly) {
-                        onTeamSelect(team._id);
+                        onTeamSelect(teamId);
                         setOpen(false);
                       }
                     }}
@@ -182,7 +219,7 @@ export function TeamSelector({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedTeam === team._id ? "opacity-100" : "opacity-0",
+                        selectedTeam === teamId ? "opacity-100" : "opacity-0",
                       )}
                     />
                     <Icon

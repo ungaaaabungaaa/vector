@@ -341,7 +341,7 @@ export function IssuesTable({
                     fallbackMessage="You don't have permission to change issue team"
                   >
                     <TeamSelector
-                      teams={teams as any}
+                      teams={teams}
                       selectedTeam={
                         teams.find((t) => t.key === issue.teamKey)?._id || ""
                       }
@@ -357,7 +357,7 @@ export function IssuesTable({
                     fallbackMessage="You don't have permission to change issue project"
                   >
                     <ProjectSelector
-                      projects={projects as any}
+                      projects={projects}
                       selectedProject={
                         projects.find((p) => p.key === issue.projectKey)?._id ||
                         ""

@@ -100,8 +100,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const handleTitleSave = () => {
     if (!project) return;
     updateMutation({
-      orgSlug: params.orgSlug,
-      projectKey: params.projectKey,
+      projectId: project._id,
       data: { name: titleValue },
     });
     setEditingTitle(false);
@@ -110,8 +109,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const handleDescriptionSave = () => {
     if (!project) return;
     updateMutation({
-      orgSlug: params.orgSlug,
-      projectKey: params.projectKey,
+      projectId: project._id,
       data: { description: descriptionValue },
     });
     setEditingDescription(false);
@@ -145,8 +143,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
     if (!project) return;
     setIconValue(iconName);
     updateMutation({
-      orgSlug: params.orgSlug,
-      projectKey: params.projectKey,
+      projectId: project._id,
       data: { icon: iconName || undefined },
     });
   };
@@ -155,8 +152,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
     if (!project) return;
     setColorValue(color);
     updateMutation({
-      orgSlug: params.orgSlug,
-      projectKey: params.projectKey,
+      projectId: project._id,
       data: { color },
     });
   };
@@ -164,8 +160,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const handleVisibilityChange = async (visibility: VisibilityState) => {
     if (!project) return;
     await changeVisibilityMutation({
-      orgSlug: params.orgSlug,
-      projectKey: params.projectKey,
+      projectId: project._id,
       visibility,
     });
   };

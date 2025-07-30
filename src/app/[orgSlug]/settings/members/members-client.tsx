@@ -49,7 +49,7 @@ export default function MembersSettingsPageClient({
     try {
       await removeMember({ orgSlug, userId });
       toast.success("Member removed from organization");
-    } catch (error) {
+    } catch {
       toast.error("Failed to remove member");
     }
   };

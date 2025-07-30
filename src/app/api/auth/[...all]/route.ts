@@ -1,6 +1,3 @@
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@/lib/convex";
-
 // Convex handles auth via HTTP routes in convex/http.ts
 // This file should be removed or redirected to Convex auth endpoints
 export function GET() {

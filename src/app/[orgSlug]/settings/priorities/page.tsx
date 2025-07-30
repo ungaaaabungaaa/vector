@@ -11,9 +11,7 @@ interface PrioritiesSettingsPageProps {
   params: Promise<{ orgSlug: string }>;
 }
 
-export default function PrioritiesSettingsPage({
-  params,
-}: PrioritiesSettingsPageProps) {
+export default function PrioritiesSettingsPage({}: PrioritiesSettingsPageProps) {
   const paramsObj = useParams();
   const orgSlug = paramsObj.orgSlug as string;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ import {
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { toConvexId } from "@/lib/convex-helpers";
 import type { FunctionReturnType } from "convex/server";
 
 // Infer types from Convex query outputs
@@ -69,9 +68,9 @@ export function CreateIssueSimple({
     orgSlug,
   });
 
-  const projects = projectsData ?? [];
-  const states = statesData ?? [];
-  const priorities = prioritiesData ?? [];
+  const projects = useMemo(() => projectsData ?? [], [projectsData]);
+  const states = useMemo(() => statesData ?? [], [statesData]);
+  const priorities = useMemo(() => prioritiesData ?? [], [prioritiesData]);
 
   // Auto-select defaults
   useEffect(() => {

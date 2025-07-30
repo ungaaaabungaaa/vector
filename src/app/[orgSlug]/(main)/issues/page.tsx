@@ -171,8 +171,8 @@ export default function IssuesPage() {
     );
   }
 
-  const mappedTeams = (teams as any) ?? [];
-  const mappedProjects = (projects as any) ?? [];
+  const mappedTeams = teams ?? [];
+  const mappedProjects = projects ?? [];
 
   return (
     <div className="bg-background h-full">

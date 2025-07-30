@@ -1,17 +1,10 @@
 import { headers } from "next/headers";
-import { api } from "@/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
-
-interface LogoPresignResponse {
-  url: string;
-  key: string;
-}
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ orgSlug: string }> },
 ) {
-  const { orgSlug } = await params;
+  await params;
   const headersList = await headers();
   const orgId = headersList.get("x-org-id");
 

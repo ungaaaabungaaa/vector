@@ -1140,6 +1140,169 @@ export const listIssuePriorities = query({
 });
 
 /**
+ * Create an issue priority
+ */
+export const createIssuePriority = mutation({
+  args: {
+    orgSlug: v.string(),
+    name: v.string(),
+    weight: v.number(),
+    color: v.string(),
+    icon: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    // Find organization
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    // Verify user is admin or owner
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_CREATE_PRIORITY");
+    }
+
+    const id = await ctx.db.insert("issuePriorities", {
+      organizationId: org._id,
+      name: args.name,
+      weight: args.weight,
+      color: args.color,
+      icon: args.icon,
+    });
+
+    return { id } as const;
+  },
+});
+
+/**
+ * Update an issue priority
+ */
+export const updateIssuePriority = mutation({
+  args: {
+    orgSlug: v.string(),
+    priorityId: v.id("issuePriorities"),
+    name: v.string(),
+    weight: v.optional(v.number()),
+    color: v.string(),
+    icon: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_UPDATE_PRIORITY");
+    }
+
+    await ctx.db.patch(args.priorityId, {
+      name: args.name,
+      weight: args.weight,
+      color: args.color,
+      icon: args.icon,
+    });
+  },
+});
+
+/**
+ * Reset issue priorities to defaults
+ */
+export const resetIssuePriorities = mutation({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError("UNAUTHORIZED");
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug))
+      .first();
+
+    if (!org) {
+      throw new ConvexError("ORGANIZATION_NOT_FOUND");
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", userId),
+      )
+      .first();
+
+    if (
+      !membership ||
+      (membership.role !== "owner" && membership.role !== "admin")
+    ) {
+      throw new ConvexError("INSUFFICIENT_PERMISSIONS_RESET_PRIORITY");
+    }
+
+    // Delete existing priorities
+    const priorities = await ctx.db
+      .query("issuePriorities")
+      .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
+      .collect();
+
+    for (const p of priorities) {
+      await ctx.db.delete(p._id);
+    }
+
+    // Insert defaults
+    for (const priority of ISSUE_PRIORITY_DEFAULTS) {
+      await ctx.db.insert("issuePriorities", {
+        organizationId: org._id,
+        name: priority.name,
+        weight: priority.weight,
+        color: priority.color,
+        icon: priority.icon,
+      });
+    }
+  },
+});
+
+/**
  * Invite a user to the organization
  */
 export const invite = mutation({

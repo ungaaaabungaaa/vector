@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "convex/react";
 import { api } from "@/lib/convex";
-import { PERMISSIONS } from "@/convex/_shared/permissions";
+
 import { ALL_PERMISSIONS_WITH_GROUP } from "@/lib/permission-groups";
 
 interface CreateRoleDialogProps {

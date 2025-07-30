@@ -5,6 +5,7 @@ import { UserMenu } from "@/components/user-menu";
 import { useQuery } from "convex/react";
 import { api } from "@/lib/convex";
 import { useParams } from "next/navigation";
+import { Doc } from "@/convex/_generated/dataModel";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,20 +19,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const user = useQuery(api.users.currentUser);
   const organization = useQuery(api.organizations.getBySlug, { orgSlug });
   const userOrganizations = useQuery(api.users.getOrganizations);
-
-  // Transform organizations to match the expected interface
-  const organizations =
-    userOrganizations
-      ?.map((org) => {
-        if (!org) return null;
-        return {
-          id: org._id,
-          name: org.name,
-          slug: org.slug,
-          logo: org.logo,
-        };
-      })
-      .filter((org): org is NonNullable<typeof org> => org !== null) || [];
 
   // Don't render until we have the data
   if (user === undefined || organization === undefined) {
@@ -76,6 +63,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
     );
   }
+
+  const organizations =
+    userOrganizations?.filter(
+      (org): org is Doc<"organizations"> => org !== null,
+    ) || [];
 
   return (
     <div className="bg-secondary flex h-screen">

@@ -307,12 +307,6 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     });
   };
 
-  const mappedTeams = teams?.map((t) => ({ ...t, id: t._id })) ?? [];
-  const mappedProjects = projects?.map((p) => ({ ...p, id: p._id })) ?? [];
-  const mappedStates = states?.map((s) => ({ ...s, id: s._id })) ?? [];
-  const mappedPriorities = priorities?.map((p) => ({ ...p, id: p._id })) ?? [];
-  const mappedMembers = members?.map((m) => ({ ...m, id: m.userId })) ?? [];
-
   return (
     <div className="bg-background h-full overflow-y-auto">
       {/* Page Grid: main area + sidebar */}
@@ -337,7 +331,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                   fallbackMessage="You don't have permission to change issue team"
                 >
                   <TeamSelector
-                    teams={mappedTeams}
+                    teams={teams ?? []}
                     selectedTeam={issue.teamId || ""}
                     onTeamSelect={canChangeTeam ? handleTeamChange : () => {}}
                     displayMode="iconWhenUnselected"
@@ -350,7 +344,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                   fallbackMessage="You don't have permission to change issue project"
                 >
                   <ProjectSelector
-                    projects={mappedProjects}
+                    projects={projects ?? []}
                     selectedProject={issue.projectId || ""}
                     onProjectSelect={
                       canChangeProject ? handleProjectChange : () => {}
@@ -369,7 +363,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
               {currentUserAssignment && (
                 <>
                   <StateSelector
-                    states={mappedStates}
+                    states={states ?? []}
                     selectedState={currentUserAssignment.stateId}
                     onStateSelect={(stateId) => {
                       if (!issue || !user) return;
@@ -391,7 +385,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                 fallbackMessage="You don't have permission to change issue priority"
               >
                 <PrioritySelector
-                  priorities={mappedPriorities}
+                  priorities={priorities ?? []}
                   selectedPriority={issue.priorityId || ""}
                   onPrioritySelect={
                     canEditPriority ? handlePriorityChange : () => {}
@@ -620,8 +614,8 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                 <IssueAssignments
                   orgSlug={resolvedParams.orgSlug}
                   issueId={issue._id}
-                  states={mappedStates}
-                  members={mappedMembers}
+                  states={states}
+                  members={members}
                   defaultStateId={
                     states?.find((s) => s.type === "todo")?._id ||
                     states?.[0]?._id ||

@@ -12,12 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  logo?: string | null;
-}
+import type { Doc } from "@/convex/_generated/dataModel";
+
+type Organization = Doc<"organizations">;
 
 interface OrgOptionsDropdownProps {
   currentOrgSlug: string;
@@ -143,7 +140,7 @@ export function OrgOptionsDropdown({
           .filter((org) => org.slug !== currentOrgSlug)
           .map((org) => (
             <DropdownMenuItem
-              key={org.id}
+              key={org._id}
               className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
               onSelect={() => handleOrgSwitch(org.slug)}
             >

@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SquareDashed } from "lucide-react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@/lib/convex";
 import { IconPicker } from "@/components/ui/icon-picker";
 import { getDynamicIcon } from "@/lib/dynamic-icons";

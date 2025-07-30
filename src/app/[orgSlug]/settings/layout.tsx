@@ -7,6 +7,7 @@ import {
 import { useQuery } from "convex/react";
 import { api } from "@/lib/convex";
 import { useParams } from "next/navigation";
+import { Doc } from "@/convex/_generated/dataModel";
 
 interface OrgSettingsLayoutProps {
   children: React.ReactNode;
@@ -24,19 +25,10 @@ export default function OrgSettingsLayout({
   const userRole =
     members?.find((m) => m.userId === user?._id)?.role || "member";
 
-  // Transform organizations to match the expected interface
   const organizations =
-    userOrganizations
-      ?.map((org) => {
-        if (!org) return null;
-        return {
-          id: org._id,
-          name: org.name,
-          slug: org.slug,
-          logo: org.logo,
-        };
-      })
-      .filter((org): org is NonNullable<typeof org> => org !== null) || [];
+    userOrganizations?.filter(
+      (org): org is Doc<"organizations"> => org !== null,
+    ) || [];
 
   return (
     <div className="bg-secondary flex h-screen">

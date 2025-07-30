@@ -349,16 +349,43 @@ export const list = query({
  * List project members
  */
 export const listMembers = query({
+  // Support either direct projectId lookup or orgSlug + projectKey lookup
   args: {
-    projectId: v.id("projects"),
+    projectId: v.optional(v.id("projects")),
+    orgSlug: v.optional(v.string()),
+    projectKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
+    // Resolve project first
+    let project: Doc<"projects"> | null = null;
+
+    if (args.projectId) {
+      project = await ctx.db.get(args.projectId);
+    } else if (args.orgSlug && args.projectKey) {
+      // Find organization by slug
+      const org = await ctx.db
+        .query("organizations")
+        .withIndex("by_slug", (q) => q.eq("slug", args.orgSlug!))
+        .first();
+
+      if (!org) {
+        throw new ConvexError("ORGANIZATION_NOT_FOUND");
+      }
+
+      // Find project within organization by key
+      project = await ctx.db
+        .query("projects")
+        .withIndex("by_org_key", (q) =>
+          q.eq("organizationId", org._id).eq("key", args.projectKey!),
+        )
+        .first();
+    }
+
     if (!project) {
       throw new ConvexError("PROJECT_NOT_FOUND");
     }
 
-    // Check if user can view this project based on visibility
+    // Permission check – ensure current user can view this project
     if (!(await canViewProject(ctx, project))) {
       throw new ConvexError("FORBIDDEN");
     }

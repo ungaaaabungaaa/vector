@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { CreateTeamButton, TeamsTable } from "@/components/teams";
 import { Button } from "@/components/ui/button";
-import { useAuthActions } from "@convex-dev/auth/react";
+
 import { PageSkeleton } from "@/components/ui/table-skeleton";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/lib/convex";
@@ -54,7 +54,6 @@ export function TeamsPageContent({
   // --------------------------------------------------
   // Team operations
   // --------------------------------------------------
-  const { signOut } = useAuthActions();
 
   const deleteMutation = useMutation(api.teams.deleteTeam);
 

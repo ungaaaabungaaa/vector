@@ -22,7 +22,6 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { FunctionReturnType } from "convex/server";
 import { useAccess } from "@/components/ui/permission-aware";
-import { useAuthActions } from "@convex-dev/auth/react";
 
 type ProjectMember = FunctionReturnType<
   typeof api.projects.listMembers
@@ -73,7 +72,7 @@ export function ProjectLeadSelector({
   align = "start",
 }: ProjectLeadSelectorProps) {
   const [open, setOpen] = useState(false);
-  const { signOut } = useAuthActions();
+
   const { viewOnly } = useAccess();
   const currentUser = useQuery(api.users.getCurrentUser);
   const currentUserId = currentUser?._id;

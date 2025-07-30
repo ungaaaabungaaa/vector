@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/lib/convex";
 import { CreateRoleDialog } from "./create-role-dialog";
 import { EditRoleDialog } from "./edit-role-dialog";
@@ -25,31 +25,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 interface RolesPageContentProps {
   orgSlug: string;
 }
-
-// Mapping from permission identifiers to human-readable labels (keep in sync with dialogs)
-const PERMISSION_LABELS: Record<string, string> = {
-  [PERMISSIONS.ORG_VIEW]: "View Organization",
-  [PERMISSIONS.ORG_MANAGE_SETTINGS]: "Manage Organization Settings",
-  [PERMISSIONS.ORG_MANAGE_BILLING]: "Manage Billing",
-  [PERMISSIONS.ORG_MANAGE_MEMBERS]: "Manage Members",
-  [PERMISSIONS.ORG_MANAGE_ROLES]: "Manage Roles",
-
-  [PERMISSIONS.PROJECT_CREATE]: "Create Projects",
-  [PERMISSIONS.PROJECT_VIEW]: "View Projects",
-  [PERMISSIONS.PROJECT_EDIT]: "Edit Projects",
-  [PERMISSIONS.PROJECT_DELETE]: "Delete Projects",
-
-  [PERMISSIONS.TEAM_CREATE]: "Create Teams",
-  [PERMISSIONS.TEAM_VIEW]: "View Teams",
-  [PERMISSIONS.TEAM_EDIT]: "Edit Teams",
-  [PERMISSIONS.TEAM_DELETE]: "Delete Teams",
-
-  [PERMISSIONS.ISSUE_CREATE]: "Create Issues",
-  [PERMISSIONS.ISSUE_VIEW]: "View Issues",
-  [PERMISSIONS.ISSUE_EDIT]: "Edit Issues",
-  [PERMISSIONS.ISSUE_DELETE]: "Delete Issues",
-  [PERMISSIONS.ISSUE_ASSIGN]: "Assign Issues",
-};
 
 export function RolesPageContent({ orgSlug }: RolesPageContentProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);

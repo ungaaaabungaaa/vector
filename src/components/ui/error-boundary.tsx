@@ -3,7 +3,6 @@
 import React from "react";
 import { AlertTriangle, RefreshCw, Home, ArrowLeft } from "lucide-react";
 import { Button } from "./button";
-import Link from "next/link";
 
 interface ErrorInfo {
   componentStack: string;

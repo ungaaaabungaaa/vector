@@ -22,8 +22,6 @@ export default function MembersSettingsPage({}: MembersSettingsPageProps) {
     PERMISSIONS.ORG_MANAGE_MEMBERS,
   );
 
-  const members = useQuery(api.organizations.listMembersWithRoles, { orgSlug });
-
   // Show loading state while checking permissions
   if (permissionLoading) {
     return (
@@ -48,7 +46,7 @@ export default function MembersSettingsPage({}: MembersSettingsPageProps) {
 
       {/* Members List */}
       <div className="space-y-4">
-        <MembersList orgSlug={orgSlug} memberCount={members?.length || 0} />
+        <MembersList orgSlug={orgSlug} />
       </div>
     </div>
   );

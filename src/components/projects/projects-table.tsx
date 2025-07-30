@@ -10,10 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import { formatDateHuman } from "@/lib/date";
 import { StatusSelector } from "./project-selectors";
-import type { Status, Team, Member } from "./project-selectors";
+import type { Status, Team } from "./project-selectors";
 import { ProjectLeadSelector } from "./project-lead-selector";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
 import { TeamSelector } from "@/components/teams/team-selector";
@@ -49,17 +49,6 @@ export interface ProjectRowData {
   leadId?: string | null;
   leadName?: string | null;
   leadEmail?: string | null;
-}
-
-function getLeadInitials(name?: string | null, email?: string | null): string {
-  const displayName = name || email;
-  if (!displayName) return "?";
-  return displayName
-    .split(" ")
-    .map((part) => part.charAt(0))
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 }
 
 export interface ProjectsTableProps {
@@ -108,12 +97,6 @@ export function ProjectsTable({
             ? getDynamicIcon(project.icon) || Circle
             : Circle;
           const projectColor = project.color || "#94a3b8";
-
-          // Status icon / color
-          const StatusIcon = project.statusIcon
-            ? getDynamicIcon(project.statusIcon) || Circle
-            : Circle;
-          const statusColor = project.statusColor || "#94a3b8";
 
           return (
             <motion.div

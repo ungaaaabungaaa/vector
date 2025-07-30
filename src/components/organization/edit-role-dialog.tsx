@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/lib/convex";
 import type { Id } from "@/convex/_generated/dataModel";
-import { PERMISSIONS } from "@/convex/_shared/permissions";
+
 import { ALL_PERMISSIONS_WITH_GROUP } from "@/lib/permission-groups";
 
 interface EditRoleDialogProps {

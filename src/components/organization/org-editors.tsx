@@ -343,7 +343,6 @@ export function OrgLogoEditor({ orgSlug, initialValue }: LogoEditorProps) {
   const [logoKey, setLogoKey] = useState<string | null>(initialValue ?? null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   const generateUploadUrl = useMutation(
     api.organizations.generateLogoUploadUrl,

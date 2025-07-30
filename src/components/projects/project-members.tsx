@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Popover,
@@ -28,7 +27,6 @@ import {
 import {
   Check,
   ChevronsUpDown,
-  UserPlus,
   MoreHorizontal,
   Trash2,
   Users,

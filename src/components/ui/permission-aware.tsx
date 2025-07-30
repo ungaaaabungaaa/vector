@@ -160,7 +160,6 @@ export function PermissionAwareSelector({
   permission,
   scope,
   fallbackMessage = "You don't have permission to change this selection",
-  allowDropdownView = true,
 }: PermissionAwareSelectorProps) {
   return (
     <PermissionAware

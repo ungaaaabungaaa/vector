@@ -26,14 +26,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users, User, Circle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDynamicIcon } from "@/lib/dynamic-icons";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { FunctionReturnType } from "convex/server";
+
 import { useAccess } from "@/components/ui/permission-aware";
 
 // Type definitions matching issue selectors
 export type Status = {
-  id: string;
+  _id: string;
   name: string;
   color?: string | null;
   icon?: string | null;
@@ -117,7 +115,7 @@ export function StatusSelector({
   const { showIcon, showLabel } = resolveVisibility(displayMode, hasSelection);
 
   // Get selected status data
-  const selectedStatusObj = statuses.find((s) => s.id === selectedStatus);
+  const selectedStatusObj = statuses.find((s) => s._id === selectedStatus);
   const currentColor = selectedStatusObj?.color || "#94a3b8"; // Default grey
   const currentName = selectedStatusObj?.name || "Status";
   const currentIconName = selectedStatusObj?.icon;
@@ -163,11 +161,11 @@ export function StatusSelector({
                   : Circle;
                 return (
                   <CommandItem
-                    key={status.id}
+                    key={status._id}
                     value={status.name}
                     onSelect={() => {
                       if (!viewOnly) {
-                        onStatusSelect(status.id);
+                        onStatusSelect(status._id);
                         setOpen(false);
                       }
                     }}
@@ -176,7 +174,7 @@ export function StatusSelector({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedStatus === status.id
+                        selectedStatus === status._id
                           ? "opacity-100"
                           : "opacity-0",
                       )}

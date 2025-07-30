@@ -16,16 +16,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import {
-  Eye,
-  EyeOff,
-  Users,
-  Building,
-  Check,
-  Globe,
-  Shield,
-  Lock,
-} from "lucide-react";
+import { Building, Check, Globe, Lock } from "lucide-react";
 import { useAccess } from "@/components/ui/permission-aware";
 
 // Visibility options - matching convex schema exactly

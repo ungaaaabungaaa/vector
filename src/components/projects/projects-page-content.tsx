@@ -8,10 +8,9 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { ProjectsTable } from "./projects-table";
 import type { ProjectRowData } from "./projects-table";
 import { CreateProjectButton } from "./create-project-button";
-import { toast } from "sonner";
+
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/ui/table-skeleton";
-import { useAuthActions } from "@convex-dev/auth/react";
 
 // Define project status types based on Convex schema
 type StatusType =
@@ -65,9 +64,6 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(1);
 
-  // Current user session – needed for actorId in mutations
-  const { signOut } = useAuthActions();
-
   // Queries
   const projectsData = useQuery(api.projects.list, { orgSlug });
   const statusesData = useQuery(api.organizations.listProjectStatuses, {
@@ -100,7 +96,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
   }));
 
   const statuses = (statusesData ?? []).map((status) => ({
-    id: status._id,
+    _id: status._id,
     name: status.name,
     color: status.color,
     icon: status.icon,
@@ -113,14 +109,6 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
     key: team.key,
     color: team.color,
     icon: team.icon,
-  }));
-
-  const members = (membersData ?? []).map((member) => ({
-    id: member._id,
-    name: member.user?.name || "",
-    email: member.user?.email || "",
-    role: member.role,
-    userId: member.userId,
   }));
 
   // Mutations
@@ -166,7 +154,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
   // Filter projects based on active filter
   const filteredProjects = projects.filter((project) => {
     if (activeFilter === "all") return true;
-    const status = statuses.find((s) => s.id === project.statusId);
+    const status = statuses.find((s) => s._id === project.statusId);
     return status?.type === activeFilter;
   });
 
@@ -174,7 +162,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
   const statusCounts = statusValues.reduce(
     (acc, statusType) => {
       const count = projects.filter((project) => {
-        const status = statuses.find((s) => s.id === project.statusId);
+        const status = statuses.find((s) => s._id === project.statusId);
         return status?.type === statusType;
       }).length;
       acc[statusType] = count;

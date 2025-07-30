@@ -76,7 +76,7 @@ function CreateProjectDialogContent({
   const statusesData =
     useQuery(api.organizations.listProjectStatuses, { orgSlug }) ?? [];
   const statuses = statusesData.map((status) => ({
-    id: status._id,
+    _id: status._id,
     name: status.name,
     type: status.type,
     icon: status.icon,
@@ -88,7 +88,7 @@ function CreateProjectDialogContent({
     if (statuses.length > 0 && !selectedStatus) {
       const defaultStatus =
         statuses.find((s) => s.type === "planned") || statuses[0];
-      setSelectedStatus(defaultStatus.id);
+      setSelectedStatus(defaultStatus._id);
     }
   }, [statuses, selectedStatus]);
 

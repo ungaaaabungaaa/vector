@@ -326,6 +326,7 @@ export default defineSchema({
   })
     .index("by_organization", ["organizationId"])
     .index("by_key", ["key"])
+    .index("by_org_key", ["organizationId", "key"])
     .index("by_team", ["teamId"])
     .index("by_project", ["projectId"])
     .index("by_priority", ["priorityId"])

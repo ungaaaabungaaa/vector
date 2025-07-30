@@ -30,13 +30,7 @@ function getInitials(name?: string, email?: string): string {
     .slice(0, 2);
 }
 
-export function MembersList({
-  orgSlug,
-  memberCount,
-}: {
-  orgSlug: string;
-  memberCount?: number;
-}) {
+export function MembersList({ orgSlug }: { orgSlug: string }) {
   const members = useQuery(api.organizations.listMembersWithRoles, { orgSlug });
   const invites = useQuery(api.organizations.listInvites, { orgSlug });
   const currentUser = useQuery(api.users.getCurrentUser);

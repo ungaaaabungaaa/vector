@@ -200,25 +200,6 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
     setDescriptionValue(project.description || "");
   }
 
-  // Transform data for selectors
-  const mappedStatuses =
-    statuses?.map((status) => ({
-      id: status._id,
-      name: status.name,
-      color: status.color,
-      icon: status.icon,
-      type: status.type,
-    })) || [];
-
-  const mappedTeams =
-    teams?.map((team) => ({
-      _id: team._id,
-      id: team._id, // keep for existing lookups
-      name: team.name,
-      icon: team.icon,
-      color: team.color,
-    })) || [];
-
   return (
     <div className="bg-background h-full overflow-y-auto">
       <div className="h-full">
@@ -241,7 +222,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                 fallbackMessage="You don't have permission to change project team"
               >
                 <TeamSelector
-                  teams={mappedTeams}
+                  teams={teams || []}
                   selectedTeam={project.teamId || ""}
                   onTeamSelect={handleTeamChange}
                   displayMode="iconWhenUnselected"
@@ -275,7 +256,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
               fallbackMessage="You don't have permission to change project status"
             >
               <StatusSelector
-                statuses={mappedStatuses}
+                statuses={statuses || []}
                 selectedStatus={project.statusId || ""}
                 onStatusSelect={handleStatusChange}
                 className="border-none bg-transparent shadow-none"
@@ -585,7 +566,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                   fallbackMessage="You don't have permission to change status"
                 >
                   <StatusSelector
-                    statuses={mappedStatuses}
+                    statuses={statuses || []}
                     selectedStatus={project.statusId || ""}
                     onStatusSelect={handleStatusChange}
                     className="h-5 w-5 border-none bg-transparent p-0 shadow-none"
@@ -595,8 +576,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
               </span>
               <span className="text-muted-foreground text-xs">Status</span>
               <span className="ml-1 font-medium">
-                {mappedStatuses.find((s) => s.id === project.statusId)?.name ||
-                  "—"}
+                {statuses?.find((s) => s._id === project.statusId)?.name || "—"}
               </span>
             </div>
             {/* Lead */}
@@ -630,7 +610,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
               </span>
               <span className="text-muted-foreground text-xs">Team</span>
               <span className="ml-1 font-medium">
-                {mappedTeams.find((t) => t.id === project.teamId)?.name || "—"}
+                {teams?.find((t) => t._id === project.teamId)?.name || "—"}
               </span>
             </div>
             {/* Dates */}

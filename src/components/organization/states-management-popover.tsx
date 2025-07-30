@@ -203,7 +203,6 @@ export function StatesManagementPopover({
   type,
   state,
   existingStates,
-  onClose,
   onSave,
   orgSlug,
   children,

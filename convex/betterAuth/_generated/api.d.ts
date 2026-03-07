@@ -8,14 +8,14 @@
  * @module
  */
 
-import type * as adapter from '../adapter.js';
-import type * as auth from '../auth.js';
+import type * as adapter from "../adapter.js";
+import type * as auth from "../auth.js";
 
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
-} from 'convex/server';
+} from "convex/server";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -32,8 +32,8 @@ declare const fullApi: ApiFromModules<{
 export type Mounts = {
   adapter: {
     create: FunctionReference<
-      'mutation',
-      'public',
+      "mutation",
+      "public",
       {
         input:
           | {
@@ -48,7 +48,7 @@ export type Mounts = {
                 userId?: null | string;
                 username?: null | string;
               };
-              model: 'user';
+              model: "user";
             }
           | {
               data: {
@@ -60,7 +60,7 @@ export type Mounts = {
                 userAgent?: null | string;
                 userId: string;
               };
-              model: 'session';
+              model: "session";
             }
           | {
               data: {
@@ -77,7 +77,7 @@ export type Mounts = {
                 updatedAt: number;
                 userId: string;
               };
-              model: 'account';
+              model: "account";
             }
           | {
               data: {
@@ -87,7 +87,7 @@ export type Mounts = {
                 updatedAt: number;
                 value: string;
               };
-              model: 'verification';
+              model: "verification";
             }
           | {
               data: {
@@ -96,7 +96,7 @@ export type Mounts = {
                 privateKey: string;
                 publicKey: string;
               };
-              model: 'jwks';
+              model: "jwks";
             };
         onCreateHandle?: string;
         select?: Array<string>;
@@ -104,37 +104,37 @@ export type Mounts = {
       any
     >;
     deleteMany: FunctionReference<
-      'mutation',
-      'public',
+      "mutation",
+      "public",
       {
         input:
           | {
-              model: 'user';
+              model: "user";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'name'
-                  | 'email'
-                  | 'emailVerified'
-                  | 'image'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'username'
-                  | 'displayUsername'
-                  | 'userId'
-                  | '_id';
+                  | "name"
+                  | "email"
+                  | "emailVerified"
+                  | "image"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "username"
+                  | "displayUsername"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -145,30 +145,30 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'session';
+              model: "session";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'expiresAt'
-                  | 'token'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'ipAddress'
-                  | 'userAgent'
-                  | 'userId'
-                  | '_id';
+                  | "expiresAt"
+                  | "token"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "ipAddress"
+                  | "userAgent"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -179,35 +179,35 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'account';
+              model: "account";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'accountId'
-                  | 'providerId'
-                  | 'userId'
-                  | 'accessToken'
-                  | 'refreshToken'
-                  | 'idToken'
-                  | 'accessTokenExpiresAt'
-                  | 'refreshTokenExpiresAt'
-                  | 'scope'
-                  | 'password'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "accountId"
+                  | "providerId"
+                  | "userId"
+                  | "accessToken"
+                  | "refreshToken"
+                  | "idToken"
+                  | "accessTokenExpiresAt"
+                  | "refreshTokenExpiresAt"
+                  | "scope"
+                  | "password"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -218,28 +218,28 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'verification';
+              model: "verification";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'identifier'
-                  | 'value'
-                  | 'expiresAt'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "identifier"
+                  | "value"
+                  | "expiresAt"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -250,27 +250,27 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'jwks';
+              model: "jwks";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'publicKey'
-                  | 'privateKey'
-                  | 'createdAt'
-                  | 'expiresAt'
-                  | '_id';
+                  | "publicKey"
+                  | "privateKey"
+                  | "createdAt"
+                  | "expiresAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -293,37 +293,37 @@ export type Mounts = {
       any
     >;
     deleteOne: FunctionReference<
-      'mutation',
-      'public',
+      "mutation",
+      "public",
       {
         input:
           | {
-              model: 'user';
+              model: "user";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'name'
-                  | 'email'
-                  | 'emailVerified'
-                  | 'image'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'username'
-                  | 'displayUsername'
-                  | 'userId'
-                  | '_id';
+                  | "name"
+                  | "email"
+                  | "emailVerified"
+                  | "image"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "username"
+                  | "displayUsername"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -334,30 +334,30 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'session';
+              model: "session";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'expiresAt'
-                  | 'token'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'ipAddress'
-                  | 'userAgent'
-                  | 'userId'
-                  | '_id';
+                  | "expiresAt"
+                  | "token"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "ipAddress"
+                  | "userAgent"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -368,35 +368,35 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'account';
+              model: "account";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'accountId'
-                  | 'providerId'
-                  | 'userId'
-                  | 'accessToken'
-                  | 'refreshToken'
-                  | 'idToken'
-                  | 'accessTokenExpiresAt'
-                  | 'refreshTokenExpiresAt'
-                  | 'scope'
-                  | 'password'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "accountId"
+                  | "providerId"
+                  | "userId"
+                  | "accessToken"
+                  | "refreshToken"
+                  | "idToken"
+                  | "accessTokenExpiresAt"
+                  | "refreshTokenExpiresAt"
+                  | "scope"
+                  | "password"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -407,28 +407,28 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'verification';
+              model: "verification";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'identifier'
-                  | 'value'
-                  | 'expiresAt'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "identifier"
+                  | "value"
+                  | "expiresAt"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -439,27 +439,27 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'jwks';
+              model: "jwks";
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'publicKey'
-                  | 'privateKey'
-                  | 'createdAt'
-                  | 'expiresAt'
-                  | '_id';
+                  | "publicKey"
+                  | "privateKey"
+                  | "createdAt"
+                  | "expiresAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -474,12 +474,12 @@ export type Mounts = {
       any
     >;
     findMany: FunctionReference<
-      'query',
-      'public',
+      "query",
+      "public",
       {
         join?: any;
         limit?: number;
-        model: 'user' | 'session' | 'account' | 'verification' | 'jwks';
+        model: "user" | "session" | "account" | "verification" | "jwks";
         offset?: number;
         paginationOpts: {
           cursor: string | null;
@@ -489,22 +489,22 @@ export type Mounts = {
           maximumRowsRead?: number;
           numItems: number;
         };
-        sortBy?: { direction: 'asc' | 'desc'; field: string };
+        sortBy?: { direction: "asc" | "desc"; field: string };
         where?: Array<{
-          connector?: 'AND' | 'OR';
+          connector?: "AND" | "OR";
           field: string;
           operator?:
-            | 'lt'
-            | 'lte'
-            | 'gt'
-            | 'gte'
-            | 'eq'
-            | 'in'
-            | 'not_in'
-            | 'ne'
-            | 'contains'
-            | 'starts_with'
-            | 'ends_with';
+            | "lt"
+            | "lte"
+            | "gt"
+            | "gte"
+            | "eq"
+            | "in"
+            | "not_in"
+            | "ne"
+            | "contains"
+            | "starts_with"
+            | "ends_with";
           value:
             | string
             | number
@@ -517,27 +517,27 @@ export type Mounts = {
       any
     >;
     findOne: FunctionReference<
-      'query',
-      'public',
+      "query",
+      "public",
       {
         join?: any;
-        model: 'user' | 'session' | 'account' | 'verification' | 'jwks';
+        model: "user" | "session" | "account" | "verification" | "jwks";
         select?: Array<string>;
         where?: Array<{
-          connector?: 'AND' | 'OR';
+          connector?: "AND" | "OR";
           field: string;
           operator?:
-            | 'lt'
-            | 'lte'
-            | 'gt'
-            | 'gte'
-            | 'eq'
-            | 'in'
-            | 'not_in'
-            | 'ne'
-            | 'contains'
-            | 'starts_with'
-            | 'ends_with';
+            | "lt"
+            | "lte"
+            | "gt"
+            | "gte"
+            | "eq"
+            | "in"
+            | "not_in"
+            | "ne"
+            | "contains"
+            | "starts_with"
+            | "ends_with";
           value:
             | string
             | number
@@ -550,12 +550,12 @@ export type Mounts = {
       any
     >;
     updateMany: FunctionReference<
-      'mutation',
-      'public',
+      "mutation",
+      "public",
       {
         input:
           | {
-              model: 'user';
+              model: "user";
               update: {
                 createdAt?: number;
                 displayUsername?: null | string;
@@ -568,30 +568,30 @@ export type Mounts = {
                 username?: null | string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'name'
-                  | 'email'
-                  | 'emailVerified'
-                  | 'image'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'username'
-                  | 'displayUsername'
-                  | 'userId'
-                  | '_id';
+                  | "name"
+                  | "email"
+                  | "emailVerified"
+                  | "image"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "username"
+                  | "displayUsername"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -602,7 +602,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'session';
+              model: "session";
               update: {
                 createdAt?: number;
                 expiresAt?: number;
@@ -613,28 +613,28 @@ export type Mounts = {
                 userId?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'expiresAt'
-                  | 'token'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'ipAddress'
-                  | 'userAgent'
-                  | 'userId'
-                  | '_id';
+                  | "expiresAt"
+                  | "token"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "ipAddress"
+                  | "userAgent"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -645,7 +645,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'account';
+              model: "account";
               update: {
                 accessToken?: null | string;
                 accessTokenExpiresAt?: null | number;
@@ -661,33 +661,33 @@ export type Mounts = {
                 userId?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'accountId'
-                  | 'providerId'
-                  | 'userId'
-                  | 'accessToken'
-                  | 'refreshToken'
-                  | 'idToken'
-                  | 'accessTokenExpiresAt'
-                  | 'refreshTokenExpiresAt'
-                  | 'scope'
-                  | 'password'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "accountId"
+                  | "providerId"
+                  | "userId"
+                  | "accessToken"
+                  | "refreshToken"
+                  | "idToken"
+                  | "accessTokenExpiresAt"
+                  | "refreshTokenExpiresAt"
+                  | "scope"
+                  | "password"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -698,7 +698,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'verification';
+              model: "verification";
               update: {
                 createdAt?: number;
                 expiresAt?: number;
@@ -707,26 +707,26 @@ export type Mounts = {
                 value?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'identifier'
-                  | 'value'
-                  | 'expiresAt'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "identifier"
+                  | "value"
+                  | "expiresAt"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -737,7 +737,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'jwks';
+              model: "jwks";
               update: {
                 createdAt?: number;
                 expiresAt?: null | number;
@@ -745,25 +745,25 @@ export type Mounts = {
                 publicKey?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'publicKey'
-                  | 'privateKey'
-                  | 'createdAt'
-                  | 'expiresAt'
-                  | '_id';
+                  | "publicKey"
+                  | "privateKey"
+                  | "createdAt"
+                  | "expiresAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -786,12 +786,12 @@ export type Mounts = {
       any
     >;
     updateOne: FunctionReference<
-      'mutation',
-      'public',
+      "mutation",
+      "public",
       {
         input:
           | {
-              model: 'user';
+              model: "user";
               update: {
                 createdAt?: number;
                 displayUsername?: null | string;
@@ -804,30 +804,30 @@ export type Mounts = {
                 username?: null | string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'name'
-                  | 'email'
-                  | 'emailVerified'
-                  | 'image'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'username'
-                  | 'displayUsername'
-                  | 'userId'
-                  | '_id';
+                  | "name"
+                  | "email"
+                  | "emailVerified"
+                  | "image"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "username"
+                  | "displayUsername"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -838,7 +838,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'session';
+              model: "session";
               update: {
                 createdAt?: number;
                 expiresAt?: number;
@@ -849,28 +849,28 @@ export type Mounts = {
                 userId?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'expiresAt'
-                  | 'token'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | 'ipAddress'
-                  | 'userAgent'
-                  | 'userId'
-                  | '_id';
+                  | "expiresAt"
+                  | "token"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "ipAddress"
+                  | "userAgent"
+                  | "userId"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -881,7 +881,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'account';
+              model: "account";
               update: {
                 accessToken?: null | string;
                 accessTokenExpiresAt?: null | number;
@@ -897,33 +897,33 @@ export type Mounts = {
                 userId?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'accountId'
-                  | 'providerId'
-                  | 'userId'
-                  | 'accessToken'
-                  | 'refreshToken'
-                  | 'idToken'
-                  | 'accessTokenExpiresAt'
-                  | 'refreshTokenExpiresAt'
-                  | 'scope'
-                  | 'password'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "accountId"
+                  | "providerId"
+                  | "userId"
+                  | "accessToken"
+                  | "refreshToken"
+                  | "idToken"
+                  | "accessTokenExpiresAt"
+                  | "refreshTokenExpiresAt"
+                  | "scope"
+                  | "password"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -934,7 +934,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'verification';
+              model: "verification";
               update: {
                 createdAt?: number;
                 expiresAt?: number;
@@ -943,26 +943,26 @@ export type Mounts = {
                 value?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'identifier'
-                  | 'value'
-                  | 'expiresAt'
-                  | 'createdAt'
-                  | 'updatedAt'
-                  | '_id';
+                  | "identifier"
+                  | "value"
+                  | "expiresAt"
+                  | "createdAt"
+                  | "updatedAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -973,7 +973,7 @@ export type Mounts = {
               }>;
             }
           | {
-              model: 'jwks';
+              model: "jwks";
               update: {
                 createdAt?: number;
                 expiresAt?: null | number;
@@ -981,25 +981,25 @@ export type Mounts = {
                 publicKey?: string;
               };
               where?: Array<{
-                connector?: 'AND' | 'OR';
+                connector?: "AND" | "OR";
                 field:
-                  | 'publicKey'
-                  | 'privateKey'
-                  | 'createdAt'
-                  | 'expiresAt'
-                  | '_id';
+                  | "publicKey"
+                  | "privateKey"
+                  | "createdAt"
+                  | "expiresAt"
+                  | "_id";
                 operator?:
-                  | 'lt'
-                  | 'lte'
-                  | 'gt'
-                  | 'gte'
-                  | 'eq'
-                  | 'in'
-                  | 'not_in'
-                  | 'ne'
-                  | 'contains'
-                  | 'starts_with'
-                  | 'ends_with';
+                  | "lt"
+                  | "lte"
+                  | "gt"
+                  | "gte"
+                  | "eq"
+                  | "in"
+                  | "not_in"
+                  | "ne"
+                  | "contains"
+                  | "starts_with"
+                  | "ends_with";
                 value:
                   | string
                   | number
@@ -1022,11 +1022,11 @@ declare const fullApiWithMounts: typeof fullApi;
 
 export declare const api: FilterApi<
   typeof fullApiWithMounts,
-  FunctionReference<any, 'public'>
+  FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
   typeof fullApiWithMounts,
-  FunctionReference<any, 'internal'>
+  FunctionReference<any, "internal">
 >;
 
 export declare const components: {};

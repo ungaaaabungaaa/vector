@@ -466,7 +466,11 @@ export const resetIssuePriorities = mutation({
     orgSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireOrgAccess(ctx, args.orgSlug, PERMISSIONS.ORG_MANAGE_SETTINGS);
+    const org = await requireOrgAccess(
+      ctx,
+      args.orgSlug,
+      PERMISSIONS.ORG_MANAGE_SETTINGS,
+    );
 
     const priorities = await ctx.db
       .query('issuePriorities')

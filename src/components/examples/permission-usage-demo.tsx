@@ -26,17 +26,17 @@ export function PermissionUsageDemo() {
   // The simple permission checker function the user requested
   const { isAllowed: canEditIssues, isLoading } = usePermissionCheck(
     orgSlug,
-    PERMISSIONS.ISSUE_EDIT
+    PERMISSIONS.ISSUE_EDIT,
   );
 
   const { isAllowed: canCreateProjects } = usePermissionCheck(
     orgSlug,
-    PERMISSIONS.PROJECT_CREATE
+    PERMISSIONS.PROJECT_CREATE,
   );
 
   const { isAllowed: canManageTeams } = usePermissionCheck(
     orgSlug,
-    PERMISSIONS.TEAM_EDIT
+    PERMISSIONS.TEAM_EDIT,
   );
 
   return (

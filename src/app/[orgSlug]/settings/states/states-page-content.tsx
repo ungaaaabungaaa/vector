@@ -68,7 +68,7 @@ const getTypeLabel = (type: string) => {
 // Group states by type
 const groupStatesByType = <T extends { type: string }>(
   states: readonly T[],
-  isIssue: boolean
+  isIssue: boolean,
 ) => {
   const types = isIssue
     ? ISSUE_STATE_DEFAULTS.map(s => s.type)
@@ -88,38 +88,38 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
     api.organizations.queries.listProjectStatuses,
     {
       orgSlug,
-    }
+    },
   );
   const priorities = useQuery(api.organizations.queries.listIssuePriorities, {
     orgSlug,
   });
 
   const createIssueState = useMutation(
-    api.organizations.mutations.createIssueState
+    api.organizations.mutations.createIssueState,
   );
   const updateIssueState = useMutation(
-    api.organizations.mutations.updateIssueState
+    api.organizations.mutations.updateIssueState,
   );
   const createProjectStatus = useMutation(
-    api.organizations.mutations.createProjectStatus
+    api.organizations.mutations.createProjectStatus,
   );
   const updateProjectStatus = useMutation(
-    api.organizations.mutations.updateProjectStatus
+    api.organizations.mutations.updateProjectStatus,
   );
   const resetIssueMutation = useMutation(
-    api.organizations.mutations.resetIssueStates
+    api.organizations.mutations.resetIssueStates,
   );
   const resetStatusMutation = useMutation(
-    api.organizations.mutations.resetProjectStatuses
+    api.organizations.mutations.resetProjectStatuses,
   );
   const createPriority = useMutation(
-    api.organizations.mutations.createIssuePriority
+    api.organizations.mutations.createIssuePriority,
   );
   const updatePriority = useMutation(
-    api.organizations.mutations.updateIssuePriority
+    api.organizations.mutations.updateIssuePriority,
   );
   const resetPriorities = useMutation(
-    api.organizations.mutations.resetIssuePriorities
+    api.organizations.mutations.resetIssuePriorities,
   );
 
   const [dialogState, setDialogState] = useState<{
@@ -148,7 +148,7 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
 
   const handleSaveIssueState = (
     newStateData: Omit<IssueState, '_id'>,
-    editingState?: IssueState
+    editingState?: IssueState,
   ) => {
     const isEditing = !!editingState;
 
@@ -176,7 +176,7 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
 
   const handleSaveProjectStatus = (
     newStatusData: Omit<ProjectStatus, '_id'>,
-    editingStatus?: ProjectStatus
+    editingStatus?: ProjectStatus,
   ) => {
     const isEditing = !!editingStatus;
 
@@ -237,11 +237,11 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
 
   const issueGroups = groupStatesByType(
     (issueStates as IssueState[]) ?? [],
-    true
+    true,
   );
   const projectGroups = groupStatesByType(
     (projectStatuses as ProjectStatus[]) ?? [],
-    false
+    false,
   );
 
   return (
@@ -297,7 +297,7 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
                     onSave={data =>
                       handleSaveIssueState(
                         data as Omit<IssueState, '_id'>,
-                        state as IssueState
+                        state as IssueState,
                       )
                     }
                   >
@@ -395,7 +395,7 @@ export function StatesPageContent({ orgSlug }: StatesPageContentProps) {
                     onSave={data =>
                       handleSaveProjectStatus(
                         data as Omit<ProjectStatus, '_id'>,
-                        status as ProjectStatus
+                        status as ProjectStatus,
                       )
                     }
                   >

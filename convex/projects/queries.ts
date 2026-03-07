@@ -1,7 +1,6 @@
 import { query } from '../_generated/server';
 import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
-import { getAuthUserId } from '../authUtils';
 import { canViewProject } from '../access';
 
 export const getByKey = query({
@@ -22,7 +21,7 @@ export const getByKey = query({
     const project = await ctx.db
       .query('projects')
       .withIndex('by_org_key', q =>
-        q.eq('organizationId', org._id).eq('key', args.projectKey)
+        q.eq('organizationId', org._id).eq('key', args.projectKey),
       )
       .first();
 
@@ -34,7 +33,9 @@ export const getByKey = query({
       throw new ConvexError('FORBIDDEN');
     }
 
-    const leadUser = project.leadId ? await ctx.db.get(project.leadId) : null;
+    const leadUser = project.leadId
+      ? await ctx.db.get('users', project.leadId)
+      : null;
     return { ...project, lead: leadUser };
   },
 });
@@ -62,12 +63,12 @@ export const list = query({
       const team = await ctx.db
         .query('teams')
         .withIndex('by_org_key', q =>
-          q.eq('organizationId', org._id).eq('key', args.teamId!)
+          q.eq('organizationId', org._id).eq('key', args.teamId!),
         )
         .first();
       if (team) {
         projectsQuery = projectsQuery.filter(q =>
-          q.eq(q.field('teamId'), team._id)
+          q.eq(q.field('teamId'), team._id),
         );
       }
     }
@@ -79,7 +80,7 @@ export const list = query({
       return canView ? project : null;
     });
     const projects = (await Promise.all(projectPromises)).filter(
-      (project): project is Doc<'projects'> => project !== null
+      (project): project is Doc<'projects'> => project !== null,
     );
 
     const leadIds = projects
@@ -89,8 +90,12 @@ export const list = query({
       .map(p => p.statusId)
       .filter(Boolean) as Id<'projectStatuses'>[];
 
-    const leadUsers = await Promise.all(leadIds.map(id => ctx.db.get(id)));
-    const statuses = await Promise.all(statusIds.map(id => ctx.db.get(id)));
+    const leadUsers = await Promise.all(
+      leadIds.map(id => ctx.db.get('users', id)),
+    );
+    const statuses = await Promise.all(
+      statusIds.map(id => ctx.db.get('projectStatuses', id)),
+    );
 
     const leadUserMap = new Map(leadIds.map((id, i) => [id, leadUsers[i]]));
     const statusMap = new Map(statusIds.map((id, i) => [id, statuses[i]]));
@@ -115,7 +120,7 @@ export const listMembers = query({
     let project: Doc<'projects'> | null = null;
 
     if (args.projectId) {
-      project = await ctx.db.get(args.projectId);
+      project = await ctx.db.get('projects', args.projectId);
     } else if (args.orgSlug && args.projectKey) {
       const org = await ctx.db
         .query('organizations')
@@ -129,7 +134,7 @@ export const listMembers = query({
       project = await ctx.db
         .query('projects')
         .withIndex('by_org_key', q =>
-          q.eq('organizationId', org._id).eq('key', args.projectKey!)
+          q.eq('organizationId', org._id).eq('key', args.projectKey!),
         )
         .first();
     }
@@ -149,9 +154,9 @@ export const listMembers = query({
 
     const membersWithUsers = await Promise.all(
       projectMembers.map(async member => {
-        const user = await ctx.db.get(member.userId);
+        const user = await ctx.db.get('users', member.userId);
         return { ...member, user };
-      })
+      }),
     );
 
     return membersWithUsers;

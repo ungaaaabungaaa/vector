@@ -23,7 +23,7 @@ const header = (
 export default function InvitesPage() {
   const invites = useQuery(api.users.getPendingInvitations);
   const acceptInvite = useMutation(
-    api.organizations.mutations.acceptInvitation
+    api.organizations.mutations.acceptInvitation,
   );
   const declineInvite = useMutation(api.organizations.mutations.revokeInvite);
 

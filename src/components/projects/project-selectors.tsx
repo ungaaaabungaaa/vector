@@ -61,7 +61,7 @@ export type SelectorDisplayMode =
 
 function resolveVisibility(
   mode: SelectorDisplayMode | undefined,
-  hasSelection: boolean
+  hasSelection: boolean,
 ): { showIcon: boolean; showLabel: boolean } {
   switch (mode) {
     case 'labelOnly':
@@ -176,7 +176,7 @@ export function StatusSelector({
                         'mr-2 h-4 w-4',
                         selectedStatus === status._id
                           ? 'opacity-100'
-                          : 'opacity-0'
+                          : 'opacity-0',
                       )}
                     />
 
@@ -210,7 +210,6 @@ interface TeamSelectorProps {
   className?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _DeprecatedTeamSelector({
   teams,
   selectedTeam,
@@ -219,7 +218,7 @@ function _DeprecatedTeamSelector({
   className,
 }: TeamSelectorProps) {
   const open = false;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const setOpen = (_unused: boolean) => {};
 
   const selectedTeamObj = teams.find(t => t.id === selectedTeam);
@@ -233,7 +232,7 @@ function _DeprecatedTeamSelector({
             size='sm'
             className={cn(
               'bg-muted/30 hover:bg-muted/50 h-8 w-8 p-0',
-              className
+              className,
             )}
           >
             <Users className='text-muted-foreground h-3 w-3' />

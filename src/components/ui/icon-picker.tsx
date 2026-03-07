@@ -123,7 +123,7 @@ export function IconPicker({
     icon =>
       icon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       icon.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      icon.category.toLowerCase().includes(searchQuery.toLowerCase())
+      icon.category.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const groupedIcons = filteredIcons.reduce(
@@ -134,7 +134,7 @@ export function IconPicker({
       acc[icon.category].push(icon);
       return acc;
     },
-    {} as Record<string, Array<(typeof AVAILABLE_ICONS)[number]>>
+    {} as Record<string, Array<(typeof AVAILABLE_ICONS)[number]>>,
   );
 
   return (
@@ -198,7 +198,7 @@ export function IconPicker({
               value === null
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border',
-              viewOnly && 'cursor-not-allowed opacity-50'
+              viewOnly && 'cursor-not-allowed opacity-50',
             )}
           >
             <span className='text-sm'>No icon</span>
@@ -237,7 +237,7 @@ export function IconPicker({
                       isSelected
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border',
-                      viewOnly && 'cursor-not-allowed opacity-50'
+                      viewOnly && 'cursor-not-allowed opacity-50',
                     )}
                     title={`${icon.label}${viewOnly ? ' (view only)' : ''}`}
                   >

@@ -29,7 +29,7 @@ export function AssignRoleDialog({
   onSuccess,
 }: AssignRoleDialogProps) {
   const [selectedUserId, setSelectedUserId] = useState<Id<'users'> | null>(
-    null
+    null,
   );
 
   const members =

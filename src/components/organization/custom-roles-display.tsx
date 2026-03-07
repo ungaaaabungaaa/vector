@@ -22,7 +22,7 @@ export function CustomRolesDisplay({
   onRoleRemoved,
 }: CustomRolesDisplayProps) {
   const [removingRoleId, setRemovingRoleId] = useState<Id<'orgRoles'> | null>(
-    null
+    null,
   );
 
   const removeRoleMutation = useMutation(api.roles.index.removeAssignment);

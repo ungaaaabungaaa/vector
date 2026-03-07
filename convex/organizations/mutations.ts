@@ -13,13 +13,13 @@ export const revokeInvite = mutation({
     inviteId: v.id('invitations'),
   },
   handler: async (ctx, args) => {
-    const invite = await ctx.db.get(args.inviteId);
+    const invite = await ctx.db.get('invitations', args.inviteId);
 
     if (!invite) {
       throw new ConvexError('INVITE_NOT_FOUND');
     }
 
-    await ctx.db.patch(invite._id, { status: 'revoked' });
+    await ctx.db.patch('invitations', invite._id, { status: 'revoked' });
   },
 });
 
@@ -32,12 +32,12 @@ export const acceptInvitation = mutation({
     if (userId === null) {
       throw new ConvexError('UNAUTHORIZED');
     }
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get('users', userId);
     if (!user) {
       throw new ConvexError('USER_NOT_FOUND');
     }
 
-    const invite = await ctx.db.get(args.inviteId);
+    const invite = await ctx.db.get('invitations', args.inviteId);
 
     if (!invite) {
       throw new ConvexError('INVITATION_NOT_FOUND');
@@ -47,15 +47,15 @@ export const acceptInvitation = mutation({
     }
     if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
       throw new ConvexError(
-        `This invitation is for ${invite.email}, but you are logged in as ${user.email}.`
+        `This invitation is for ${invite.email}, but you are logged in as ${user.email}.`,
       );
     }
     if (invite.expiresAt < Date.now()) {
-      await ctx.db.patch(invite._id, { status: 'expired' });
+      await ctx.db.patch('invitations', invite._id, { status: 'expired' });
       throw new ConvexError('INVITATION_EXPIRED');
     }
 
-    await ctx.db.patch(invite._id, {
+    await ctx.db.patch('invitations', invite._id, {
       status: 'accepted',
       acceptedAt: Date.now(),
     });
@@ -63,7 +63,7 @@ export const acceptInvitation = mutation({
     const existingMembership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', invite.organizationId).eq('userId', userId)
+        q.eq('organizationId', invite.organizationId).eq('userId', userId),
       )
       .first();
 
@@ -84,7 +84,7 @@ export const resendInvite = mutation({
     token: v.id('invitations'),
   },
   handler: async (ctx, args) => {
-    const invite = await ctx.db.get(args.token);
+    const invite = await ctx.db.get('invitations', args.token);
 
     if (!invite) {
       throw new ConvexError('INVITE_NOT_FOUND');
@@ -93,7 +93,9 @@ export const resendInvite = mutation({
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await ctx.db.patch(invite._id, { expiresAt: expiresAt.getTime() });
+    await ctx.db.patch('invitations', invite._id, {
+      expiresAt: expiresAt.getTime(),
+    });
   },
 });
 
@@ -120,7 +122,7 @@ export const removeMember = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -131,7 +133,7 @@ export const removeMember = mutation({
     const member = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', args.userId)
+        q.eq('organizationId', org._id).eq('userId', args.userId),
       )
       .first();
 
@@ -139,7 +141,7 @@ export const removeMember = mutation({
       throw new ConvexError('MEMBER_NOT_FOUND');
     }
 
-    await ctx.db.delete(member._id);
+    await ctx.db.delete('members', member._id);
   },
 });
 
@@ -167,7 +169,7 @@ export const updateMemberRole = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -181,7 +183,7 @@ export const updateMemberRole = mutation({
     const member = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', args.userId)
+        q.eq('organizationId', org._id).eq('userId', args.userId),
       )
       .first();
 
@@ -193,7 +195,7 @@ export const updateMemberRole = mutation({
       throw new ConvexError('CANNOT_CHANGE_OWNER_ROLE');
     }
 
-    await ctx.db.patch(member._id, { role: args.role });
+    await ctx.db.patch('members', member._id, { role: args.role });
     return { success: true } as const;
   },
 });
@@ -309,7 +311,7 @@ export const update = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -361,7 +363,7 @@ export const update = mutation({
     }
 
     if (Object.keys(updateData).length > 0) {
-      await ctx.db.patch(org._id, updateData);
+      await ctx.db.patch('organizations', org._id, updateData);
     }
 
     return { success: true } as const;
@@ -394,7 +396,7 @@ export const createIssuePriority = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -444,7 +446,7 @@ export const updateIssuePriority = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -455,7 +457,7 @@ export const updateIssuePriority = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_UPDATE_PRIORITY');
     }
 
-    await ctx.db.patch(args.priorityId, {
+    await ctx.db.patch('issuePriorities', args.priorityId, {
       name: args.name,
       weight: args.weight,
       color: args.color,
@@ -486,7 +488,7 @@ export const resetIssuePriorities = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -503,7 +505,7 @@ export const resetIssuePriorities = mutation({
       .collect();
 
     for (const p of priorities) {
-      await ctx.db.delete(p._id);
+      await ctx.db.delete('issuePriorities', p._id);
     }
 
     for (const priority of ISSUE_PRIORITY_DEFAULTS) {
@@ -541,7 +543,7 @@ export const deleteIssuePriority = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -552,7 +554,7 @@ export const deleteIssuePriority = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_DELETE_PRIORITY');
     }
 
-    await ctx.db.delete(args.priorityId);
+    await ctx.db.delete('issuePriorities', args.priorityId);
   },
 });
 
@@ -568,7 +570,7 @@ export const createIssueState = mutation({
       v.literal('todo'),
       v.literal('in_progress'),
       v.literal('done'),
-      v.literal('canceled')
+      v.literal('canceled'),
     ),
   },
   handler: async (ctx, args) => {
@@ -589,7 +591,7 @@ export const createIssueState = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -626,7 +628,7 @@ export const updateIssueState = mutation({
       v.literal('todo'),
       v.literal('in_progress'),
       v.literal('done'),
-      v.literal('canceled')
+      v.literal('canceled'),
     ),
   },
   handler: async (ctx, args) => {
@@ -647,7 +649,7 @@ export const updateIssueState = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -658,7 +660,7 @@ export const updateIssueState = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_UPDATE_STATE');
     }
 
-    await ctx.db.patch(args.stateId, {
+    await ctx.db.patch('issueStates', args.stateId, {
       name: args.name,
       position: args.position,
       color: args.color,
@@ -680,7 +682,7 @@ export const createProjectStatus = mutation({
       v.literal('planned'),
       v.literal('in_progress'),
       v.literal('completed'),
-      v.literal('canceled')
+      v.literal('canceled'),
     ),
   },
   handler: async (ctx, args) => {
@@ -701,7 +703,7 @@ export const createProjectStatus = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -738,7 +740,7 @@ export const updateProjectStatus = mutation({
       v.literal('planned'),
       v.literal('in_progress'),
       v.literal('completed'),
-      v.literal('canceled')
+      v.literal('canceled'),
     ),
   },
   handler: async (ctx, args) => {
@@ -759,7 +761,7 @@ export const updateProjectStatus = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -770,7 +772,7 @@ export const updateProjectStatus = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_UPDATE_STATUS');
     }
 
-    await ctx.db.patch(args.statusId, {
+    await ctx.db.patch('projectStatuses', args.statusId, {
       name: args.name,
       position: args.position,
       color: args.color,
@@ -803,7 +805,7 @@ export const deleteIssueState = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -814,7 +816,7 @@ export const deleteIssueState = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_DELETE_STATE');
     }
 
-    await ctx.db.delete(args.stateId);
+    await ctx.db.delete('issueStates', args.stateId);
   },
 });
 
@@ -841,7 +843,7 @@ export const deleteProjectStatus = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -852,7 +854,7 @@ export const deleteProjectStatus = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_DELETE_STATUS');
     }
 
-    await ctx.db.delete(args.statusId);
+    await ctx.db.delete('projectStatuses', args.statusId);
   },
 });
 
@@ -878,7 +880,7 @@ export const resetIssueStates = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -895,7 +897,7 @@ export const resetIssueStates = mutation({
       .collect();
 
     for (const s of states) {
-      await ctx.db.delete(s._id);
+      await ctx.db.delete('issueStates', s._id);
     }
 
     for (const state of ISSUE_STATE_DEFAULTS) {
@@ -933,7 +935,7 @@ export const resetProjectStatuses = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -950,7 +952,7 @@ export const resetProjectStatuses = mutation({
       .collect();
 
     for (const s of statuses) {
-      await ctx.db.delete(s._id);
+      await ctx.db.delete('projectStatuses', s._id);
     }
 
     for (const status of PROJECT_STATUS_DEFAULTS) {
@@ -990,7 +992,7 @@ export const invite = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -1010,7 +1012,7 @@ export const invite = mutation({
       const existingMembership = await ctx.db
         .query('members')
         .withIndex('by_org_user', q =>
-          q.eq('organizationId', org._id).eq('userId', existingUser._id)
+          q.eq('organizationId', org._id).eq('userId', existingUser._id),
         )
         .first();
 
@@ -1054,7 +1056,7 @@ export const generateLogoUploadUrl = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -1092,7 +1094,7 @@ export const updateLogoWithStorageId = mutation({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -1103,7 +1105,7 @@ export const updateLogoWithStorageId = mutation({
       throw new ConvexError('INSUFFICIENT_PERMISSIONS_UPDATE_LOGO');
     }
 
-    await ctx.db.patch(org._id, {
+    await ctx.db.patch('organizations', org._id, {
       logo: args.storageId,
     });
 

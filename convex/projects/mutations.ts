@@ -22,8 +22,8 @@ export const create = mutation({
         v.union(
           v.literal('private'),
           v.literal('organization'),
-          v.literal('public')
-        )
+          v.literal('public'),
+        ),
       ),
     }),
   },
@@ -47,7 +47,7 @@ export const create = mutation({
     const existingProject = await ctx.db
       .query('projects')
       .withIndex('by_org_key', q =>
-        q.eq('organizationId', org._id).eq('key', args.data.key)
+        q.eq('organizationId', org._id).eq('key', args.data.key),
       )
       .first();
 
@@ -60,7 +60,7 @@ export const create = mutation({
       const leadMembership = await ctx.db
         .query('members')
         .withIndex('by_org_user', q =>
-          q.eq('organizationId', org._id).eq('userId', leadId)
+          q.eq('organizationId', org._id).eq('userId', leadId),
         )
         .first();
 
@@ -70,7 +70,7 @@ export const create = mutation({
     }
 
     if (args.data.teamId) {
-      const team = await ctx.db.get(args.data.teamId);
+      const team = await ctx.db.get('teams', args.data.teamId);
       if (!team || team.organizationId !== org._id) {
         throw new ConvexError('INVALID_TEAM');
       }
@@ -129,7 +129,7 @@ export const update = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
+    const project = await ctx.db.get('projects', args.projectId);
     if (!project) {
       throw new ConvexError('PROJECT_NOT_FOUND');
     }
@@ -144,7 +144,7 @@ export const update = mutation({
         .withIndex('by_org_user', q =>
           q
             .eq('organizationId', project.organizationId)
-            .eq('userId', args.data.leadId!)
+            .eq('userId', args.data.leadId!),
         )
         .first();
 
@@ -154,13 +154,13 @@ export const update = mutation({
     }
 
     if (args.data.teamId) {
-      const team = await ctx.db.get(args.data.teamId);
+      const team = await ctx.db.get('teams', args.data.teamId);
       if (!team || team.organizationId !== project.organizationId) {
         throw new ConvexError('INVALID_TEAM');
       }
     }
 
-    await ctx.db.patch(project._id, { ...args.data });
+    await ctx.db.patch('projects', project._id, { ...args.data });
     return { success: true } as const;
   },
 });
@@ -171,7 +171,7 @@ export const changeStatus = mutation({
     statusId: v.union(v.id('projectStatuses'), v.null()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.projectId, {
+    await ctx.db.patch('projects', args.projectId, {
       statusId: args.statusId ?? undefined,
     });
   },
@@ -183,7 +183,7 @@ export const changeTeam = mutation({
     teamId: v.union(v.id('teams'), v.null()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.projectId, {
+    await ctx.db.patch('projects', args.projectId, {
       teamId: args.teamId ?? undefined,
     });
   },
@@ -195,7 +195,7 @@ export const changeLead = mutation({
     leadId: v.union(v.id('users'), v.null()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.projectId, {
+    await ctx.db.patch('projects', args.projectId, {
       leadId: args.leadId ?? undefined,
     });
   },
@@ -208,7 +208,7 @@ export const addMember = mutation({
     role: v.union(v.literal('lead'), v.literal('member')),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
+    const project = await ctx.db.get('projects', args.projectId);
     if (!project) {
       throw new ConvexError('PROJECT_NOT_FOUND');
     }
@@ -220,7 +220,9 @@ export const addMember = mutation({
     const targetUserMembership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', project.organizationId).eq('userId', args.userId)
+        q
+          .eq('organizationId', project.organizationId)
+          .eq('userId', args.userId),
       )
       .first();
 
@@ -231,7 +233,7 @@ export const addMember = mutation({
     const existingMember = await ctx.db
       .query('projectMembers')
       .withIndex('by_project_user', q =>
-        q.eq('projectId', project._id).eq('userId', args.userId)
+        q.eq('projectId', project._id).eq('userId', args.userId),
       )
       .first();
 
@@ -255,12 +257,12 @@ export const removeMember = mutation({
     membershipId: v.id('projectMembers'),
   },
   handler: async (ctx, args) => {
-    const membership = await ctx.db.get(args.membershipId);
+    const membership = await ctx.db.get('projectMembers', args.membershipId);
     if (!membership) {
       throw new ConvexError('PROJECT_MEMBERSHIP_NOT_FOUND');
     }
 
-    const project = await ctx.db.get(membership.projectId);
+    const project = await ctx.db.get('projects', membership.projectId);
     if (!project) {
       throw new ConvexError('PROJECT_NOT_FOUND');
     }
@@ -269,7 +271,7 @@ export const removeMember = mutation({
       throw new ConvexError('FORBIDDEN');
     }
 
-    await ctx.db.delete(args.membershipId);
+    await ctx.db.delete('projectMembers', args.membershipId);
     return { success: true } as const;
   },
 });
@@ -279,7 +281,7 @@ export const deleteProject = mutation({
     projectId: v.id('projects'),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
+    const project = await ctx.db.get('projects', args.projectId);
     if (!project) {
       throw new ConvexError('PROJECT_NOT_FOUND');
     }
@@ -293,7 +295,7 @@ export const deleteProject = mutation({
       .withIndex('by_project', q => q.eq('projectId', project._id))
       .collect();
     for (const member of projectMembers) {
-      await ctx.db.delete(member._id);
+      await ctx.db.delete('projectMembers', member._id);
     }
 
     const projectTeams = await ctx.db
@@ -301,10 +303,10 @@ export const deleteProject = mutation({
       .withIndex('by_project', q => q.eq('projectId', project._id))
       .collect();
     for (const team of projectTeams) {
-      await ctx.db.delete(team._id);
+      await ctx.db.delete('projectTeams', team._id);
     }
 
-    await ctx.db.delete(project._id);
+    await ctx.db.delete('projects', project._id);
     return { success: true } as const;
   },
 });
@@ -315,18 +317,18 @@ export const changeVisibility = mutation({
     visibility: v.union(
       v.literal('private'),
       v.literal('organization'),
-      v.literal('public')
+      v.literal('public'),
     ),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get(args.projectId);
+    const project = await ctx.db.get('projects', args.projectId);
     if (!project) throw new ConvexError('PROJECT_NOT_FOUND');
 
     if (!(await canEditProject(ctx, project))) {
       throw new ConvexError('FORBIDDEN');
     }
 
-    await ctx.db.patch(project._id, {
+    await ctx.db.patch('projects', project._id, {
       visibility: args.visibility,
     });
 

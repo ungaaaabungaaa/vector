@@ -39,13 +39,13 @@ export function MembersList({ orgSlug }: { orgSlug: string }) {
   const [showInvite, setShowInvite] = useState(false);
 
   const removeMemberMutation = useMutation(
-    api.organizations.mutations.removeMember
+    api.organizations.mutations.removeMember,
   );
   const revokeInviteMutation = useMutation(
-    api.organizations.mutations.revokeInvite
+    api.organizations.mutations.revokeInvite,
   );
   const resendInviteMutation = useMutation(
-    api.organizations.mutations.resendInvite
+    api.organizations.mutations.resendInvite,
   );
 
   const { isAdmin, currentUserId } = useMemo(() => {
@@ -198,7 +198,7 @@ export function MembersList({ orgSlug }: { orgSlug: string }) {
                             onClick={() => {
                               if (
                                 confirm(
-                                  `Remove ${member.name || member.email} from organization?`
+                                  `Remove ${member.name || member.email} from organization?`,
                                 )
                               ) {
                                 void removeMemberMutation({

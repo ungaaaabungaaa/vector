@@ -80,7 +80,7 @@ export function OrgSidebar({ orgSlug }: OrgSidebarProps) {
                   'hover:bg-foreground/5 text-foreground',
                   {
                     'bg-foreground/5': isActive,
-                  }
+                  },
                 )}
               >
                 {/* Clickable area */}
@@ -146,7 +146,7 @@ export function OrgSidebar({ orgSlug }: OrgSidebarProps) {
                       'hover:bg-foreground/5 text-foreground',
                       {
                         'bg-foreground/5': isActive,
-                      }
+                      },
                     )}
                   >
                     {(() => {
@@ -221,7 +221,7 @@ export function OrgSidebar({ orgSlug }: OrgSidebarProps) {
                       'hover:bg-foreground/5 text-foreground',
                       {
                         'bg-foreground/5': isActive,
-                      }
+                      },
                     )}
                   >
                     {(() => {

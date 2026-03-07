@@ -1,13 +1,7 @@
 import { mutation } from '../_generated/server';
 import { v, ConvexError } from 'convex/values';
-import type { Id, Doc } from '../_generated/dataModel';
 import { getAuthUserId } from '../authUtils';
-import {
-  canViewTeam,
-  canEditTeam,
-  canDeleteTeam,
-  canManageTeamMembers,
-} from '../access';
+import { canEditTeam, canDeleteTeam, canManageTeamMembers } from '../access';
 import { PERMISSIONS, requirePermission } from '../permissions/utils';
 
 /**
@@ -27,8 +21,8 @@ export const create = mutation({
         v.union(
           v.literal('private'),
           v.literal('organization'),
-          v.literal('public')
-        )
+          v.literal('public'),
+        ),
       ),
     }),
   },
@@ -54,7 +48,7 @@ export const create = mutation({
     const existingTeam = await ctx.db
       .query('teams')
       .withIndex('by_org_key', q =>
-        q.eq('organizationId', org._id).eq('key', args.data.key)
+        q.eq('organizationId', org._id).eq('key', args.data.key),
       )
       .first();
 
@@ -68,7 +62,7 @@ export const create = mutation({
       const leadMembership = await ctx.db
         .query('members')
         .withIndex('by_org_user', q =>
-          q.eq('organizationId', org._id).eq('userId', leadId)
+          q.eq('organizationId', org._id).eq('userId', leadId),
         )
         .first();
 
@@ -134,7 +128,7 @@ export const update = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) {
       throw new ConvexError('TEAM_NOT_FOUND');
     }
@@ -150,7 +144,7 @@ export const update = mutation({
         .withIndex('by_org_user', q =>
           q
             .eq('organizationId', team.organizationId)
-            .eq('userId', args.data.leadId!)
+            .eq('userId', args.data.leadId!),
         )
         .first();
 
@@ -159,7 +153,7 @@ export const update = mutation({
       }
     }
 
-    await ctx.db.patch(team._id, { ...args.data });
+    await ctx.db.patch('teams', team._id, { ...args.data });
 
     return { success: true };
   },
@@ -175,7 +169,7 @@ export const addMember = mutation({
     role: v.union(v.literal('lead'), v.literal('member')),
   },
   handler: async (ctx, args) => {
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) {
       throw new ConvexError('TEAM_NOT_FOUND');
     }
@@ -188,7 +182,7 @@ export const addMember = mutation({
     const targetUserMembership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', team.organizationId).eq('userId', args.userId)
+        q.eq('organizationId', team.organizationId).eq('userId', args.userId),
       )
       .first();
 
@@ -200,7 +194,7 @@ export const addMember = mutation({
     const existingMember = await ctx.db
       .query('teamMembers')
       .withIndex('by_team_user', q =>
-        q.eq('teamId', team._id).eq('userId', args.userId)
+        q.eq('teamId', team._id).eq('userId', args.userId),
       )
       .first();
 
@@ -228,12 +222,12 @@ export const removeMember = mutation({
     membershipId: v.id('teamMembers'),
   },
   handler: async (ctx, args) => {
-    const membership = await ctx.db.get(args.membershipId);
+    const membership = await ctx.db.get('teamMembers', args.membershipId);
     if (!membership) {
       throw new ConvexError('TEAM_MEMBERSHIP_NOT_FOUND');
     }
 
-    const team = await ctx.db.get(membership.teamId);
+    const team = await ctx.db.get('teams', membership.teamId);
     if (!team) {
       throw new ConvexError('TEAM_NOT_FOUND');
     }
@@ -243,7 +237,7 @@ export const removeMember = mutation({
     }
 
     // Remove membership
-    await ctx.db.delete(args.membershipId);
+    await ctx.db.delete('teamMembers', args.membershipId);
 
     return { success: true };
   },
@@ -257,7 +251,7 @@ export const deleteTeam = mutation({
     teamId: v.id('teams'),
   },
   handler: async (ctx, args) => {
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) {
       throw new ConvexError('TEAM_NOT_FOUND');
     }
@@ -274,11 +268,11 @@ export const deleteTeam = mutation({
       .collect();
 
     for (const member of teamMembers) {
-      await ctx.db.delete(member._id);
+      await ctx.db.delete('teamMembers', member._id);
     }
 
     // Finally delete the team
-    await ctx.db.delete(team._id);
+    await ctx.db.delete('teams', team._id);
 
     return { success: true };
   },
@@ -290,18 +284,18 @@ export const changeVisibility = mutation({
     visibility: v.union(
       v.literal('private'),
       v.literal('organization'),
-      v.literal('public')
+      v.literal('public'),
     ),
   },
   handler: async (ctx, args) => {
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) throw new ConvexError('TEAM_NOT_FOUND');
 
     if (!(await canEditTeam(ctx, team))) {
       throw new ConvexError('FORBIDDEN');
     }
 
-    await ctx.db.patch(team._id, {
+    await ctx.db.patch('teams', team._id, {
       visibility: args.visibility,
     });
 

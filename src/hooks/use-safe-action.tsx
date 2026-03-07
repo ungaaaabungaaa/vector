@@ -42,7 +42,7 @@ interface SafeActionResult {
  */
 export function useSafeAction(
   action: (...args: unknown[]) => Promise<unknown>,
-  options: SafeActionOptions = {}
+  options: SafeActionOptions = {},
 ): SafeActionResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -53,7 +53,7 @@ export function useSafeAction(
   const { hasPermission: permissionResult, isLoading: permissionLoading } =
     usePermission(
       options.orgSlug || '',
-      options.permission || 'org:view' // fallback permission
+      options.permission || 'org:view', // fallback permission
     );
 
   const hasPermission = !options.permission || permissionResult;
@@ -82,7 +82,7 @@ export function useSafeAction(
       if (options.requireConfirmation) {
         const confirmed = window.confirm(
           options.confirmationMessage ||
-            'Are you sure you want to perform this action?'
+            'Are you sure you want to perform this action?',
         );
         if (!confirmed) {
           return;
@@ -145,7 +145,7 @@ export function useSafeAction(
           error.message.includes('network')
         ) {
           toast.error(
-            'Network error. Please check your connection and try again.'
+            'Network error. Please check your connection and try again.',
           );
           return;
         }
@@ -179,7 +179,7 @@ export function useSafeAction(
         setIsLoading(false);
       }
     },
-    [action, options, hasPermission, router, captureError]
+    [action, options, hasPermission, router, captureError],
   );
 
   return {
@@ -199,7 +199,7 @@ export function useSafeSubmit(
   options: SafeActionOptions & {
     validateData?: (data: Record<string, unknown>) => string | null;
     resetForm?: () => void;
-  } = {}
+  } = {},
 ) {
   const safeAction = useSafeAction(
     (data: unknown) => submitAction(data as Record<string, unknown>),
@@ -207,7 +207,7 @@ export function useSafeSubmit(
       ...options,
       loadingMessage: options.loadingMessage || 'Submitting...',
       successMessage: options.successMessage || 'Saved successfully',
-    }
+    },
   );
 
   const submit = useCallback(
@@ -228,7 +228,7 @@ export function useSafeSubmit(
         options.resetForm();
       }
     },
-    [safeAction, options]
+    [safeAction, options],
   );
 
   return {
@@ -247,7 +247,7 @@ export function useSafeDelete(
     'requireConfirmation' | 'confirmationMessage'
   > & {
     itemName?: string;
-  } = {}
+  } = {},
 ) {
   const itemName = options.itemName || 'item';
 

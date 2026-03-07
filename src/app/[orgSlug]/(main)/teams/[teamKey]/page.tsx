@@ -141,7 +141,7 @@ function AddMemberDialog({
                 >
                   {selectedMember
                     ? orgMembers.find(
-                        member => member.userId === selectedMember
+                        member => member.userId === selectedMember,
                       )?.user?.name
                     : 'Select member...'}
                   <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
@@ -170,7 +170,7 @@ function AddMemberDialog({
                               'mr-2 h-4 w-4',
                               selectedMember === member.userId
                                 ? 'opacity-100'
-                                : 'opacity-0'
+                                : 'opacity-0',
                             )}
                           />
                           {member.user?.name}
@@ -359,21 +359,21 @@ export default function TeamViewPage() {
   // Fetch team members
   const teamMembersQuery = useQuery(
     api.teams.queries.listMembers,
-    team?._id ? { teamId: team._id } : 'skip'
+    team?._id ? { teamId: team._id } : 'skip',
   );
   const teamMembers = teamMembersQuery.data ?? [];
 
   // Fetch team issues
   const teamIssuesQuery = useQuery(
     api.issues.queries.listIssues,
-    team?.key ? { orgSlug, teamId: team.key } : 'skip'
+    team?.key ? { orgSlug, teamId: team.key } : 'skip',
   );
   const teamIssuesData = teamIssuesQuery.data;
 
   // Fetch team projects
   const teamProjectsQuery = useQuery(
     api.projects.queries.list,
-    team?.key ? { orgSlug, teamId: team.key } : 'skip'
+    team?.key ? { orgSlug, teamId: team.key } : 'skip',
   );
   const teamProjects = teamProjectsQuery.data ?? [];
 
@@ -387,7 +387,7 @@ export default function TeamViewPage() {
     api.organizations.queries.listIssuePriorities,
     {
       orgSlug,
-    }
+    },
   );
   const priorities = prioritiesQuery.data ?? [];
 
@@ -403,7 +403,7 @@ export default function TeamViewPage() {
     api.organizations.queries.listProjectStatuses,
     {
       orgSlug,
-    }
+    },
   );
   const statuses = statusesQuery.data ?? [];
 
@@ -416,32 +416,32 @@ export default function TeamViewPage() {
   const { isAllowed: canEditTeam } = usePermissionCheck(
     orgSlug,
     PERMISSIONS.TEAM_EDIT,
-    permissionScope
+    permissionScope,
   ); // Mutations with toast error handling - ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const updateTeamMutation = useMutation(api.teams.mutations.update);
   const deleteMutation = useMutation(api.issues.mutations.deleteIssue);
   const changePriorityMutation = useMutation(
-    api.issues.mutations.changePriority
+    api.issues.mutations.changePriority,
   );
   const updateAssigneesMutation = useMutation(
-    api.issues.mutations.updateAssignees
+    api.issues.mutations.updateAssignees,
   );
   const changeTeamMutation = useMutation(api.issues.mutations.changeTeam);
   const changeProjectMutation = useMutation(api.issues.mutations.changeProject);
   const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState
+    api.issues.mutations.changeAssignmentState,
   );
   const changeStatusMutation = useMutation(api.projects.mutations.changeStatus);
   const changeProjectTeamMutation = useMutation(
-    api.projects.mutations.changeTeam
+    api.projects.mutations.changeTeam,
   );
   const changeLeadMutation = useMutation(api.projects.mutations.changeLead);
   const deleteProjectMutation = useMutation(
-    api.projects.mutations.deleteProject
+    api.projects.mutations.deleteProject,
   );
   const removeMemberMutation = useMutation(api.teams.mutations.removeMember);
   const changeVisibilityMutation = useMutation(
-    api.teams.mutations.changeVisibility
+    api.teams.mutations.changeVisibility,
   );
 
   // Check if any queries are still loading
@@ -586,7 +586,7 @@ export default function TeamViewPage() {
 
   const handleAssigneesChange = async (
     issueId: string,
-    assigneeIds: string[]
+    assigneeIds: string[],
   ) => {
     if (!user?._id) return;
     setIsUpdatingIssues(true);
@@ -609,7 +609,7 @@ export default function TeamViewPage() {
 
   const handleIssueProjectChange = async (
     issueId: string,
-    projectId: string
+    projectId: string,
   ) => {
     if (!user?._id) return;
     setIsUpdatingIssues(true);
@@ -622,7 +622,7 @@ export default function TeamViewPage() {
 
   const handleAssignmentStateChange = async (
     assignmentId: string,
-    stateId: string
+    stateId: string,
   ) => {
     if (!user?._id || !assignmentId || !stateId) return;
     setIsUpdatingIssues(true);
@@ -753,7 +753,7 @@ export default function TeamViewPage() {
                   variant='secondary'
                   className={cn(
                     'font-mono text-xs',
-                    canEdit && 'cursor-pointer'
+                    canEdit && 'cursor-pointer',
                   )}
                   onClick={() => canEdit && setEditingKey(true)}
                 >
@@ -967,7 +967,7 @@ export default function TeamViewPage() {
                   <span
                     className={cn(
                       'transition-colors',
-                      canEdit && 'hover:text-muted-foreground cursor-pointer'
+                      canEdit && 'hover:text-muted-foreground cursor-pointer',
                     )}
                     onClick={() => canEdit && setEditingName(true)}
                   >
@@ -1019,7 +1019,7 @@ export default function TeamViewPage() {
                     <div
                       className={cn(
                         'prose prose-sm text-muted-foreground max-w-none transition-colors',
-                        canEdit && 'hover:text-foreground cursor-pointer'
+                        canEdit && 'hover:text-foreground cursor-pointer',
                       )}
                       onClick={() => canEdit && setEditingDescription(true)}
                     >

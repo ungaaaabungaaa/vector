@@ -18,7 +18,7 @@ export interface PermissionScope {
  */
 export function useScopedPermission(
   scope: PermissionScope,
-  permission: Permission
+  permission: Permission,
 ) {
   const isClient = typeof window !== 'undefined';
 
@@ -31,7 +31,7 @@ export function useScopedPermission(
           teamId: scope.teamId,
           projectId: scope.projectId,
         }
-      : 'skip'
+      : 'skip',
   );
 
   if (!isClient || hasPermission === undefined) {
@@ -59,7 +59,7 @@ export function usePermission(orgSlug: string, permission: Permission) {
  */
 export function useScopedPermissions(
   scope: PermissionScope,
-  permissions: Permission[]
+  permissions: Permission[],
 ) {
   const isClient = typeof window !== 'undefined';
 
@@ -72,7 +72,7 @@ export function useScopedPermissions(
           teamId: scope.teamId,
           projectId: scope.projectId,
         }
-      : 'skip'
+      : 'skip',
   );
 
   if (!isClient || permissionMap === undefined) {
@@ -151,18 +151,18 @@ export function PermissionGate({
  */
 export function useScopedPermissionChecker(
   scope: PermissionScope,
-  permissions: Permission[]
+  permissions: Permission[],
 ) {
   const { permissions: permissionMap, isLoading } = useScopedPermissions(
     scope,
-    permissions
+    permissions,
   );
 
   const checker = React.useCallback(
     (permission: Permission) => {
       return permissionMap[permission] ?? false;
     },
-    [permissionMap]
+    [permissionMap],
   );
 
   return { can: checker, isLoading };
@@ -173,7 +173,7 @@ export function useScopedPermissionChecker(
  */
 export function usePermissionChecker(
   orgSlug: string,
-  permissions: Permission[]
+  permissions: Permission[],
 ) {
   return useScopedPermissionChecker({ orgSlug }, permissions);
 }

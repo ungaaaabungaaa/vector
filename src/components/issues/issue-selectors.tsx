@@ -47,7 +47,6 @@ import {
   Circle,
   Calendar,
   Clock,
-  Hash,
   ArrowUp,
 } from 'lucide-react';
 
@@ -91,7 +90,7 @@ export type SelectorDisplayMode =
 
 function resolveVisibility(
   mode: SelectorDisplayMode | undefined,
-  hasSelection: boolean
+  hasSelection: boolean,
 ): { showIcon: boolean; showLabel: boolean } {
   switch (mode) {
     case 'labelOnly':
@@ -196,7 +195,7 @@ export function ProjectSelector({
                 <Check
                   className={cn(
                     'mr-2 h-4 w-4',
-                    selectedProject === '' ? 'opacity-100' : 'opacity-0'
+                    selectedProject === '' ? 'opacity-100' : 'opacity-0',
                   )}
                 />
                 None
@@ -227,7 +226,7 @@ export function ProjectSelector({
                         'mr-2 h-4 w-4',
                         selectedProject === project._id
                           ? 'opacity-100'
-                          : 'opacity-0'
+                          : 'opacity-0',
                       )}
                     />
                     <Icon
@@ -362,7 +361,7 @@ export function StateSelector({
                         'mr-2 h-4 w-4',
                         selectedState === state.value
                           ? 'opacity-100'
-                          : 'opacity-0'
+                          : 'opacity-0',
                       )}
                     />
                     {StateIcon ? (
@@ -478,7 +477,7 @@ export function PrioritySelector({
                         'mr-2 h-4 w-4',
                         selectedPriority === priority._id
                           ? 'opacity-100'
-                          : 'opacity-0'
+                          : 'opacity-0',
                       )}
                     />
                     {PriorityIcon ? (
@@ -616,7 +615,7 @@ export function AssigneeSelector({
                 className={cn(
                   !canManageAll &&
                     currentUserId !== '' &&
-                    'pointer-events-none opacity-50'
+                    'pointer-events-none opacity-50',
                 )}
               >
                 <Check
@@ -628,7 +627,7 @@ export function AssigneeSelector({
                         : 'opacity-0'
                       : (selectedAssignee || '') === ''
                         ? 'opacity-100'
-                        : 'opacity-0'
+                        : 'opacity-0',
                   )}
                 />
                 Unassign all
@@ -650,7 +649,7 @@ export function AssigneeSelector({
                           : 'opacity-0'
                         : (selectedAssignee || '') === member.userId
                           ? 'opacity-100'
-                          : 'opacity-0'
+                          : 'opacity-0',
                     )}
                   />
                   <div className='flex flex-col'>
@@ -803,7 +802,7 @@ export function TimeEstimatesSelector({
 
   const totalHours = Object.values(estimatedTimes).reduce(
     (sum, hours) => sum + (hours || 0),
-    0
+    0,
   );
   const hasEstimates = totalHours > 0;
   const { showIcon, showLabel } = resolveVisibility(displayMode, hasEstimates);
@@ -824,7 +823,7 @@ export function TimeEstimatesSelector({
 
     // Get states that have estimates
     const statesWithEstimates = doneStates.filter(
-      state => estimatedTimes[state._id] && estimatedTimes[state._id] > 0
+      state => estimatedTimes[state._id] && estimatedTimes[state._id] > 0,
     );
 
     if (statesWithEstimates.length === 0) {
@@ -1002,7 +1001,7 @@ export function MultiAssigneeSelector({
           a =>
             a.stateType === activeFilter &&
             a.assigneeId &&
-            selectedAssigneeIds.includes(a.assigneeId)
+            selectedAssigneeIds.includes(a.assigneeId),
         ).length;
 
   const getDisplayContent = () => {
@@ -1011,7 +1010,7 @@ export function MultiAssigneeSelector({
         <div
           className={cn(
             'flex size-6 cursor-pointer items-center justify-center',
-            isLoading && 'pointer-events-none opacity-50'
+            isLoading && 'pointer-events-none opacity-50',
           )}
         >
           {isLoading ? (
@@ -1025,7 +1024,7 @@ export function MultiAssigneeSelector({
 
     if (selectedAssigneeIds.length === 1) {
       const assignee = allMembers?.find(
-        m => m.userId === selectedAssigneeIds[0]
+        m => m.userId === selectedAssigneeIds[0],
       );
       return (
         <Avatar
@@ -1033,7 +1032,7 @@ export function MultiAssigneeSelector({
             'size-6',
             isLoading && 'pointer-events-none opacity-50',
             highlightAssigneeId === selectedAssigneeIds[0] &&
-              'ring-primary ring-offset-background ring-2'
+              'ring-primary ring-offset-background ring-2',
           )}
         >
           {isLoading && (
@@ -1053,7 +1052,7 @@ export function MultiAssigneeSelector({
       <div
         className={cn(
           'flex items-center gap-1',
-          isLoading && 'pointer-events-none opacity-50'
+          isLoading && 'pointer-events-none opacity-50',
         )}
       >
         {selectedAssigneeIds.slice(0, 3).map((assigneeId, idx) => {
@@ -1065,7 +1064,7 @@ export function MultiAssigneeSelector({
                 'size-6',
                 idx > 0 && '-ml-2', // Overlap subsequent avatars
                 highlightAssigneeId === assigneeId &&
-                  'ring-primary ring-offset-background z-10 ring-2'
+                  'ring-primary ring-offset-background z-10 ring-2',
               )}
             >
               {isLoading && idx === 0 && (
@@ -1076,7 +1075,7 @@ export function MultiAssigneeSelector({
               <AvatarFallback className='text-xs'>
                 {getAssigneeInitials(
                   assignee?.user?.name,
-                  assignee?.user?.email
+                  assignee?.user?.email,
                 )}
               </AvatarFallback>
             </Avatar>
@@ -1100,7 +1099,7 @@ export function MultiAssigneeSelector({
   // Helper function for initials (moved to top of file)
   const getAssigneeInitials = (
     name?: string | null,
-    email?: string | null
+    email?: string | null,
   ): string => {
     const displayName = name || email;
     if (!displayName) return '?';
@@ -1124,7 +1123,7 @@ export function MultiAssigneeSelector({
           <div
             className={cn(
               'flex cursor-pointer items-center gap-1',
-              isLoading && 'pointer-events-none'
+              isLoading && 'pointer-events-none',
             )}
           >
             {getDisplayContent()}
@@ -1168,7 +1167,7 @@ export function MultiAssigneeSelector({
             {searchResults?.map(member => {
               const isSelected = selectedAssigneeIds.includes(member.userId);
               const assignment = assignments.find(
-                a => a.assigneeId === member.userId
+                a => a.assigneeId === member.userId,
               );
               const StateIcon = assignment?.stateIcon
                 ? getDynamicIcon(assignment.stateIcon) || Circle
@@ -1182,7 +1181,7 @@ export function MultiAssigneeSelector({
                   className={cn(
                     !canManageAll &&
                       member.userId !== currentUserId &&
-                      'pointer-events-none opacity-50'
+                      'pointer-events-none opacity-50',
                   )}
                 >
                   <div className='flex w-full items-center gap-3'>
@@ -1198,13 +1197,13 @@ export function MultiAssigneeSelector({
                         'size-6',
                         isLoading && 'opacity-50',
                         highlightAssigneeId === member.userId &&
-                          'ring-primary ring-offset-background ring-2'
+                          'ring-primary ring-offset-background ring-2',
                       )}
                     >
                       <AvatarFallback className='text-xs'>
                         {getAssigneeInitials(
                           member.user?.name,
-                          member.user?.email
+                          member.user?.email,
                         )}
                       </AvatarFallback>
                     </Avatar>
@@ -1272,12 +1271,12 @@ export function MultiAssignmentStateSelector({
 
   // Find current user's assignment
   const currentUserAssignment = activeAssignments.find(
-    a => a.assigneeId === currentUserId
+    a => a.assigneeId === currentUserId,
   );
 
   // Other assignments (not current user)
   const otherAssignments = activeAssignments.filter(
-    a => a.assigneeId !== currentUserId
+    a => a.assigneeId !== currentUserId,
   );
 
   // Helper to render trigger content with improved highlighting for active filter
@@ -1310,7 +1309,7 @@ export function MultiAssignmentStateSelector({
         : Circle;
 
       const otherAssignments = activeAssignments.filter(
-        a => a.stateType !== activeFilter
+        a => a.stateType !== activeFilter,
       );
 
       return (
@@ -1387,7 +1386,7 @@ export function MultiAssignmentStateSelector({
 
   const getAssigneeInitials = (
     name?: string | null,
-    email?: string | null
+    email?: string | null,
   ): string => {
     const displayName = name || email;
     if (!displayName) return '?';
@@ -1414,7 +1413,7 @@ export function MultiAssignmentStateSelector({
           <div
             className={cn(
               'flex-shrink-0 cursor-pointer',
-              isLoading && 'pointer-events-none opacity-50'
+              isLoading && 'pointer-events-none opacity-50',
             )}
           >
             {renderTriggerContent()}
@@ -1447,7 +1446,7 @@ export function MultiAssignmentStateSelector({
                       onSelect={() =>
                         handleStateSelect(
                           currentUserAssignment.assignmentId,
-                          state._id
+                          state._id,
                         )
                       }
                       disabled={isLoading}
@@ -1456,7 +1455,7 @@ export function MultiAssignmentStateSelector({
                       <Check
                         className={cn(
                           'mr-2 h-4 w-4',
-                          isSelected ? 'opacity-100' : 'opacity-0'
+                          isSelected ? 'opacity-100' : 'opacity-0',
                         )}
                       />
                       <StateIcon
@@ -1514,7 +1513,7 @@ export function MultiAssignmentStateSelector({
                                 <div className='bg-muted mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-medium'>
                                   {getAssigneeInitials(
                                     assignment.assigneeName,
-                                    assignment.assigneeEmail
+                                    assignment.assigneeEmail,
                                   )}
                                 </div>
 
@@ -1556,14 +1555,16 @@ export function MultiAssignmentStateSelector({
                                     onSelect={() =>
                                       handleStateSelect(
                                         assignment.assignmentId,
-                                        state._id
+                                        state._id,
                                       )
                                     }
                                   >
                                     <Check
                                       className={cn(
                                         'mr-2 h-3 w-3',
-                                        isSelected ? 'opacity-100' : 'opacity-0'
+                                        isSelected
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
                                       )}
                                     />
                                     <StateIconDM
@@ -1588,7 +1589,7 @@ export function MultiAssignmentStateSelector({
                             <div className='bg-muted mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-medium'>
                               {getAssigneeInitials(
                                 assignment.assigneeName,
-                                assignment.assigneeEmail
+                                assignment.assigneeEmail,
                               )}
                             </div>
 
@@ -1703,7 +1704,7 @@ export function IssueSelector({
                 <Check
                   className={cn(
                     'mr-2 h-4 w-4',
-                    selectedIssue === '' ? 'opacity-100' : 'opacity-0'
+                    selectedIssue === '' ? 'opacity-100' : 'opacity-0',
                   )}
                 />
                 None
@@ -1736,7 +1737,7 @@ export function IssueSelector({
                         'mr-2 h-4 w-4',
                         selectedIssue === issue._id
                           ? 'opacity-100'
-                          : 'opacity-0'
+                          : 'opacity-0',
                       )}
                     />
                     <div className='flex min-w-0 flex-1 items-center gap-2'>

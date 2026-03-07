@@ -21,7 +21,7 @@ describe('Auth Error Handler', () => {
     it('should handle UserNotFound error', () => {
       const error = 'UserNotFound: No user found with this email';
       expect(extractAuthErrorMessage(error)).toBe(
-        'Account not found. Please check your email or sign up'
+        'Account not found. Please check your email or sign up',
       );
     });
 
@@ -29,35 +29,35 @@ describe('Auth Error Handler', () => {
       const error =
         'EmailAlreadyExists: An account with this email already exists';
       expect(extractAuthErrorMessage(error)).toBe(
-        'An account with this email already exists'
+        'An account with this email already exists',
       );
     });
 
     it('should handle PasswordTooShort error', () => {
       const error = 'PasswordTooShort: Password must be at least 8 characters';
       expect(extractAuthErrorMessage(error)).toBe(
-        'Password must be at least 8 characters long'
+        'Password must be at least 8 characters long',
       );
     });
 
     it('should handle InvalidEmail error', () => {
       const error = 'InvalidEmail: Please enter a valid email address';
       expect(extractAuthErrorMessage(error)).toBe(
-        'Please enter a valid email address'
+        'Please enter a valid email address',
       );
     });
 
     it('should handle network errors', () => {
       const error = 'NetworkError: Failed to fetch';
       expect(extractAuthErrorMessage(error)).toBe(
-        'Network error. Please check your connection and try again'
+        'Network error. Please check your connection and try again',
       );
     });
 
     it('should handle server errors', () => {
       const error = 'Server Error: Internal Server Error';
       expect(extractAuthErrorMessage(error)).toBe(
-        'Server error. Please try again later'
+        'Server error. Please try again later',
       );
     });
 
@@ -70,7 +70,7 @@ describe('Auth Error Handler', () => {
     it('should handle very long error messages', () => {
       const error = 'A'.repeat(500) + 'InvalidAccountId';
       expect(extractAuthErrorMessage(error)).toBe(
-        'Authentication failed. Please try again'
+        'Authentication failed. Please try again',
       );
     });
 
@@ -81,10 +81,10 @@ describe('Auth Error Handler', () => {
 
     it('should handle null/undefined', () => {
       expect(extractAuthErrorMessage(null)).toBe(
-        'An unexpected error occurred'
+        'An unexpected error occurred',
       );
       expect(extractAuthErrorMessage(undefined)).toBe(
-        'An unexpected error occurred'
+        'An unexpected error occurred',
       );
     });
 
@@ -102,7 +102,7 @@ describe('Auth Error Handler', () => {
   describe('isNetworkError', () => {
     it('should detect network errors', () => {
       expect(isNetworkError(new Error('NetworkError: Failed to fetch'))).toBe(
-        true
+        true,
       );
       expect(isNetworkError(new Error('fetch failed'))).toBe(true);
       expect(isNetworkError(new Error('Failed to fetch'))).toBe(true);

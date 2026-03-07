@@ -184,7 +184,7 @@ export async function handleMutationError<T>(
   mutationFn: () => Promise<T>,
   context?: string,
   onSuccess?: (result: T) => void,
-  onError?: (error: ErrorInfo) => void
+  onError?: (error: ErrorInfo) => void,
 ): Promise<T | null> {
   try {
     const result = await mutationFn();
@@ -222,7 +222,7 @@ export function useMutationErrorHandler() {
       mutationFn: () => Promise<T>,
       context?: string,
       onSuccess?: (result: T) => void,
-      onError?: (error: ErrorInfo) => void
+      onError?: (error: ErrorInfo) => void,
     ) => handleMutationError(mutationFn, context, onSuccess, onError),
   };
 }

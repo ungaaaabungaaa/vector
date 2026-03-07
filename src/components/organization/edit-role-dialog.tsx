@@ -83,7 +83,7 @@ export function EditRoleDialog({
     setSelectedPermissions(prev =>
       prev.includes(permissionId)
         ? prev.filter(p => p !== permissionId)
-        : [...prev, permissionId]
+        : [...prev, permissionId],
     );
   };
 
@@ -148,7 +148,7 @@ export function EditRoleDialog({
                           <Checkbox
                             id={permission.id}
                             checked={selectedPermissions.includes(
-                              permission.id
+                              permission.id,
                             )}
                             onCheckedChange={() =>
                               handlePermissionToggle(permission.id)

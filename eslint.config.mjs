@@ -1,6 +1,8 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { FlatCompat } from '@eslint/eslintrc';
+import convexPlugin from '@convex-dev/eslint-plugin';
+import { dirname } from 'path';
+import unusedImports from 'eslint-plugin-unused-imports';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,35 +12,64 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
-  ...compat.extends('prettier'),
   {
     ignores: [
-      '**/node_modules/**',
-      '**/.next/**',
-      '**/dist/**',
-      '**/build/**',
-      '**/.pnpm-store/**',
-      '**/archive/**',
-      '**/convex/_generated/**',
+      'node_modules/**',
+      '.next/**',
+      'dist/**',
+      'out/**',
+      'build/**',
+      '.pnpm-store/**',
+      'archive/**',
+      'coverage/**',
+      '.eslintcache',
+      'next-env.d.ts',
+      'convex/**/_generated/**',
       '**/*.generated.*',
-      '**/coverage/**',
-      '**/.eslintcache',
     ],
+  },
+  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
+  ...convexPlugin.configs.recommended,
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+    plugins: {
+      'unused-imports': unusedImports,
+    },
     rules: {
-      // Import rules for unused imports - these are not auto-fixable
-      '@typescript-eslint/no-unused-vars': 'error',
-      // Disable useEffect dependency warnings (manual fixes only)
-      'react-hooks/exhaustive-deps': 'off',
-      // Auto-fixable rules
-      'prefer-const': 'error',
-      'no-var': 'error',
-      'object-shorthand': 'error',
-      'prefer-template': 'error',
-      // Additional auto-fixable rules
-      'no-trailing-spaces': 'error',
-      'eol-last': 'error',
-      'comma-dangle': ['error', 'always-multiline'],
+      'comma-dangle': 'off',
+      '@typescript-eslint/comma-dangle': 'off',
+      '@typescript-eslint/no-floating-promises': 'error',
+      'unused-imports/no-unused-imports': 'warn',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+  {
+    files: ['convex/**/*.ts', 'convex/**/*.tsx'],
+    rules: {
+      '@convex-dev/explicit-table-ids': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression',
+          message:
+            'Dynamic imports are not allowed in convex files. Use regular imports instead.',
+        },
+      ],
     },
   },
 ];

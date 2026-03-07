@@ -91,7 +91,7 @@ export type SelectorDisplayMode =
 // Helper function to resolve what to show based on display mode and selection state
 function resolveVisibility(
   displayMode: SelectorDisplayMode | undefined,
-  hasSelection: boolean
+  hasSelection: boolean,
 ) {
   switch (displayMode) {
     case 'labelOnly':
@@ -189,7 +189,7 @@ export function TeamSelector({
                 <Check
                   className={cn(
                     'mr-2 h-4 w-4',
-                    selectedTeam === '' ? 'opacity-100' : 'opacity-0'
+                    selectedTeam === '' ? 'opacity-100' : 'opacity-0',
                   )}
                 />
                 None
@@ -219,7 +219,7 @@ export function TeamSelector({
                     <Check
                       className={cn(
                         'mr-2 h-4 w-4',
-                        selectedTeam === teamId ? 'opacity-100' : 'opacity-0'
+                        selectedTeam === teamId ? 'opacity-100' : 'opacity-0',
                       )}
                     />
                     <Icon

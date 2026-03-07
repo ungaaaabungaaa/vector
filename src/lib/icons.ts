@@ -23,7 +23,7 @@ const FALLBACK_STATE_TYPE_ICONS: Record<string, string> = {
 export function getPriorityIcon(
   priorityName?: string | null,
   priorityIcon?: string | null,
-  priorityColor?: string | null
+  priorityColor?: string | null,
 ): {
   icon: LucideIcon;
   className: string;
@@ -74,7 +74,7 @@ export function getPriorityIcon(
 export function getStateTypeIcon(
   stateType?: string | null,
   stateColor?: string | null,
-  stateIcon?: string | null
+  stateIcon?: string | null,
 ): {
   icon: LucideIcon;
   className: string;

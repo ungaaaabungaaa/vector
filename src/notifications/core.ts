@@ -17,7 +17,7 @@ export interface NotificationDefinition<Schema extends z.ZodTypeAny> {
   // Each channel sender receives combined event + channel props (without the `channel` field)
   channels: {
     [K in ChannelType]?: (
-      data: z.infer<Schema> & ChannelPayloadMap[K]
+      data: z.infer<Schema> & ChannelPayloadMap[K],
     ) => Promise<void>;
   };
 }
@@ -27,7 +27,7 @@ export interface NotificationDefinition<Schema extends z.ZodTypeAny> {
 const registry: Record<string, NotificationDefinition<z.ZodTypeAny>> = {};
 
 export function defineNotification<Schema extends z.ZodTypeAny>(
-  def: NotificationDefinition<Schema>
+  def: NotificationDefinition<Schema>,
 ) {
   if (registry[def.type]) {
     throw new Error(`Notification type '${def.type}' already defined`);
@@ -37,7 +37,7 @@ export function defineNotification<Schema extends z.ZodTypeAny>(
   // Return a strongly-typed sender helper for the notification
   return async function sendNotification(
     payload: z.infer<Schema>,
-    channel: NotificationChannel = 'email'
+    channel: NotificationChannel = 'email',
   ) {
     // Validate payload via schema
     def.schema.parse(payload);
@@ -45,7 +45,7 @@ export function defineNotification<Schema extends z.ZodTypeAny>(
     const sender = def.channels[channel];
     if (!sender) {
       throw new Error(
-        `Channel '${channel}' not supported for notification type '${def.type}'`
+        `Channel '${channel}' not supported for notification type '${def.type}'`,
       );
     }
     await sender(payload);
@@ -55,7 +55,7 @@ export function defineNotification<Schema extends z.ZodTypeAny>(
 export async function notify<T extends NotificationType>(
   type: T,
   payload: NotificationPayloadMap[T],
-  channels: ChannelProps
+  channels: ChannelProps,
 ) {
   const def = registry[type];
   if (!def) throw new Error(`Unknown notification type '${type}'`);

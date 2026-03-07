@@ -1,12 +1,7 @@
-import {
-  mutation,
-  query,
-  type QueryCtx,
-  type MutationCtx,
-} from '../_generated/server';
+import { mutation, query, type MutationCtx } from '../_generated/server';
 import { getAuthUserId } from '../authUtils';
 import { v, ConvexError } from 'convex/values';
-import { Id, Doc } from '../_generated/dataModel';
+import { Id } from '../_generated/dataModel';
 import { PERMISSIONS, requirePermission } from '../permissions/utils';
 
 // -----------------------------------------------------------------------------
@@ -18,7 +13,7 @@ import { PERMISSIONS, requirePermission } from '../permissions/utils';
  */
 export async function createDefaultTeamRoles(
   ctx: MutationCtx,
-  teamId: Id<'teams'>
+  teamId: Id<'teams'>,
 ) {
   // Create Lead role
   const leadRole = await ctx.db.insert('teamRoles', {
@@ -70,7 +65,7 @@ export async function createDefaultTeamRoles(
  */
 export async function createDefaultProjectRoles(
   ctx: MutationCtx,
-  projectId: Id<'projects'>
+  projectId: Id<'projects'>,
 ) {
   // Create Lead role
   const leadRole = await ctx.db.insert('projectRoles', {
@@ -128,7 +123,7 @@ export async function assignTeamRole(
   ctx: MutationCtx,
   teamId: Id<'teams'>,
   userId: Id<'users'>,
-  roleId: Id<'teamRoles'>
+  roleId: Id<'teamRoles'>,
 ) {
   // Check if assignment already exists
   const existing = await ctx.db
@@ -156,7 +151,7 @@ export async function assignProjectRole(
   ctx: MutationCtx,
   projectId: Id<'projects'>,
   userId: Id<'users'>,
-  roleId: Id<'projectRoles'>
+  roleId: Id<'projectRoles'>,
 ) {
   // Check if assignment already exists
   const existing = await ctx.db
@@ -198,7 +193,7 @@ export const createTeamRole = mutation({
     }
 
     // Get team to check organization
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) {
       throw new ConvexError('Team not found');
     }
@@ -243,7 +238,7 @@ export const createProjectRole = mutation({
     }
 
     // Get project to check organization
-    const project = await ctx.db.get(args.projectId);
+    const project = await ctx.db.get('projects', args.projectId);
     if (!project) {
       throw new ConvexError('Project not found');
     }
@@ -252,7 +247,7 @@ export const createProjectRole = mutation({
     await requirePermission(
       ctx,
       project.organizationId,
-      PERMISSIONS.PROJECT_EDIT
+      PERMISSIONS.PROJECT_EDIT,
     );
 
     // Create the role
@@ -291,7 +286,7 @@ export const assignUserToTeamRole = mutation({
     }
 
     // Get team to check organization
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) {
       throw new ConvexError('Team not found');
     }
@@ -300,7 +295,7 @@ export const assignUserToTeamRole = mutation({
     await requirePermission(
       ctx,
       team.organizationId,
-      PERMISSIONS.TEAM_MEMBER_ADD
+      PERMISSIONS.TEAM_MEMBER_ADD,
     );
 
     return await assignTeamRole(ctx, args.teamId, args.userId, args.roleId);
@@ -323,7 +318,7 @@ export const assignUserToProjectRole = mutation({
     }
 
     // Get project to check organization
-    const project = await ctx.db.get(args.projectId);
+    const project = await ctx.db.get('projects', args.projectId);
     if (!project) {
       throw new ConvexError('Project not found');
     }
@@ -332,14 +327,14 @@ export const assignUserToProjectRole = mutation({
     await requirePermission(
       ctx,
       project.organizationId,
-      PERMISSIONS.PROJECT_MEMBER_ADD
+      PERMISSIONS.PROJECT_MEMBER_ADD,
     );
 
     return await assignProjectRole(
       ctx,
       args.projectId,
       args.userId,
-      args.roleId
+      args.roleId,
     );
   },
 });
@@ -495,7 +490,7 @@ export const assign = mutation({
     const existing = await ctx.db
       .query('orgRoleAssignments')
       .withIndex('by_role_user', q =>
-        q.eq('roleId', args.roleId).eq('userId', args.userId)
+        q.eq('roleId', args.roleId).eq('userId', args.userId),
       )
       .first();
 
@@ -541,12 +536,12 @@ export const removeAssignment = mutation({
     const assignment = await ctx.db
       .query('orgRoleAssignments')
       .withIndex('by_role_user', q =>
-        q.eq('roleId', args.roleId).eq('userId', args.userId)
+        q.eq('roleId', args.roleId).eq('userId', args.userId),
       )
       .first();
 
     if (assignment) {
-      await ctx.db.delete(assignment._id);
+      await ctx.db.delete('orgRoleAssignments', assignment._id);
     }
   },
 });
@@ -576,7 +571,7 @@ export const get = query({
 
     await requirePermission(ctx, org._id, PERMISSIONS.ORG_MANAGE_ROLES);
 
-    const role = await ctx.db.get(args.roleId);
+    const role = await ctx.db.get('orgRoles', args.roleId);
     if (!role || role.organizationId !== org._id) {
       throw new ConvexError('ROLE_NOT_FOUND');
     }
@@ -635,13 +630,13 @@ export const update = mutation({
 
     await requirePermission(ctx, org._id, PERMISSIONS.ORG_MANAGE_ROLES);
 
-    const role = await ctx.db.get(args.roleId);
+    const role = await ctx.db.get('orgRoles', args.roleId);
     if (!role || role.organizationId !== org._id) {
       throw new ConvexError('ROLE_NOT_FOUND');
     }
 
     // Update role metadata
-    await ctx.db.patch(role._id, {
+    await ctx.db.patch('orgRoles', role._id, {
       name: args.name,
       description: args.description,
     });
@@ -653,7 +648,7 @@ export const update = mutation({
       .collect();
 
     for (const perm of existingPerms) {
-      await ctx.db.delete(perm._id);
+      await ctx.db.delete('orgRolePermissions', perm._id);
     }
 
     for (const permission of args.permissions) {

@@ -64,7 +64,7 @@ export function TeamsTable({
 
   const getInitials = (
     name: string | null | undefined,
-    email: string | null | undefined
+    email: string | null | undefined,
   ): string => {
     const displayName = name || email;
     if (!displayName) return '?';
@@ -200,7 +200,7 @@ export function TeamsTable({
                         onClick={() => {
                           if (
                             confirm(
-                              'Delete this team? This action cannot be undone.'
+                              'Delete this team? This action cannot be undone.',
                             )
                           ) {
                             onDelete(team.id);

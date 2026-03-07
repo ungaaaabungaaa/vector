@@ -94,7 +94,7 @@ export function RoleSelector({
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      currentRole === opt.value ? 'opacity-100' : 'opacity-0'
+                      currentRole === opt.value ? 'opacity-100' : 'opacity-0',
                     )}
                   />
                   {opt.label}

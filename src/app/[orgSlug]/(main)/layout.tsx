@@ -68,7 +68,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const organizations =
     userOrganizations?.filter(
-      (org): org is Doc<'organizations'> => org !== null
+      (org): org is Doc<'organizations'> => org !== null,
     ) || [];
 
   return (

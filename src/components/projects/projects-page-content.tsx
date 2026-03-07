@@ -170,7 +170,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
       acc[statusType] = count;
       return acc;
     },
-    {} as Record<StatusType, number>
+    {} as Record<StatusType, number>,
   );
 
   // Update tabs with counts
@@ -216,7 +216,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
                 size='sm'
                 className={cn(
                   'h-6 gap-2 rounded-xs px-3 text-xs font-normal',
-                  activeFilter === tab.key && 'bg-secondary'
+                  activeFilter === tab.key && 'bg-secondary',
                 )}
                 onClick={() => setActiveFilter(tab.key)}
               >

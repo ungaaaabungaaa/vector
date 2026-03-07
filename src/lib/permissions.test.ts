@@ -28,7 +28,7 @@ describe('Permission System', () => {
       expect(PERMISSIONS.ISSUE_DELETE).toBe('issue:delete');
       expect(PERMISSIONS.ISSUE_ASSIGN).toBe('issue:assign');
       expect(PERMISSIONS.ISSUE_ASSIGNMENT_UPDATE).toBe(
-        'issue:assignment:update'
+        'issue:assignment:update',
       );
       expect(PERMISSIONS.ISSUE_RELATION_UPDATE).toBe('issue:relation:update');
       expect(PERMISSIONS.ISSUE_STATE_UPDATE).toBe('issue:state:update');
@@ -68,7 +68,7 @@ describe('Permission System', () => {
   describe('Permission Matching', () => {
     function testPermissionMatch(
       userPermission: string,
-      requiredPermission: string
+      requiredPermission: string,
     ) {
       // Mock permission matching logic - replace with actual implementation
       if (userPermission === '*') return true;
@@ -120,10 +120,10 @@ describe('Permission System', () => {
 
     it('should not include advanced permissions by default', () => {
       expect(defaultMemberPermissions).not.toContain(
-        PERMISSIONS.ORG_MANAGE_SETTINGS
+        PERMISSIONS.ORG_MANAGE_SETTINGS,
       );
       expect(defaultMemberPermissions).not.toContain(
-        PERMISSIONS.ORG_MANAGE_MEMBERS
+        PERMISSIONS.ORG_MANAGE_MEMBERS,
       );
     });
   });
@@ -180,12 +180,12 @@ describe('Permission System', () => {
         expect(
           PERMISSIONS[
             `TEAM_${operation.toUpperCase()}` as keyof typeof PERMISSIONS
-          ]
+          ],
         ).toBeDefined();
         expect(
           PERMISSIONS[
             `PROJECT_${operation.toUpperCase()}` as keyof typeof PERMISSIONS
-          ]
+          ],
         ).toBeDefined();
       });
     });

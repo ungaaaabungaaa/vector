@@ -6,7 +6,7 @@ export * from '@/convex/_shared/permissions';
  */
 export function permissionMatches(
   userPermission: string,
-  requiredPermission: string
+  requiredPermission: string,
 ): boolean {
   // Exact match
   if (userPermission === requiredPermission) {

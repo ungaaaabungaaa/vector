@@ -60,7 +60,7 @@ function LoginForm() {
       }
 
       router.push(
-        `/auth/signing-in?redirectTo=${encodeURIComponent(redirectTo)}`
+        `/auth/signing-in?redirectTo=${encodeURIComponent(redirectTo)}`,
       );
     } catch (error) {
       const message = extractAuthErrorMessage(error);

@@ -98,7 +98,7 @@ export function OrgNameEditor({ orgSlug, initialValue }: EditorProps) {
               onKeyDown={handleKeyDown}
               className={cn(
                 'h-9',
-                error && 'border-red-500 focus-visible:ring-red-500'
+                error && 'border-red-500 focus-visible:ring-red-500',
               )}
             />
             {error && (
@@ -277,7 +277,7 @@ export function OrgSlugEditor({ orgSlug, initialValue }: EditorProps) {
             onChange={handleInputChange}
             className={cn(
               'h-9 border-0 pl-1 font-mono shadow-none focus-visible:ring-0',
-              error && 'text-destructive'
+              error && 'text-destructive',
             )}
             onKeyDown={e => {
               if (e.key === 'Enter') {
@@ -345,10 +345,10 @@ export function OrgLogoEditor({ orgSlug, initialValue }: LogoEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateUploadUrl = useMutation(
-    api.organizations.mutations.generateLogoUploadUrl
+    api.organizations.mutations.generateLogoUploadUrl,
   );
   const updateLogoWithStorageId = useMutation(
-    api.organizations.mutations.updateLogoWithStorageId
+    api.organizations.mutations.updateLogoWithStorageId,
   );
   const getLogoUrl = useQuery(api.organizations.queries.getLogoUrl, {
     orgSlug,

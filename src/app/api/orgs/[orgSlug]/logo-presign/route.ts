@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: Promise<{ orgSlug: string }> },
 ) {
   await params;
   const headersList = await headers();

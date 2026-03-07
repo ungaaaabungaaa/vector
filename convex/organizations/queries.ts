@@ -31,7 +31,7 @@ export const getBySlug = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -70,7 +70,7 @@ export const listMembersWithRoles = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -83,14 +83,18 @@ export const listMembersWithRoles = query({
       .withIndex('by_organization', q => q.eq('organizationId', org._id))
       .collect();
 
-    const users = await Promise.all(members.map(m => ctx.db.get(m.userId)));
+    const users = await Promise.all(
+      members.map(m => ctx.db.get('users', m.userId)),
+    );
 
     const roles = await ctx.db
       .query('orgRoleAssignments')
       .withIndex('by_organization', q => q.eq('organizationId', org._id))
       .collect();
 
-    const roleDefs = await Promise.all(roles.map(r => ctx.db.get(r.roleId)));
+    const roleDefs = await Promise.all(
+      roles.map(r => ctx.db.get('orgRoles', r.roleId)),
+    );
 
     return members.map((m, i) => {
       const user = users[i];
@@ -136,7 +140,7 @@ export const listInvites = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -179,7 +183,7 @@ export const getOrganizationStats = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -249,7 +253,7 @@ export const getRecentProjects = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -300,7 +304,7 @@ export const getRecentIssues = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -320,7 +324,7 @@ export const getRecentIssues = query({
       return canView ? issue : null;
     });
     const visibleIssues = (await Promise.all(issuePromises)).filter(
-      (issue): issue is Doc<'issues'> => issue !== null
+      (issue): issue is Doc<'issues'> => issue !== null,
     );
 
     // Sort by creation time (newest first) and limit
@@ -359,7 +363,7 @@ export const listMembers = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -375,7 +379,9 @@ export const listMembers = query({
 
     // Get user details for each member
     const memberUserIds = members.map(m => m.userId);
-    const users = await Promise.all(memberUserIds.map(id => ctx.db.get(id)));
+    const users = await Promise.all(
+      memberUserIds.map(id => ctx.db.get('users', id)),
+    );
     const userMap = new Map(memberUserIds.map((id, i) => [id, users[i]]));
 
     // Combine results
@@ -428,7 +434,7 @@ export const searchMembers = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -444,7 +450,9 @@ export const searchMembers = query({
 
     // Get user details for each member
     const memberUserIds = members.map(m => m.userId);
-    const users = await Promise.all(memberUserIds.map(id => ctx.db.get(id)));
+    const users = await Promise.all(
+      memberUserIds.map(id => ctx.db.get('users', id)),
+    );
     const userMap = new Map(memberUserIds.map((id, i) => [id, users[i]]));
 
     // Filter and search
@@ -472,7 +480,7 @@ export const searchMembers = query({
           member.user &&
           (member.user.name?.toLowerCase().includes(searchTerm) ||
             member.user.email?.toLowerCase().includes(searchTerm) ||
-            member.user.username?.toLowerCase().includes(searchTerm))
+            member.user.username?.toLowerCase().includes(searchTerm)),
       );
     }
 
@@ -512,7 +520,7 @@ export const listTeams = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -532,7 +540,7 @@ export const listTeams = query({
       return canView ? team : null;
     });
     const visibleTeams = (await Promise.all(teamPromises)).filter(
-      (team): team is Doc<'teams'> => team !== null
+      (team): team is Doc<'teams'> => team !== null,
     );
 
     return visibleTeams;
@@ -566,7 +574,7 @@ export const listProjects = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -586,14 +594,14 @@ export const listProjects = query({
       return canView ? project : null;
     });
     const visibleProjects = (await Promise.all(projectPromises)).filter(
-      (project): project is Doc<'projects'> => project !== null
+      (project): project is Doc<'projects'> => project !== null,
     );
 
     // Get project statuses and attach to projects
     const projectsWithStatus = await Promise.all(
       visibleProjects.map(async project => {
         const status = project.statusId
-          ? await ctx.db.get(project.statusId)
+          ? await ctx.db.get('projectStatuses', project.statusId)
           : null;
 
         return {
@@ -601,7 +609,7 @@ export const listProjects = query({
           statusColor: status?.color,
           statusIcon: status?.icon,
         };
-      })
+      }),
     );
 
     return projectsWithStatus;
@@ -635,7 +643,7 @@ export const listIssueStates = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -680,7 +688,7 @@ export const listProjectStatuses = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -725,7 +733,7 @@ export const listIssuePriorities = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -765,7 +773,7 @@ export const getOrgMember = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -809,7 +817,7 @@ export const getFileUrlByString = query({
       const storageId = args.storageIdString as Id<'_storage'>;
       // Generate URL for the file
       return await ctx.storage.getUrl(storageId);
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   },

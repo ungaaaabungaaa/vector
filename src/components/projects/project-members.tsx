@@ -69,7 +69,7 @@ export function ProjectMembersSection({
   const members =
     useQuery(
       api.projects.queries.listMembers,
-      projectId ? { projectId } : 'skip'
+      projectId ? { projectId } : 'skip',
     ) ?? [];
 
   // Fetch organization members for filtering
@@ -110,16 +110,16 @@ export function ProjectMembersSection({
                 orgMembers.filter(
                   member =>
                     !members.some(
-                      projectMember => projectMember.userId === member.userId
-                    )
+                      projectMember => projectMember.userId === member.userId,
+                    ),
                 ).length === 0
               }
               title={
                 orgMembers.filter(
                   member =>
                     !members.some(
-                      projectMember => projectMember.userId === member.userId
-                    )
+                      projectMember => projectMember.userId === member.userId,
+                    ),
                 ).length === 0
                   ? 'All organization members are already in this project'
                   : ''
@@ -157,16 +157,16 @@ export function ProjectMembersSection({
                   orgMembers.filter(
                     member =>
                       !members.some(
-                        projectMember => projectMember.userId === member.userId
-                      )
+                        projectMember => projectMember.userId === member.userId,
+                      ),
                   ).length === 0
                 }
                 title={
                   orgMembers.filter(
                     member =>
                       !members.some(
-                        projectMember => projectMember.userId === member.userId
-                      )
+                        projectMember => projectMember.userId === member.userId,
+                      ),
                   ).length === 0
                     ? 'All organization members are already in this project'
                     : ''
@@ -222,7 +222,7 @@ function AddMemberDialog({
   const projectMembers =
     useQuery(
       api.projects.queries.listMembers,
-      projectId ? { projectId } : 'skip'
+      projectId ? { projectId } : 'skip',
     ) ?? [];
 
   const addMemberMutation = useMutation(api.projects.mutations.addMember);
@@ -283,8 +283,8 @@ function AddMemberDialog({
                         member =>
                           !projectMembers.some(
                             projectMember =>
-                              projectMember.userId === member.userId
-                          )
+                              projectMember.userId === member.userId,
+                          ),
                       ).length === 0
                         ? 'All organization members are already in this project'
                         : 'No member found'}
@@ -295,8 +295,8 @@ function AddMemberDialog({
                           member =>
                             !projectMembers.some(
                               projectMember =>
-                                projectMember.userId === member.userId
-                            )
+                                projectMember.userId === member.userId,
+                            ),
                         )
                         .map(member => (
                           <CommandItem
@@ -312,7 +312,7 @@ function AddMemberDialog({
                                 'mr-2 h-4 w-4',
                                 selectedMember === member.userId
                                   ? 'opacity-100'
-                                  : 'opacity-0'
+                                  : 'opacity-0',
                               )}
                             />
                             {member.user?.name}
@@ -341,8 +341,8 @@ function AddMemberDialog({
               orgMembers.filter(
                 member =>
                   !projectMembers.some(
-                    projectMember => projectMember.userId === member.userId
-                  )
+                    projectMember => projectMember.userId === member.userId,
+                  ),
               ).length === 0
             }
             onClick={handleSubmit}
@@ -350,8 +350,8 @@ function AddMemberDialog({
               orgMembers.filter(
                 member =>
                   !projectMembers.some(
-                    projectMember => projectMember.userId === member.userId
-                  )
+                    projectMember => projectMember.userId === member.userId,
+                  ),
               ).length === 0
                 ? 'All organization members are already in this project'
                 : ''

@@ -44,7 +44,7 @@ export default function MembersSettingsPageClient({
   });
   const removeMember = useMutation(api.organizations.mutations.removeMember);
   const [selectedMember, setSelectedMember] = useState<Doc<'members'> | null>(
-    null
+    null,
   );
 
   const onRemoveMember = async (userId: Id<'users'>) => {

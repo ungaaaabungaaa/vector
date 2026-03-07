@@ -9,12 +9,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "auth:generate": "cd convex/betterAuth && pnpm dlx @better-auth/cli generate -y",
-    "lint:fix": "eslint src/ --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:fix": "eslint --fix .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky install && echo '✅ Husky git hooks installed'",
+    "prepare": "husky",
     "project:setup": "tsx scripts/project-setup.ts",
     "convex:dev": "convex dev",
     "generate:keys": "node generateKeys.mjs"
@@ -59,22 +59,35 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@convex-dev/eslint-plugin": "^1.1.1",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript-eslint/eslint-plugin": "^8.34.1",
+    "@typescript-eslint/parser": "^8.34.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-unused-imports": "^4.1.4",
     "husky": "^9.0.11",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4",
     "tsx": "^4.7.0",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,mdx,css,scss,html,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

@@ -12,7 +12,7 @@ export function useConvexMutation<T extends FunctionReference<'mutation'>>(
     context?: string;
     onSuccess?: (result: unknown) => void;
     onError?: (error: ErrorInfo) => void;
-  }
+  },
 ) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
@@ -25,7 +25,7 @@ export function useConvexMutation<T extends FunctionReference<'mutation'>>(
 
       try {
         const result = await convexMutation(
-          args as Parameters<typeof convexMutation>[0]
+          args as Parameters<typeof convexMutation>[0],
         );
 
         if (options?.onSuccess) {
@@ -46,7 +46,7 @@ export function useConvexMutation<T extends FunctionReference<'mutation'>>(
         setIsLoading(false);
       }
     },
-    [convexMutation, options]
+    [convexMutation, options],
   );
 
   return {
@@ -69,7 +69,7 @@ export function useFormSubmission<
     onSuccess?: (result: unknown) => void;
     onError?: (error: ErrorInfo) => void;
     successMessage?: string;
-  }
+  },
 ) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
@@ -100,7 +100,7 @@ export function useFormSubmission<
         setIsSubmitting(false);
       }
     },
-    [mutation, options]
+    [mutation, options],
   );
 
   return {
@@ -124,7 +124,7 @@ export function useAsyncOperation<
     retryDelay?: number;
     onSuccess?: (result: unknown) => void;
     onError?: (error: ErrorInfo) => void;
-  }
+  },
 ) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ErrorInfo | null>(null);
@@ -178,7 +178,7 @@ export function useAsyncOperation<
 
           // Wait before retrying
           await new Promise(resolve =>
-            setTimeout(resolve, retryDelay * (attempt + 1))
+            setTimeout(resolve, retryDelay * (attempt + 1)),
           );
         }
       }
@@ -186,7 +186,7 @@ export function useAsyncOperation<
       setIsLoading(false);
       return null;
     },
-    [operation, options]
+    [operation, options],
   );
 
   return {

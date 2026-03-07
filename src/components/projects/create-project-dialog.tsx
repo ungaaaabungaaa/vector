@@ -50,13 +50,13 @@ function CreateProjectDialogContent({
   const [key, setKey] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>(
-    defaultStates?.teamId || ''
+    defaultStates?.teamId || '',
   );
   const [selectedLead, setSelectedLead] = useState<string>(
-    defaultStates?.leadId || ''
+    defaultStates?.leadId || '',
   );
   const [selectedStatus, setSelectedStatus] = useState<string>(
-    defaultStates?.statusId || ''
+    defaultStates?.statusId || '',
   );
   const [selectedVisibility, setSelectedVisibility] =
     useState<VisibilityState>('organization');
@@ -134,7 +134,7 @@ function CreateProjectDialogContent({
         .replace(/\s+/g, '-') // replace spaces with hyphens
         .replace(/[^A-Z0-9-]/gi, '') // allow only alphanumeric and hyphens
         .slice(0, 20) // max 20 chars for projects
-        .toUpperCase() // projects use uppercase
+        .toUpperCase(), // projects use uppercase
     );
   };
 
@@ -283,7 +283,7 @@ export function CreateProjectDialog({
         onClick={() => setIsDialogOpen(true)}
         className={cn(
           'h-12 w-12 rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl',
-          className
+          className,
         )}
         size='icon'
       >

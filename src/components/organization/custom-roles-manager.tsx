@@ -47,12 +47,12 @@ export function CustomRolesManager({
 
   const assignMutation = useMutation(api.roles.index.assign);
   const removeAssignmentMutation = useMutation(
-    api.roles.index.removeAssignment
+    api.roles.index.removeAssignment,
   );
 
   const handleToggleRole = async (
     roleId: Id<'orgRoles'>,
-    isAssigned: boolean
+    isAssigned: boolean,
   ) => {
     setProcessingRoleId(roleId);
     try {
@@ -83,7 +83,7 @@ export function CustomRolesManager({
             assignedRoles.length > 0
               ? 'bg-blue-50 text-blue-600'
               : 'text-muted-foreground',
-            className
+            className,
           )}
           disabled={disabled || isLoading}
         >
@@ -119,7 +119,7 @@ export function CustomRolesManager({
                           'flex h-4 w-4 items-center justify-center rounded border',
                           isAssigned
                             ? 'border-blue-600 bg-blue-600'
-                            : 'border-input'
+                            : 'border-input',
                         )}
                       >
                         {isAssigned && <Check className='h-3 w-3 text-white' />}

@@ -190,21 +190,21 @@ function CreateIssueDialogContent({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>(
-    defaultStates?.teamId || ''
+    defaultStates?.teamId || '',
   );
   const [selectedProject, setSelectedProject] = useState<string>(
-    defaultStates?.projectId || ''
+    defaultStates?.projectId || '',
   );
   const [selectedState, setSelectedState] = useState<string>(
-    defaultStates?.stateId || ''
+    defaultStates?.stateId || '',
   );
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
-    defaultStates?.assigneeIds || []
+    defaultStates?.assigneeIds || [],
   );
   const [hasUserInteractedWithAssignees, setHasUserInteractedWithAssignees] =
     useState(false);
   const [selectedPriority, setSelectedPriority] = useState<string>(
-    defaultStates?.priorityId || ''
+    defaultStates?.priorityId || '',
   );
   const [selectedVisibility, setSelectedVisibility] =
     useState<VisibilityState>('organization');
@@ -231,7 +231,7 @@ function CreateIssueDialogContent({
     api.organizations.queries.listIssuePriorities,
     {
       orgSlug,
-    }
+    },
   );
   const currentUser = useQuery(api.users.currentUser);
 
@@ -240,15 +240,15 @@ function CreateIssueDialogContent({
   const projects = projectsData ? withIds(projectsData) : [];
   const states = useMemo(
     () => (statesData ? withIds(statesData) : []),
-    [statesData]
+    [statesData],
   );
   const members = useMemo(
     () => (membersData ? withIds(membersData) : []),
-    [membersData]
+    [membersData],
   );
   const priorities = useMemo(
     () => (prioritiesData ? withIds(prioritiesData) : []),
-    [prioritiesData]
+    [prioritiesData],
   );
 
   // Auto-infer the format based on selections
@@ -392,7 +392,7 @@ function CreateIssueDialogContent({
     }
     if (manualFormatOverride === 'project') {
       const project = projects.find(
-        (p: ProjectWithId) => p.id === selectedProject
+        (p: ProjectWithId) => p.id === selectedProject,
       );
       return project ? `${project.key}-${nextNumber}` : `PROJ-${nextNumber}`;
     }
@@ -407,7 +407,7 @@ function CreateIssueDialogContent({
     }
     if (effectiveFormat === 'project' && selectedProject) {
       const project = projects.find(
-        (p: ProjectWithId) => p.id === selectedProject
+        (p: ProjectWithId) => p.id === selectedProject,
       );
       return project ? `${project.key}-${nextNumber}` : `PROJ-${nextNumber}`;
     }
@@ -573,7 +573,7 @@ export function CreateIssueDialog({
         onClick={() => setIsDialogOpen(true)}
         className={cn(
           'h-12 w-12 rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl',
-          className
+          className,
         )}
         size='icon'
         fallbackMessage="You don't have permission to create issues"

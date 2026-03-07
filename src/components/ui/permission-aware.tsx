@@ -207,7 +207,7 @@ interface PageProtectionProps {
 export function usePermissionCheck(
   orgSlug: string,
   permission: Permission,
-  scope?: PermissionScope
+  scope?: PermissionScope,
 ) {
   const scopedResult = useScopedPermission(scope || { orgSlug }, permission);
   const orgResult = usePermission(orgSlug, permission);
@@ -297,7 +297,7 @@ function MultiPermissionChecker({
         [permission]: { hasPermission, isLoading },
       }));
     },
-    []
+    [],
   );
 
   React.useEffect(() => {
@@ -525,7 +525,7 @@ export function PermissionAwareField({
       <div
         className={cn(
           !hasPermission && 'opacity-60',
-          isDisabled && 'pointer-events-none'
+          isDisabled && 'pointer-events-none',
         )}
       >
         {React.Children.map(children, child => {
@@ -586,7 +586,7 @@ export function PermissionStatus({
         <div
           className={cn(
             'size-2 rounded-full',
-            hasPermission ? 'bg-green-500' : 'bg-red-500'
+            hasPermission ? 'bg-green-500' : 'bg-red-500',
           )}
         />
       )}
@@ -594,7 +594,7 @@ export function PermissionStatus({
         <span
           className={cn(
             'text-xs',
-            hasPermission ? 'text-green-600' : 'text-red-600'
+            hasPermission ? 'text-green-600' : 'text-red-600',
           )}
         >
           {hasPermission ? 'Allowed' : 'Denied'}

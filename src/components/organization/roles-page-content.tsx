@@ -30,24 +30,24 @@ export function RolesPageContent({ orgSlug }: RolesPageContentProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingRole, setEditingRole] = useState<Id<'orgRoles'> | null>(null);
   const [assigningRole, setAssigningRole] = useState<Id<'orgRoles'> | null>(
-    null
+    null,
   );
 
   const { hasPermission: canCreateRoles } = useScopedPermission(
     { orgSlug },
-    PERMISSIONS.ORG_MANAGE_ROLES
+    PERMISSIONS.ORG_MANAGE_ROLES,
   );
   const { hasPermission: canUpdateRoles } = useScopedPermission(
     { orgSlug },
-    PERMISSIONS.ORG_MANAGE_ROLES
+    PERMISSIONS.ORG_MANAGE_ROLES,
   );
   const { hasPermission: canDeleteRoles } = useScopedPermission(
     { orgSlug },
-    PERMISSIONS.ORG_MANAGE_ROLES
+    PERMISSIONS.ORG_MANAGE_ROLES,
   );
   const { hasPermission: canAssignRoles } = useScopedPermission(
     { orgSlug },
-    PERMISSIONS.ORG_MANAGE_ROLES
+    PERMISSIONS.ORG_MANAGE_ROLES,
   );
 
   // Fetch members to compute real counts for system roles

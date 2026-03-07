@@ -5,8 +5,6 @@ import { MembersList } from '@/components/organization';
 import { useParams } from 'next/navigation';
 import { useRequirePermission } from '@/hooks/use-permission-boundary';
 import { PERMISSIONS } from '@/convex/_shared/permissions';
-import { useQuery } from 'convex/react';
-import { api } from '@/lib/convex';
 
 interface MembersSettingsPageProps {
   params: Promise<{ orgSlug: string }>;
@@ -19,7 +17,7 @@ export default function MembersSettingsPage({}: MembersSettingsPageProps) {
   // Require permission to manage members - will redirect to 403 if denied
   const { isLoading: permissionLoading } = useRequirePermission(
     orgSlug,
-    PERMISSIONS.ORG_MANAGE_MEMBERS
+    PERMISSIONS.ORG_MANAGE_MEMBERS,
   );
 
   if (permissionLoading) {

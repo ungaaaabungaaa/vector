@@ -138,7 +138,7 @@ function TypeSelector({
                       'mr-2 h-4 w-4',
                       selectedType === option.value
                         ? 'opacity-100'
-                        : 'opacity-0'
+                        : 'opacity-0',
                     )}
                   />
                   {option.label}
@@ -216,14 +216,14 @@ export function StatesManagementDialog({
   const [color, setColor] = useState(state?.color || DEFAULT_COLORS[0]);
   const [icon, setIcon] = useState(state?.icon || null);
   const [stateType, setStateType] = useState(
-    state?.type || (type === 'issue' ? 'todo' : 'planned')
+    state?.type || (type === 'issue' ? 'todo' : 'planned'),
   );
 
   const deleteIssueState = useMutation(
-    api.organizations.mutations.deleteIssueState
+    api.organizations.mutations.deleteIssueState,
   );
   const deleteProjectStatus = useMutation(
-    api.organizations.mutations.deleteProjectStatus
+    api.organizations.mutations.deleteProjectStatus,
   );
 
   const [isDeleting, setIsDeleting] = useState(false);

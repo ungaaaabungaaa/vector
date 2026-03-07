@@ -31,7 +31,7 @@ const signUpSchema = z.object({
     .max(20, 'Username must be 20 characters or fewer')
     .regex(
       /^[a-zA-Z0-9_-]+$/,
-      'Only letters, numbers, hyphens, and underscores'
+      'Only letters, numbers, hyphens, and underscores',
     ),
   password: z
     .string()
@@ -70,7 +70,7 @@ function SignupForm() {
 
       toast.success('Account created!');
       router.push(
-        `/auth/signing-in?redirectTo=${encodeURIComponent(redirectTo)}`
+        `/auth/signing-in?redirectTo=${encodeURIComponent(redirectTo)}`,
       );
     } catch (error) {
       const message = extractAuthErrorMessage(error);

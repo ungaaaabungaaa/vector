@@ -95,7 +95,7 @@ export function UserSettingsSidebar() {
               'hover:bg-foreground/5 hover:text-foreground',
               isActive
                 ? 'bg-foreground/5 text-foreground'
-                : 'text-muted-foreground'
+                : 'text-muted-foreground',
             )}
           >
             <item.icon className='size-4 shrink-0' />

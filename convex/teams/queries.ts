@@ -1,14 +1,7 @@
 import { query } from '../_generated/server';
 import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
-import { getAuthUserId } from '../authUtils';
-import {
-  canViewTeam,
-  canEditTeam,
-  canDeleteTeam,
-  canManageTeamMembers,
-} from '../access';
-import { PERMISSIONS, requirePermission } from '../permissions/utils';
+import { canViewTeam } from '../access';
 
 /**
  * Get team by organization slug and team key
@@ -33,7 +26,7 @@ export const getByKey = query({
     const team = await ctx.db
       .query('teams')
       .withIndex('by_org_key', q =>
-        q.eq('organizationId', org._id).eq('key', args.teamKey)
+        q.eq('organizationId', org._id).eq('key', args.teamKey),
       )
       .first();
 
@@ -47,7 +40,9 @@ export const getByKey = query({
     }
 
     // Get team details including lead user
-    const leadUser = team.leadId ? await ctx.db.get(team.leadId) : null;
+    const leadUser = team.leadId
+      ? await ctx.db.get('users', team.leadId)
+      : null;
 
     return {
       ...team,
@@ -86,12 +81,14 @@ export const list = query({
       return canView ? team : null;
     });
     const teams = (await Promise.all(teamPromises)).filter(
-      (team): team is Doc<'teams'> => team !== null
+      (team): team is Doc<'teams'> => team !== null,
     );
 
     // Batch database calls for better performance
     const leadIds = teams.map(t => t.leadId).filter(Boolean) as Id<'users'>[];
-    const leadUsers = await Promise.all(leadIds.map(id => ctx.db.get(id)));
+    const leadUsers = await Promise.all(
+      leadIds.map(id => ctx.db.get('users', id)),
+    );
     const leadUserMap = new Map(leadIds.map((id, i) => [id, leadUsers[i]]));
 
     // Get team member counts in batches
@@ -103,10 +100,10 @@ export const list = query({
           .collect()
           .then(members => members.length);
         return { teamId: team._id, memberCount };
-      })
+      }),
     );
     const memberCountMap = new Map(
-      teamMemberCounts.map(({ teamId, memberCount }) => [teamId, memberCount])
+      teamMemberCounts.map(({ teamId, memberCount }) => [teamId, memberCount]),
     );
 
     // Combine results
@@ -136,7 +133,7 @@ export const listMembers = query({
     if (!args.teamId) {
       throw new ConvexError('TEAM_NOT_FOUND');
     }
-    const team = await ctx.db.get(args.teamId);
+    const team = await ctx.db.get('teams', args.teamId);
     if (!team) {
       throw new ConvexError('TEAM_NOT_FOUND');
     }
@@ -154,12 +151,12 @@ export const listMembers = query({
     // Get user details for each member
     const membersWithUsers = await Promise.all(
       teamMembers.map(async member => {
-        const user = await ctx.db.get(member.userId);
+        const user = await ctx.db.get('users', member.userId);
         return {
           ...member,
           user,
         };
-      })
+      }),
     );
 
     return membersWithUsers;

@@ -8,7 +8,7 @@ interface Params {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<Params> }
+  { params }: { params: Promise<Params> },
 ) {
   try {
     const { key: keyArr } = await params;
@@ -22,7 +22,7 @@ export async function GET(
       api.organizations.queries.getFileUrlByString,
       {
         storageIdString: storageId,
-      }
+      },
     );
 
     if (!fileUrl) {

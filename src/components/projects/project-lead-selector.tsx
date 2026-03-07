@@ -56,7 +56,7 @@ function getInitials(name: string | null, email: string | undefined): string {
 
 // Type guard to check if member is a project member (has .user)
 function isProjectMember(
-  member: ProjectMember | OrgMember
+  member: ProjectMember | OrgMember,
 ): member is ProjectMember {
   return (member as ProjectMember).user !== undefined;
 }
@@ -82,14 +82,14 @@ export function ProjectLeadSelector({
     useQuery(api.organizations.queries.listMembers, { orgSlug }) ?? [];
   const project = useQuery(
     api.projects.queries.getByKey,
-    projectKey ? { orgSlug, projectKey } : 'skip'
+    projectKey ? { orgSlug, projectKey } : 'skip',
   );
 
   // Fetch project members if projectKey and project ID are available
   const projectMembers: ProjectMember[] =
     useQuery(
       api.projects.queries.listMembers,
-      projectKey && project?._id ? { projectId: project._id } : 'skip'
+      projectKey && project?._id ? { projectId: project._id } : 'skip',
     ) ?? [];
 
   // For existing projects, we need to include the project lead even if they're not explicitly added as project members
@@ -148,11 +148,11 @@ export function ProjectLeadSelector({
               ? isProjectMember(selectedLeadObj)
                 ? getInitials(
                     selectedLeadObj.user?.name ?? null,
-                    selectedLeadObj.user?.email
+                    selectedLeadObj.user?.email,
                   )
                 : getInitials(
                     selectedLeadObj.name ?? null,
-                    selectedLeadObj.email
+                    selectedLeadObj.email,
                   )
               : '?'}
           </AvatarFallback>
@@ -213,7 +213,7 @@ export function ProjectLeadSelector({
                 <Check
                   className={cn(
                     'mr-2 h-4 w-4',
-                    selectedLead === '' ? 'opacity-100' : 'opacity-0'
+                    selectedLead === '' ? 'opacity-100' : 'opacity-0',
                   )}
                 />
                 No lead
@@ -244,7 +244,7 @@ export function ProjectLeadSelector({
                       'mr-2 h-4 w-4',
                       selectedLead === member.userId
                         ? 'opacity-100'
-                        : 'opacity-0'
+                        : 'opacity-0',
                     )}
                   />
                   <Avatar className='mr-2 size-5'>
@@ -252,7 +252,7 @@ export function ProjectLeadSelector({
                       {isProjectMember(member)
                         ? getInitials(
                             member.user?.name ?? null,
-                            member.user?.email
+                            member.user?.email,
                           )
                         : getInitials(member.name ?? null, member.email)}
                     </AvatarFallback>

@@ -74,7 +74,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const { isAllowed: canEditProject } = usePermissionCheck(
     params.orgSlug,
     PERMISSIONS.PROJECT_EDIT,
-    permissionScope
+    permissionScope,
   );
 
   const canEdit = !!(
@@ -96,7 +96,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const changeTeamMutation = useMutation(api.projects.mutations.changeTeam);
   const changeLeadMutation = useMutation(api.projects.mutations.changeLead);
   const changeVisibilityMutation = useMutation(
-    api.projects.mutations.changeVisibility
+    api.projects.mutations.changeVisibility,
   );
 
   const handleTitleSave = () => {
@@ -485,7 +485,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                 <span
                   className={cn(
                     'transition-colors',
-                    canEdit && 'hover:text-muted-foreground cursor-pointer'
+                    canEdit && 'hover:text-muted-foreground cursor-pointer',
                   )}
                   onClick={() => canEdit && setEditingTitle(true)}
                 >
@@ -534,7 +534,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                   <div
                     className={cn(
                       'prose prose-sm text-muted-foreground max-w-none transition-colors',
-                      canEdit && 'hover:text-foreground cursor-pointer'
+                      canEdit && 'hover:text-foreground cursor-pointer',
                     )}
                     onClick={() => canEdit && setEditingDescription(true)}
                   >

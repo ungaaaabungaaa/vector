@@ -78,7 +78,7 @@ export default function SetupAdminPage() {
       });
 
       router.push(
-        '/auth/login?message=Admin account created successfully. Please sign in.'
+        '/auth/login?message=Admin account created successfully. Please sign in.',
       );
     } catch (error) {
       setGlobalError(extractAuthErrorMessage(error));

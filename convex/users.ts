@@ -16,7 +16,7 @@ export const currentUser = query({
       return null;
     }
 
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get('users', userId);
     return user;
   },
 });
@@ -34,7 +34,7 @@ export const updateProfile = mutation({
       throw new ConvexError('UNAUTHORIZED');
     }
 
-    await ctx.db.patch(userId, {
+    await ctx.db.patch('users', userId, {
       name: args.name,
     });
 
@@ -128,12 +128,12 @@ export const getUserActiveOrganization = query({
       const membership = await ctx.db
         .query('members')
         .withIndex('by_org_user', q =>
-          q.eq('organizationId', sessionOrgId).eq('userId', userId)
+          q.eq('organizationId', sessionOrgId).eq('userId', userId),
         )
         .first();
 
       if (membership) {
-        const org = await ctx.db.get(sessionOrgId);
+        const org = await ctx.db.get('organizations', sessionOrgId);
         return org?.slug ?? null;
       }
     }
@@ -145,7 +145,10 @@ export const getUserActiveOrganization = query({
       .first();
 
     if (firstMembership) {
-      const org = await ctx.db.get(firstMembership.organizationId);
+      const org = await ctx.db.get(
+        'organizations',
+        firstMembership.organizationId,
+      );
       return org?.slug ?? null;
     }
 
@@ -190,7 +193,7 @@ export const searchUsers = query({
       const nameResults = await ctx.db
         .query('users')
         .withSearchIndex('by_name_email_username', q =>
-          q.search('name', searchQuery)
+          q.search('name', searchQuery),
         )
         .collect();
 
@@ -210,12 +213,12 @@ export const searchUsers = query({
       const allResults = [...nameResults, ...emailResults, ...usernameResults];
       const orgMemberSet = new Set(memberUserIds);
       const filteredResults = allResults.filter(user =>
-        orgMemberSet.has(user._id)
+        orgMemberSet.has(user._id),
       );
 
       // Remove duplicates and limit results
       const uniqueResults = Array.from(
-        new Map(filteredResults.map(user => [user._id, user])).values()
+        new Map(filteredResults.map(user => [user._id, user])).values(),
       );
 
       return uniqueResults.slice(0, limit);
@@ -226,7 +229,7 @@ export const searchUsers = query({
       ctx.db
         .query('users')
         .withSearchIndex('by_name_email_username', q =>
-          q.search('name', searchQuery)
+          q.search('name', searchQuery),
         )
         .collect(),
       ctx.db
@@ -242,7 +245,7 @@ export const searchUsers = query({
     // Combine and deduplicate results
     const allResults = [...nameResults, ...emailResults, ...usernameResults];
     const uniqueResults = Array.from(
-      new Map(allResults.map(user => [user._id, user])).values()
+      new Map(allResults.map(user => [user._id, user])).values(),
     );
 
     return uniqueResults.slice(0, limit);
@@ -250,16 +253,18 @@ export const searchUsers = query({
 });
 
 export const getCurrentUser = query({
+  args: {},
   handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       return null;
     }
-    return await ctx.db.get(userId);
+    return await ctx.db.get('users', userId);
   },
 });
 
 export const getOrganizations = query({
+  args: {},
   handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -274,18 +279,21 @@ export const getOrganizations = query({
     if (orgIds.length === 0) {
       return [];
     }
-    const orgs = await Promise.all(orgIds.map(id => ctx.db.get(id)));
+    const orgs = await Promise.all(
+      orgIds.map(id => ctx.db.get('organizations', id)),
+    );
     return orgs.filter(Boolean);
   },
 });
 
 export const getPendingInvitations = query({
+  args: {},
   handler: async ctx => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       return [];
     }
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get('users', userId);
     if (!user) {
       return [];
     }
@@ -302,9 +310,12 @@ export const getPendingInvitations = query({
 
     const invitesWithOrg = await Promise.all(
       invites.map(async invite => {
-        const organization = await ctx.db.get(invite.organizationId);
+        const organization = await ctx.db.get(
+          'organizations',
+          invite.organizationId,
+        );
         return { ...invite, organization };
-      })
+      }),
     );
     return invitesWithOrg;
   },

@@ -48,7 +48,7 @@ export default defineSchema({
       v.literal('pending'),
       v.literal('accepted'),
       v.literal('expired'),
-      v.literal('revoked')
+      v.literal('revoked'),
     ),
     acceptedAt: v.optional(v.number()),
     revokedAt: v.optional(v.number()),
@@ -162,8 +162,8 @@ export default defineSchema({
       v.union(
         v.literal('private'), // only creator/members can view
         v.literal('organization'), // full org can see it
-        v.literal('public') // publicly accessible (view-only)
-      )
+        v.literal('public'), // publicly accessible (view-only)
+      ),
     ),
     createdBy: v.optional(v.id('users')), // Made optional for backwards compatibility with existing data
   })
@@ -197,7 +197,7 @@ export default defineSchema({
       v.literal('planned'),
       v.literal('in_progress'),
       v.literal('completed'),
-      v.literal('canceled')
+      v.literal('canceled'),
     ),
   })
     .index('by_organization', ['organizationId'])
@@ -222,8 +222,8 @@ export default defineSchema({
       v.union(
         v.literal('private'), // only creator/members can view
         v.literal('organization'), // full org can see it
-        v.literal('public') // publicly accessible (view-only)
-      )
+        v.literal('public'), // publicly accessible (view-only)
+      ),
     ),
   })
     .index('by_organization', ['organizationId'])
@@ -279,7 +279,7 @@ export default defineSchema({
       v.literal('todo'),
       v.literal('in_progress'),
       v.literal('done'),
-      v.literal('canceled')
+      v.literal('canceled'),
     ),
   })
     .index('by_organization', ['organizationId'])
@@ -314,8 +314,8 @@ export default defineSchema({
       v.union(
         v.literal('private'), // only creator/assignees can view
         v.literal('organization'), // full org can see it
-        v.literal('public') // publicly accessible (view-only)
-      )
+        v.literal('public'), // publicly accessible (view-only)
+      ),
     ),
     createdBy: v.optional(v.id('users')), // Made optional for backwards compatibility with existing data
     parentIssueId: v.optional(v.id('issues')),
@@ -358,7 +358,7 @@ export default defineSchema({
       v.literal('title_changed'),
       v.literal('description_changed'),
       v.literal('created'),
-      v.literal('sub_issue_created')
+      v.literal('sub_issue_created'),
     ),
     payload: v.optional(v.record(v.string(), v.any())), // JSON payload
   })

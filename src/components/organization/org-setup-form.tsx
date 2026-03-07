@@ -67,7 +67,7 @@ export function OrgSetupForm() {
     } catch (err) {
       console.error('Organization creation failed:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to create organization'
+        err instanceof Error ? err.message : 'Failed to create organization',
       );
     } finally {
       setIsLoading(false);

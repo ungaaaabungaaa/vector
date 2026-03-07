@@ -28,13 +28,13 @@ export function PrioritiesPageContent({ orgSlug }: PrioritiesPageContentProps) {
   });
 
   const createMutation = useMutation(
-    api.organizations.mutations.createIssuePriority
+    api.organizations.mutations.createIssuePriority,
   );
   const updateMutation = useMutation(
-    api.organizations.mutations.updateIssuePriority
+    api.organizations.mutations.updateIssuePriority,
   );
   const resetMutation = useMutation(
-    api.organizations.mutations.resetIssuePriorities
+    api.organizations.mutations.resetIssuePriorities,
   );
 
   const [dialogState, setDialogState] = useState<{

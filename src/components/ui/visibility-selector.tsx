@@ -35,7 +35,7 @@ export type SelectorDisplayMode =
 // Helper function to resolve what to show based on display mode and selection state
 function resolveVisibility(
   mode: SelectorDisplayMode | undefined,
-  hasSelection: boolean
+  hasSelection: boolean,
 ): { showIcon: boolean; showLabel: boolean } {
   switch (mode) {
     case 'labelOnly':
@@ -130,7 +130,7 @@ export function VisibilitySelector({
 
   // Get selected visibility data
   const selectedOption = VISIBILITY_OPTIONS.find(
-    option => option.value === value
+    option => option.value === value,
   );
   const currentColor = selectedOption?.color || '#3b82f6';
   const currentName = selectedOption?.label || 'Organization';
@@ -182,7 +182,7 @@ export function VisibilitySelector({
                     <Check
                       className={cn(
                         'mr-2 h-4 w-4',
-                        value === option.value ? 'opacity-100' : 'opacity-0'
+                        value === option.value ? 'opacity-100' : 'opacity-0',
                       )}
                     />
                     <ColoredIcon

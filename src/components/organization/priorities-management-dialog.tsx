@@ -106,7 +106,7 @@ export function PrioritiesManagementDialog({
   orgSlug,
 }: PrioritiesManagementDialogProps) {
   const deleteMutation = useMutation(
-    api.organizations.mutations.deleteIssuePriority
+    api.organizations.mutations.deleteIssuePriority,
   );
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -139,7 +139,7 @@ export function PrioritiesManagementDialog({
     if (!priority?.id || !orgSlug) return;
     if (
       !confirm(
-        'Are you sure you want to delete this priority? This cannot be undone.'
+        'Are you sure you want to delete this priority? This cannot be undone.',
       )
     )
       return;

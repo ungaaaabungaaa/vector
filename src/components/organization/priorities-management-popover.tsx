@@ -103,7 +103,7 @@ export function PrioritiesManagementPopover({
 }: PrioritiesManagementPopoverProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteMutation = useMutation(
-    api.organizations.mutations.deleteIssuePriority
+    api.organizations.mutations.deleteIssuePriority,
   );
 
   const [name, setName] = useState(priority?.name || '');
@@ -135,7 +135,7 @@ export function PrioritiesManagementPopover({
     if (!priority?.id || !orgSlug) return;
     if (
       !confirm(
-        'Are you sure you want to delete this priority? This cannot be undone.'
+        'Are you sure you want to delete this priority? This cannot be undone.',
       )
     )
       return;

@@ -16,7 +16,7 @@ export interface PermissionScope {
 
 function permissionMatches(
   userPermission: string,
-  requiredPermission: string
+  requiredPermission: string,
 ): boolean {
   if (userPermission === requiredPermission) return true;
   if (userPermission === PERMISSIONS.ALL) return true;
@@ -35,12 +35,12 @@ export async function hasScopedPermission(
   ctx: QueryCtx | MutationCtx,
   scope: PermissionScope,
   userId: Id<'users'>,
-  requiredPermission: Permission
+  requiredPermission: Permission,
 ): Promise<boolean> {
   const member = await ctx.db
     .query('members')
     .withIndex('by_org_user', q =>
-      q.eq('organizationId', scope.organizationId).eq('userId', userId)
+      q.eq('organizationId', scope.organizationId).eq('userId', userId),
     )
     .first();
 
@@ -57,7 +57,7 @@ export async function hasScopedPermission(
   const orgRoleAssignments = await ctx.db
     .query('orgRoleAssignments')
     .withIndex('by_organization', q =>
-      q.eq('organizationId', scope.organizationId)
+      q.eq('organizationId', scope.organizationId),
     )
     .filter(q => q.eq(q.field('userId'), userId))
     .collect();
@@ -116,20 +116,20 @@ export async function hasPermission(
   ctx: QueryCtx | MutationCtx,
   organizationId: Id<'organizations'>,
   userId: Id<'users'>,
-  requiredPermission: Permission
+  requiredPermission: Permission,
 ): Promise<boolean> {
   return hasScopedPermission(
     ctx,
     { organizationId },
     userId,
-    requiredPermission
+    requiredPermission,
   );
 }
 
 export async function requirePermission(
   ctx: QueryCtx | MutationCtx,
   organizationId: Id<'organizations'>,
-  requiredPermission: Permission
+  requiredPermission: Permission,
 ) {
   const userId = await getAuthUserId(ctx);
   if (!userId) {
@@ -140,7 +140,7 @@ export async function requirePermission(
     ctx,
     organizationId,
     userId,
-    requiredPermission
+    requiredPermission,
   );
   if (!hasAccess) {
     throw new ConvexError('FORBIDDEN');
@@ -178,7 +178,7 @@ export const hasMultiple = query({
   args: {
     orgSlug: v.string(),
     permissions: v.array(
-      v.union(...Object.values(PERMISSIONS).map(p => v.literal(p)))
+      v.union(...Object.values(PERMISSIONS).map(p => v.literal(p))),
     ),
     teamId: v.optional(v.id('teams')),
     projectId: v.optional(v.id('projects')),
@@ -217,7 +217,7 @@ export const hasMultiple = query({
         ctx,
         scope,
         userId,
-        permission
+        permission,
       );
     }
 

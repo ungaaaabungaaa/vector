@@ -56,7 +56,7 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
             return;
           }
 
-          await ctx.db.patch(newAuthUser.userId as Id<'users'>, {
+          await ctx.db.patch('users', newAuthUser.userId as Id<'users'>, {
             name: newAuthUser.name,
             email: newAuthUser.email,
             image: newAuthUser.image ?? undefined,
@@ -71,11 +71,11 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
             return;
           }
 
-          await ctx.db.delete(authUser.userId as Id<'users'>);
+          await ctx.db.delete('users', authUser.userId as Id<'users'>);
         },
       },
     },
-  }
+  },
 );
 
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
@@ -88,7 +88,7 @@ export const getCurrentAuthUser = query({
 });
 
 export const createAuthOptions = (
-  ctx: GenericCtx<DataModel>
+  ctx: GenericCtx<DataModel>,
 ): BetterAuthOptions => ({
   baseURL: getBaseUrl(),
   trustedOrigins: getTrustedOrigins(),
@@ -132,7 +132,7 @@ export const setBootstrapAdminRole = internalMutation({
 
     const userId = authUser.userId as Id<'users'>;
 
-    await ctx.db.patch(userId, {
+    await ctx.db.patch('users', userId, {
       role: 'admin',
     });
 

@@ -2,7 +2,6 @@ import { query } from '../_generated/server';
 import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
 import { getAuthUserId } from '../authUtils';
-import { requirePermission, PERMISSIONS } from '../permissions/utils';
 import { canViewIssue } from '../access';
 
 export const getByKey = query({
@@ -34,7 +33,9 @@ export const getByKey = query({
       throw new ConvexError('FORBIDDEN');
     }
 
-    const project = issue.projectId ? await ctx.db.get(issue.projectId) : null;
+    const project = issue.projectId
+      ? await ctx.db.get('projects', issue.projectId)
+      : null;
     const assignees = await ctx.db
       .query('issueAssignees')
       .withIndex('by_issue', q => q.eq('issueId', issue._id))
@@ -43,15 +44,15 @@ export const getByKey = query({
     const assigneeUsers = await Promise.all(
       assignees.map(async assignee => {
         if (!assignee.assigneeId) return null;
-        return await ctx.db.get(assignee.assigneeId);
-      })
+        return await ctx.db.get('users', assignee.assigneeId);
+      }),
     ).then(users => users.filter(Boolean));
 
     const createdByUser = issue.reporterId
-      ? await ctx.db.get(issue.reporterId)
+      ? await ctx.db.get('users', issue.reporterId)
       : null;
     const priority = issue.priorityId
-      ? await ctx.db.get(issue.priorityId)
+      ? await ctx.db.get('issuePriorities', issue.priorityId)
       : null;
 
     const childIssues = await ctx.db
@@ -62,7 +63,7 @@ export const getByKey = query({
     const children = await Promise.all(
       childIssues.map(async child => {
         const childPriority = child.priorityId
-          ? await ctx.db.get(child.priorityId)
+          ? await ctx.db.get('issuePriorities', child.priorityId)
           : null;
 
         const firstAssignment = await ctx.db
@@ -71,7 +72,7 @@ export const getByKey = query({
           .first();
 
         const state = firstAssignment?.stateId
-          ? await ctx.db.get(firstAssignment.stateId)
+          ? await ctx.db.get('issueStates', firstAssignment.stateId)
           : null;
 
         return {
@@ -79,7 +80,7 @@ export const getByKey = query({
           priority: childPriority,
           state,
         };
-      })
+      }),
     );
 
     return {
@@ -120,7 +121,7 @@ export const list = query({
     const membership = await ctx.db
       .query('members')
       .withIndex('by_org_user', q =>
-        q.eq('organizationId', org._id).eq('userId', userId)
+        q.eq('organizationId', org._id).eq('userId', userId),
       )
       .first();
 
@@ -135,7 +136,7 @@ export const list = query({
       const project = await ctx.db
         .query('projects')
         .withIndex('by_org_key', q =>
-          q.eq('organizationId', org._id).eq('key', projectKey)
+          q.eq('organizationId', org._id).eq('key', projectKey),
         )
         .first();
 
@@ -159,7 +160,7 @@ export const list = query({
         issues = issues.filter(issue => !issue.parentIssueId);
       } else {
         issues = issues.filter(
-          issue => issue.parentIssueId === args.parentIssueId
+          issue => issue.parentIssueId === args.parentIssueId,
         );
       }
     }
@@ -183,7 +184,7 @@ export const list = query({
       return canView ? issue : null;
     });
     const visibleIssues = (await Promise.all(issuePromises)).filter(
-      (issue): issue is Doc<'issues'> => issue !== null
+      (issue): issue is Doc<'issues'> => issue !== null,
     );
 
     const projectIds = visibleIssues
@@ -196,9 +197,15 @@ export const list = query({
       .map(i => i.reporterId)
       .filter(Boolean) as Id<'users'>[];
 
-    const projects = await Promise.all(projectIds.map(id => ctx.db.get(id)));
-    const priorities = await Promise.all(priorityIds.map(id => ctx.db.get(id)));
-    const reporters = await Promise.all(reporterIds.map(id => ctx.db.get(id)));
+    const projects = await Promise.all(
+      projectIds.map(id => ctx.db.get('projects', id)),
+    );
+    const priorities = await Promise.all(
+      priorityIds.map(id => ctx.db.get('issuePriorities', id)),
+    );
+    const reporters = await Promise.all(
+      reporterIds.map(id => ctx.db.get('users', id)),
+    );
 
     const projectMap = new Map();
     projectIds.forEach((id, i) => {
@@ -220,15 +227,15 @@ export const list = query({
         ctx.db
           .query('issueAssignees')
           .withIndex('by_issue', q => q.eq('issueId', issue._id))
-          .collect()
-      )
+          .collect(),
+      ),
     ).then(results => results.flat());
 
     const assigneeIds = allAssignments
       .map(a => a.assigneeId)
       .filter(Boolean) as Id<'users'>[];
     const assigneeUsers = await Promise.all(
-      assigneeIds.map(id => ctx.db.get(id))
+      assigneeIds.map(id => ctx.db.get('users', id)),
     );
     const assigneeMap = new Map();
     assigneeIds.forEach((id, i) => {
@@ -279,7 +286,7 @@ export const listComments = query({
     issueId: v.id('issues'),
   },
   handler: async (ctx, args) => {
-    const issue = await ctx.db.get(args.issueId);
+    const issue = await ctx.db.get('issues', args.issueId);
     if (!issue) {
       throw new ConvexError('ISSUE_NOT_FOUND');
     }
@@ -295,12 +302,12 @@ export const listComments = query({
 
     const commentsWithAuthors = await Promise.all(
       comments.map(async comment => {
-        const author = await ctx.db.get(comment.authorId);
+        const author = await ctx.db.get('users', comment.authorId);
         return {
           ...comment,
           author,
         };
-      })
+      }),
     );
 
     return commentsWithAuthors;
@@ -312,7 +319,7 @@ export const getAssignments = query({
     issueId: v.id('issues'),
   },
   handler: async (ctx, args) => {
-    const issue = await ctx.db.get(args.issueId);
+    const issue = await ctx.db.get('issues', args.issueId);
     if (!issue) {
       throw new ConvexError('ISSUE_NOT_FOUND');
     }
@@ -329,13 +336,17 @@ export const getAssignments = query({
     const assigneeIds = assignments
       .map(a => a.assigneeId)
       .filter((id): id is Id<'users'> => Boolean(id));
-    const assignees = await Promise.all(assigneeIds.map(id => ctx.db.get(id)));
+    const assignees = await Promise.all(
+      assigneeIds.map(id => ctx.db.get('users', id)),
+    );
     const assigneeMap = new Map(assigneeIds.map((id, i) => [id, assignees[i]]));
 
     const stateIds = assignments
       .map(a => a.stateId)
       .filter((id): id is Id<'issueStates'> => Boolean(id));
-    const states = await Promise.all(stateIds.map(id => ctx.db.get(id)));
+    const states = await Promise.all(
+      stateIds.map(id => ctx.db.get('issueStates', id)),
+    );
     const stateMap = new Map(stateIds.map((id, i) => [id, states[i]]));
 
     return assignments.map(assignment => ({
@@ -377,12 +388,12 @@ export const listIssues = query({
       const project = await ctx.db
         .query('projects')
         .withIndex('by_org_key', q =>
-          q.eq('organizationId', org._id).eq('key', args.projectId!)
+          q.eq('organizationId', org._id).eq('key', args.projectId!),
         )
         .first();
       if (project) {
         issuesQuery = issuesQuery.filter(q =>
-          q.eq(q.field('projectId'), project._id)
+          q.eq(q.field('projectId'), project._id),
         );
       }
     }
@@ -391,12 +402,12 @@ export const listIssues = query({
       const team = await ctx.db
         .query('teams')
         .withIndex('by_org_key', q =>
-          q.eq('organizationId', org._id).eq('key', args.teamId!)
+          q.eq('organizationId', org._id).eq('key', args.teamId!),
         )
         .first();
       if (team) {
         issuesQuery = issuesQuery.filter(q =>
-          q.eq(q.field('teamId'), team._id)
+          q.eq(q.field('teamId'), team._id),
         );
       }
     }
@@ -414,18 +425,20 @@ export const listIssues = query({
     const issuesWithDetails = await Promise.all(
       visibleIssues.map(async issue => {
         const priority = issue.priorityId
-          ? await ctx.db.get(issue.priorityId)
+          ? await ctx.db.get('issuePriorities', issue.priorityId)
           : null;
         const project = issue.projectId
-          ? await ctx.db.get(issue.projectId)
+          ? await ctx.db.get('projects', issue.projectId)
           : null;
-        const team = issue.teamId ? await ctx.db.get(issue.teamId) : null;
+        const team = issue.teamId
+          ? await ctx.db.get('teams', issue.teamId)
+          : null;
         const reporter = issue.reporterId
-          ? await ctx.db.get(issue.reporterId)
+          ? await ctx.db.get('users', issue.reporterId)
           : null;
 
         const parentIssue = issue.parentIssueId
-          ? await ctx.db.get(issue.parentIssueId)
+          ? await ctx.db.get('issues', issue.parentIssueId)
           : null;
 
         const assignments = await ctx.db
@@ -436,10 +449,10 @@ export const listIssues = query({
         const assignees = await Promise.all(
           assignments.map(async assignment => {
             const assignee = assignment.assigneeId
-              ? await ctx.db.get(assignment.assigneeId)
+              ? await ctx.db.get('users', assignment.assigneeId)
               : null;
             const state = assignment.stateId
-              ? await ctx.db.get(assignment.stateId)
+              ? await ctx.db.get('issueStates', assignment.stateId)
               : null;
             return {
               assignmentId: assignment._id,
@@ -452,7 +465,7 @@ export const listIssues = query({
               stateColor: state?.color,
               stateType: state?.type,
             };
-          })
+          }),
         );
 
         return {
@@ -484,14 +497,14 @@ export const listIssues = query({
                   },
                 ],
         };
-      })
+      }),
     );
 
     const flattenedIssues = issuesWithDetails.flatMap(issue =>
       issue.assignments.map(assignment => ({
         ...issue,
         ...assignment,
-      }))
+      })),
     );
 
     const allStates = await ctx.db
@@ -504,14 +517,14 @@ export const listIssues = query({
         acc[state.type] = 0;
         return acc;
       },
-      {} as Record<string, number>
+      {} as Record<string, number>,
     );
     let total = 0;
 
     issuesWithDetails.forEach(issue => {
       total++;
       const uniqueStates = new Set(
-        issue.assignments.map(a => a.stateType).filter(Boolean)
+        issue.assignments.map(a => a.stateType).filter(Boolean),
       );
       uniqueStates.forEach(stateType => {
         if (stateType) {

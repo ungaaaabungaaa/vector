@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
-pnpm exec prettier --write .
-# Re-add potentially reformatted files
-git add -A 
+
+# Run lint-staged on added/copied/modified files only.
+# Excluding rename entries avoids git path resolution errors on symlink migrations.
+pnpm exec lint-staged --concurrent false --diff-filter=ACM

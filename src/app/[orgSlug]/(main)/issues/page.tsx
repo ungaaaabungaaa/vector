@@ -60,15 +60,15 @@ export default function IssuesPage() {
 
   const deleteMutation = useMutation(api.issues.mutations.deleteIssue);
   const changePriorityMutation = useMutation(
-    api.issues.mutations.changePriority
+    api.issues.mutations.changePriority,
   );
   const updateAssigneesMutation = useMutation(
-    api.issues.mutations.updateAssignees
+    api.issues.mutations.updateAssignees,
   );
   const changeTeamMutation = useMutation(api.issues.mutations.changeTeam);
   const changeProjectMutation = useMutation(api.issues.mutations.changeProject);
   const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState
+    api.issues.mutations.changeAssignmentState,
   );
 
   const states = useQuery(api.organizations.queries.listIssueStates, {
@@ -98,7 +98,7 @@ export default function IssuesPage() {
 
   const handleAssigneesChange = async (
     issueId: string,
-    assigneeIds: string[]
+    assigneeIds: string[],
   ) => {
     if (!user) return;
     setIsUpdatingAssignees(true);
@@ -130,7 +130,7 @@ export default function IssuesPage() {
 
   const handleAssignmentStateChange = async (
     assignmentId: string,
-    stateId: string
+    stateId: string,
   ) => {
     if (!user || !assignmentId || !stateId) return;
     setIsUpdatingAssignmentStates(true);
@@ -195,7 +195,7 @@ export default function IssuesPage() {
                 size='sm'
                 className={cn(
                   'h-6 gap-2 rounded-xs px-3 text-xs font-normal',
-                  activeFilter === tab.key && 'bg-secondary'
+                  activeFilter === tab.key && 'bg-secondary',
                 )}
                 onClick={() => setActiveFilter(tab.key)}
               >

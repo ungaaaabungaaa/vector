@@ -1,4 +1,5 @@
 import type { QueryCtx } from '../_generated/server';
+import type { QueryInitializer, GenericTableInfo } from 'convex/server';
 import { v } from 'convex/values';
 
 /**
@@ -23,8 +24,8 @@ export interface PaginationResult<T> {
  */
 export async function applyPagination<T>(
   ctx: QueryCtx,
-  query: any, // Convex query object
-  limit: number = 25
+  query: QueryInitializer<GenericTableInfo>, // Convex query object
+  limit: number = 25,
 ): Promise<PaginationResult<T>> {
   const result = await query.order('desc').paginate({
     numItems: limit,

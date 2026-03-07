@@ -9,7 +9,7 @@ export function validateStringLength(
   value: string | undefined,
   fieldName: string,
   maxLength: number,
-  minLength: number = 1
+  minLength: number = 1,
 ): void {
   if (!value || !value.trim()) {
     throw new Error(`${fieldName} is required`);
@@ -32,7 +32,7 @@ export function validateKeyFormat(value: string, fieldName: string): void {
 
   if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
     throw new Error(
-      `${fieldName} must contain only letters, numbers, hyphens, and underscores`
+      `${fieldName} must contain only letters, numbers, hyphens, and underscores`,
     );
   }
 }
@@ -42,7 +42,7 @@ export function validateKeyFormat(value: string, fieldName: string): void {
  */
 export function validateColorFormat(
   value: string | undefined,
-  fieldName: string
+  fieldName: string,
 ): void {
   if (!value) return; // Optional field
 
@@ -52,7 +52,7 @@ export function validateColorFormat(
     !/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/.test(value)
   ) {
     throw new Error(
-      `${fieldName} must be a valid color (hex, rgb, or rgba format)`
+      `${fieldName} must be a valid color (hex, rgb, or rgba format)`,
     );
   }
 }
@@ -72,7 +72,7 @@ export function validateEmailFormat(email: string): void {
  */
 export function validateUrlFormat(
   url: string | undefined,
-  fieldName: string
+  fieldName: string,
 ): void {
   if (!url) return; // Optional field
 

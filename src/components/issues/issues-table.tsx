@@ -190,7 +190,7 @@ export function IssuesTable({
         assignments,
         hasCurrentUserWithActiveFilter,
         currentUserStateType,
-      })
+      }),
     );
   }, [issues, currentUserId, activeFilter]);
 
@@ -208,10 +208,10 @@ export function IssuesTable({
         // If both/neither have current user with active filter,
         // check if either has ANY assignment with the active filter
         const aHasFilterState = a.assignments.some(
-          assignment => assignment.stateType === activeFilter
+          assignment => assignment.stateType === activeFilter,
         );
         const bHasFilterState = b.assignments.some(
-          assignment => assignment.stateType === activeFilter
+          assignment => assignment.stateType === activeFilter,
         );
 
         if (aHasFilterState !== bHasFilterState) {
@@ -258,7 +258,7 @@ export function IssuesTable({
               } else {
                 // Otherwise, highlight the first assignee that has the active filter state
                 const matchingAssignment = assignments.find(
-                  a => a.stateType === activeFilter
+                  a => a.stateType === activeFilter,
                 );
                 if (matchingAssignment?.assigneeId) {
                   highlightAssigneeId = matchingAssignment.assigneeId;
@@ -418,7 +418,7 @@ export function IssuesTable({
                 </div>
               </motion.div>
             );
-          }
+          },
         )}
       </AnimatePresence>
     </div>

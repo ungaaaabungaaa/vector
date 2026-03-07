@@ -120,7 +120,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     Record<string, boolean>
   >({});
   const [estimatesValue, setEstimatesValue] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const [currentStateId, setCurrentStateId] = useState<string>('');
 
@@ -138,81 +138,81 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
     api.issues.queries.getByKey,
     resolvedParams
       ? { orgSlug: resolvedParams.orgSlug, issueKey: resolvedParams.issueKey }
-      : 'skip'
+      : 'skip',
   );
 
   const states = useQuery(
     api.organizations.queries.listIssueStates,
-    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip'
+    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip',
   );
   const members = useQuery(
     api.organizations.queries.listMembers,
-    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip'
+    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip',
   );
   const teams = useQuery(
     api.organizations.queries.listTeams,
-    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip'
+    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip',
   );
   const projects = useQuery(
     api.organizations.queries.listProjects,
-    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip'
+    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip',
   );
   const priorities = useQuery(
     api.organizations.queries.listIssuePriorities,
-    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip'
+    resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip',
   );
 
   const updateTitleMutation = useMutation(api.issues.mutations.updateTitle);
   const updateDescriptionMutation = useMutation(
-    api.issues.mutations.updateDescription
+    api.issues.mutations.updateDescription,
   );
   const updateEstimatesMutation = useMutation(
-    api.issues.mutations.updateEstimatedTimes
+    api.issues.mutations.updateEstimatedTimes,
   );
   const changeTeamMutation = useMutation(api.issues.mutations.changeTeam);
   const changeProjectMutation = useMutation(api.issues.mutations.changeProject);
   const changePriorityMutation = useMutation(
-    api.issues.mutations.changePriority
+    api.issues.mutations.changePriority,
   );
   const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState
+    api.issues.mutations.changeAssignmentState,
   );
   const changeVisibilityMutation = useMutation(
-    api.issues.mutations.changeVisibility
+    api.issues.mutations.changeVisibility,
   );
   const updateIssueParentMutation = useMutation(api.issues.mutations.update);
 
   const assignments = useQuery(
     api.issues.queries.getAssignments,
-    issue?._id ? { issueId: issue._id } : 'skip'
+    issue?._id ? { issueId: issue._id } : 'skip',
   );
 
   const currentUserAssignment = assignments?.find(
-    assignment => assignment.assigneeId === user?._id
+    assignment => assignment.assigneeId === user?._id,
   ); // Permission checks for issue editing
   const { isAllowed: canEditIssue } = usePermissionCheck(
     resolvedParams?.orgSlug || '',
-    PERMISSIONS.ISSUE_EDIT
+    PERMISSIONS.ISSUE_EDIT,
   );
 
   const { isAllowed: canEditPriority } = usePermissionCheck(
     resolvedParams?.orgSlug || '',
-    PERMISSIONS.ISSUE_PRIORITY_UPDATE
+    PERMISSIONS.ISSUE_PRIORITY_UPDATE,
   );
 
   const { isAllowed: canEditVisibility } = usePermissionCheck(
     resolvedParams?.orgSlug || '',
-    PERMISSIONS.ISSUE_EDIT
+    PERMISSIONS.ISSUE_EDIT,
   );
 
   const { isAllowed: canChangeTeam } = usePermissionCheck(
     resolvedParams?.orgSlug || '',
-    PERMISSIONS.ISSUE_RELATION_UPDATE
+    PERMISSIONS.ISSUE_RELATION_UPDATE,
   );
 
   const { isAllowed: canChangeProject } = usePermissionCheck(
     resolvedParams?.orgSlug || '',
-    PERMISSIONS.ISSUE_RELATION_UPDATE
+    PERMISSIONS.ISSUE_RELATION_UPDATE,
   );
 
   useEffect(() => {
@@ -508,7 +508,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                     className={cn(
                       canEditIssue
                         ? 'hover:text-muted-foreground cursor-pointer text-3xl leading-tight font-semibold transition-colors'
-                        : 'text-3xl leading-tight font-semibold'
+                        : 'text-3xl leading-tight font-semibold',
                     )}
                     onClick={
                       canEditIssue ? () => setEditingTitle(true) : undefined
@@ -537,10 +537,10 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                           states &&
                           !['done'].includes(
                             states.find(s => s._id === currentStateId)?.type ||
-                              ''
+                              '',
                           )
                           ? 'text-red-500 dark:text-red-400'
-                          : ''
+                          : '',
                       )}
                     >
                       Due {formatDateHuman(issue.dueDate)}
@@ -598,7 +598,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                         className={cn(
                           canEditIssue
                             ? 'prose prose-sm text-muted-foreground hover:text-foreground max-w-none cursor-pointer transition-colors'
-                            : 'prose prose-sm text-muted-foreground max-w-none'
+                            : 'prose prose-sm text-muted-foreground max-w-none',
                         )}
                         onClick={
                           canEditIssue
@@ -616,7 +616,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                           'w-full rounded-lg border-2 border-dashed bg-transparent p-4 text-left text-base',
                           canEditIssue
                             ? 'text-muted-foreground hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40 cursor-pointer'
-                            : 'text-muted-foreground border-muted-foreground/20 cursor-not-allowed opacity-50'
+                            : 'text-muted-foreground border-muted-foreground/20 cursor-not-allowed opacity-50',
                         )}
                         onClick={
                           canEditIssue
@@ -802,7 +802,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                                       (issue?.estimatedTimes as Record<
                                         string,
                                         number
-                                      >) || {}
+                                      >) || {},
                                     );
                                     setEditingEstimates(prev => ({
                                       ...prev,
@@ -829,7 +829,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                                     (issue?.estimatedTimes as Record<
                                       string,
                                       number
-                                    >) || {}
+                                    >) || {},
                                   );
                                   setEditingEstimates(prev => ({
                                     ...prev,
@@ -851,7 +851,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                                   'flex cursor-pointer items-center gap-2 rounded px-1 py-1 transition-colors',
                                   canEditIssue
                                     ? 'hover:bg-muted/50'
-                                    : 'cursor-not-allowed opacity-50'
+                                    : 'cursor-not-allowed opacity-50',
                                 )}
                                 onClick={
                                   canEditIssue
@@ -860,7 +860,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                                           (issue?.estimatedTimes as Record<
                                             string,
                                             number
-                                          >) || {}
+                                          >) || {},
                                         );
                                         setEditingEstimates(prev => ({
                                           ...prev,
@@ -884,7 +884,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                                         (issue?.estimatedTimes as Record<
                                           string,
                                           number
-                                        >) || {}
+                                        >) || {},
                                       );
                                       setEditingEstimates(prev => ({
                                         ...prev,

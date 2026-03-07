@@ -22,7 +22,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 // Helper to derive initials from a name/email
 function getAssigneeInitials(
   name?: string | null,
-  email?: string | null
+  email?: string | null,
 ): string {
   const displayName = name || email;
   if (!displayName) return '?';
@@ -66,7 +66,7 @@ export function IssueAssignments({
   // Permission check (manage assignments)
   const { hasPermission: canManage } = useScopedPermission(
     { orgSlug },
-    PERMISSIONS.ISSUE_ASSIGN
+    PERMISSIONS.ISSUE_ASSIGN,
   );
 
   // Fetch assignments for this issue
@@ -78,13 +78,13 @@ export function IssueAssignments({
   // Mutations
   const addAssigneeMutation = useMutation(api.issues.mutations.addAssignee);
   const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState
+    api.issues.mutations.changeAssignmentState,
   );
   const updateAssignmentAssigneeMutation = useMutation(
-    api.issues.mutations.updateAssignmentAssignee
+    api.issues.mutations.updateAssignmentAssignee,
   );
   const deleteAssignmentMutation = useMutation(
-    api.issues.mutations.deleteAssignment
+    api.issues.mutations.deleteAssignment,
   );
 
   // Helper to filter members so the same user cannot be assigned twice
@@ -93,7 +93,7 @@ export function IssueAssignments({
     .filter((id): id is Id<'users'> => !!id);
 
   let availableMembers = members.filter(
-    m => !assignedUserIds.includes(m.userId as Id<'users'>)
+    m => !assignedUserIds.includes(m.userId as Id<'users'>),
   );
 
   // If the user cannot manage assignments, they may only assign themselves
@@ -137,7 +137,7 @@ export function IssueAssignments({
 
   const handleUpdateAssignee = async (
     assignmentId: string,
-    assigneeId: string
+    assigneeId: string,
   ) => {
     try {
       await updateAssignmentAssigneeMutation({
@@ -182,7 +182,7 @@ export function IssueAssignments({
                   members={members.filter(
                     m =>
                       m.userId === assignment.assigneeId ||
-                      !assignedUserIds.includes(m.userId as Id<'users'>)
+                      !assignedUserIds.includes(m.userId as Id<'users'>),
                   )}
                   selectedAssignee={assignment.assigneeId?.toString() || ''}
                   onAssigneeSelect={
@@ -199,7 +199,7 @@ export function IssueAssignments({
                             <AvatarFallback className='text-xs'>
                               {getAssigneeInitials(
                                 assignment.assignee.name,
-                                assignment.assignee.email
+                                assignment.assignee.email,
                               )}
                             </AvatarFallback>
                           </Avatar>

@@ -20,10 +20,8 @@ export const migrateDefaultRoles = mutation({
 
       if (existingRoles.length === 0) {
         // Create default roles for this team
-        const { leadRole, memberRole } = await createDefaultTeamRoles(
-          ctx,
-          team._id
-        );
+        const { leadRole, memberRole: _memberRole } =
+          await createDefaultTeamRoles(ctx, team._id);
 
         // Assign the team lead to the Lead role if they exist
         if (team.leadId) {
@@ -59,10 +57,8 @@ export const migrateDefaultRoles = mutation({
 
       if (existingRoles.length === 0) {
         // Create default roles for this project
-        const { leadRole, memberRole } = await createDefaultProjectRoles(
-          ctx,
-          project._id
-        );
+        const { leadRole, memberRole: _memberRole } =
+          await createDefaultProjectRoles(ctx, project._id);
 
         // Assign the project lead to the Lead role if they exist
         if (project.leadId) {
@@ -108,7 +104,7 @@ export const migrateTeamMembers = mutation({
       const memberRole = await ctx.db
         .query('teamRoles')
         .withIndex('by_team_name', q =>
-          q.eq('teamId', member.teamId).eq('name', 'Member')
+          q.eq('teamId', member.teamId).eq('name', 'Member'),
         )
         .first();
 
@@ -117,7 +113,7 @@ export const migrateTeamMembers = mutation({
         const existingAssignment = await ctx.db
           .query('teamRoleAssignments')
           .withIndex('by_role_user', q =>
-            q.eq('roleId', memberRole._id).eq('userId', member.userId)
+            q.eq('roleId', memberRole._id).eq('userId', member.userId),
           )
           .first();
 
@@ -155,7 +151,7 @@ export const migrateProjectMembers = mutation({
       const memberRole = await ctx.db
         .query('projectRoles')
         .withIndex('by_project_name', q =>
-          q.eq('projectId', member.projectId).eq('name', 'Member')
+          q.eq('projectId', member.projectId).eq('name', 'Member'),
         )
         .first();
 
@@ -164,7 +160,7 @@ export const migrateProjectMembers = mutation({
         const existingAssignment = await ctx.db
           .query('projectRoleAssignments')
           .withIndex('by_role_user', q =>
-            q.eq('roleId', memberRole._id).eq('userId', member.userId)
+            q.eq('roleId', memberRole._id).eq('userId', member.userId),
           )
           .first();
 

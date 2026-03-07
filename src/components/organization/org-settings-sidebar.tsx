@@ -94,7 +94,7 @@ export function OrgSettingsSidebar({
               'hover:bg-foreground/10 hover:text-foreground',
               isActive
                 ? 'bg-foreground/10 text-foreground'
-                : 'text-muted-foreground'
+                : 'text-muted-foreground',
             )}
           >
             <item.icon className='size-4 shrink-0' />

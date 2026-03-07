@@ -72,7 +72,7 @@ export function CreateIssueSimple({
     api.organizations.queries.listIssuePriorities,
     {
       orgSlug,
-    }
+    },
   );
 
   const projects = useMemo(() => projectsData ?? [], [projectsData]);
@@ -202,7 +202,7 @@ export function CreateIssueSimple({
                               'mr-2 h-4 w-4',
                               selectedProject === project._id
                                 ? 'opacity-100'
-                                : 'opacity-0'
+                                : 'opacity-0',
                             )}
                           />
                           {project.name}
@@ -244,7 +244,7 @@ export function CreateIssueSimple({
                               'mr-2 h-4 w-4',
                               selectedState === state._id
                                 ? 'opacity-100'
-                                : 'opacity-0'
+                                : 'opacity-0',
                             )}
                           />
                           {state.name}
@@ -265,7 +265,7 @@ export function CreateIssueSimple({
                 <Button variant='outline' className='w-full justify-between'>
                   {selectedPriority
                     ? priorities.find(
-                        (p: Priority) => p._id === selectedPriority
+                        (p: Priority) => p._id === selectedPriority,
                       )?.name
                     : 'Select priority'}
                   <ChevronDown className='h-4 w-4 opacity-50' />
@@ -288,7 +288,7 @@ export function CreateIssueSimple({
                               'mr-2 h-4 w-4',
                               selectedPriority === priority._id
                                 ? 'opacity-100'
-                                : 'opacity-0'
+                                : 'opacity-0',
                             )}
                           />
                           {priority.name}

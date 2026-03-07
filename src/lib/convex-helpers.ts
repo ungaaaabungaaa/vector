@@ -9,7 +9,7 @@ import type { Id, Doc, TableNames } from '@/convex/_generated/dataModel';
  * Transform Convex document to frontend format (adds id field from _id)
  */
 export function withId<T extends { _id: Id<TableNames> }>(
-  doc: T
+  doc: T,
 ): T & { id: string } {
   return {
     ...doc,
@@ -21,7 +21,7 @@ export function withId<T extends { _id: Id<TableNames> }>(
  * Transform array of Convex documents to frontend format
  */
 export function withIds<T extends { _id: Id<TableNames> }>(
-  docs: T[]
+  docs: T[],
 ): (T & { id: string })[] {
   return docs.map(withId);
 }
@@ -79,7 +79,7 @@ export function transformMember(member: Doc<'members'>) {
  * Get string ID from either Convex document or plain ID
  */
 export function getStringId<T extends TableNames>(
-  idOrDoc: string | { _id: Id<T> }
+  idOrDoc: string | { _id: Id<T> },
 ): string {
   if (typeof idOrDoc === 'string') return idOrDoc;
   return idOrDoc._id.toString();

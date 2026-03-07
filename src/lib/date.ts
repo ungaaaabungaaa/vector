@@ -19,7 +19,7 @@ export function toDate(input?: Date | string | null): Date | undefined {
  * Postgres `date` columns. Returns `undefined` if input is nullish.
  */
 export function formatDateForDb(
-  input?: Date | string | null
+  input?: Date | string | null,
 ): string | undefined {
   const date = toDate(input);
   return date ? format(date, DATE_PATTERN) : undefined;

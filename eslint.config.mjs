@@ -1,15 +1,7 @@
-import { FlatCompat } from '@eslint/eslintrc';
 import convexPlugin from '@convex-dev/eslint-plugin';
-import { dirname } from 'path';
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+import prettier from 'eslint-config-prettier/flat';
 import unusedImports from 'eslint-plugin-unused-imports';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
 
 const eslintConfig = [
   {
@@ -28,8 +20,9 @@ const eslintConfig = [
       '**/*.generated.*',
     ],
   },
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
+  ...nextCoreWebVitals,
   ...convexPlugin.configs.recommended,
+  prettier,
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {

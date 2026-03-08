@@ -28,6 +28,7 @@ import type * as email_otp from "../email/otp.js";
 import type * as http from "../http.js";
 import type * as issues_mutations from "../issues/mutations.js";
 import type * as issues_queries from "../issues/queries.js";
+import type * as issues_search from "../issues/search.js";
 import type * as migrations_index from "../migrations/index.js";
 import type * as notifications_actions from "../notifications/actions.js";
 import type * as notifications_emailTemplates from "../notifications/emailTemplates.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "issues/mutations": typeof issues_mutations;
   "issues/queries": typeof issues_queries;
+  "issues/search": typeof issues_search;
   "migrations/index": typeof migrations_index;
   "notifications/actions": typeof notifications_actions;
   "notifications/emailTemplates": typeof notifications_emailTemplates;

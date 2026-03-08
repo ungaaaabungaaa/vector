@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useOptimisticValue } from '@/hooks/use-optimistic';
+import { useOptimisticArray, useOptimisticValue } from '@/hooks/use-optimistic';
 
 // UI primitives
 import { Button } from '@/components/ui/button';
@@ -524,24 +524,33 @@ export function AssigneeSelector({
   align = 'start',
 }: AssigneeSelectorProps & { align?: 'start' | 'center' | 'end' }) {
   const [open, setOpen] = useState(false);
+  const [displayAssignee, setOptimisticAssignee] = useOptimisticValue(
+    selectedAssignee || '',
+  );
+  const [displayAssignees, setOptimisticAssignees] =
+    useOptimisticArray(selectedAssignees);
 
   if (members.length === 0) return null;
 
   const hasSelection = multiple
-    ? selectedAssignees.length > 0
-    : (selectedAssignee || '') !== '';
+    ? displayAssignees.length > 0
+    : displayAssignee !== '';
   const { showIcon, showLabel } = resolveVisibility(displayMode, hasSelection);
 
   const handleSelect = (userId: string) => {
     if (multiple && onAssigneesSelect) {
-      const isSelected = selectedAssignees.includes(userId);
+      const isSelected = displayAssignees.includes(userId);
+      const nextAssignees = isSelected
+        ? displayAssignees.filter(id => id !== userId)
+        : [...displayAssignees, userId];
+      setOptimisticAssignees(nextAssignees);
+      onAssigneesSelect(nextAssignees);
       if (isSelected) {
-        onAssigneesSelect(selectedAssignees.filter(id => id !== userId));
-      } else {
-        onAssigneesSelect([...selectedAssignees, userId]);
+        return;
       }
       // Keep popover open for multiple selection
     } else if (onAssigneeSelect) {
+      setOptimisticAssignee(userId);
       onAssigneeSelect(userId);
       setOpen(false);
     }
@@ -549,16 +558,16 @@ export function AssigneeSelector({
 
   const getDisplayText = () => {
     if (multiple) {
-      if (selectedAssignees.length === 0) return 'Assignees';
-      if (selectedAssignees.length === 1) {
-        const member = members.find(m => m.userId === selectedAssignees[0]);
+      if (displayAssignees.length === 0) return 'Assignees';
+      if (displayAssignees.length === 1) {
+        const member = members.find(m => m.userId === displayAssignees[0]);
         return member?.user?.name || '1 assignee';
       }
-      return `${selectedAssignees.length} assignees`;
+      return `${displayAssignees.length} assignees`;
     } else {
-      if (!selectedAssignee) return 'Assignee';
+      if (!displayAssignee) return 'Assignee';
       return (
-        members.find(m => m.userId === selectedAssignee)?.user?.name ||
+        members.find(m => m.userId === displayAssignee)?.user?.name ||
         'Assignee'
       );
     }
@@ -584,38 +593,33 @@ export function AssigneeSelector({
           <CommandList>
             <CommandEmpty>No member found.</CommandEmpty>
             <CommandGroup>
-              <CommandItem
-                value=''
-                onSelect={() => {
-                  if (!canManageAll && currentUserId !== '') return; // cannot unassign others
-                  if (multiple && onAssigneesSelect) {
-                    onAssigneesSelect([]);
+              {multiple && (
+                <CommandItem
+                  value=''
+                  onSelect={() => {
+                    if (!canManageAll && currentUserId !== '') return; // cannot unassign others
+                    setOptimisticAssignees([]);
+                    onAssigneesSelect?.([]);
                     setOpen(false);
-                  } else {
-                    handleSelect('');
-                  }
-                }}
-                disabled={!canManageAll && currentUserId !== ''}
-                className={cn(
-                  !canManageAll &&
-                    currentUserId !== '' &&
-                    'pointer-events-none opacity-50',
-                )}
-              >
-                <Check
+                  }}
+                  disabled={!canManageAll && currentUserId !== ''}
                   className={cn(
-                    'mr-2 h-4 w-4',
-                    multiple
-                      ? selectedAssignees.length === 0
-                        ? 'opacity-100'
-                        : 'opacity-0'
-                      : (selectedAssignee || '') === ''
+                    !canManageAll &&
+                      currentUserId !== '' &&
+                      'pointer-events-none opacity-50',
+                  )}
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      displayAssignees.length === 0
                         ? 'opacity-100'
                         : 'opacity-0',
-                  )}
-                />
-                Unassign all
-              </CommandItem>
+                    )}
+                  />
+                  Unassign all
+                </CommandItem>
+              )}
               {members.map(member => (
                 <CommandItem
                   key={member.userId}
@@ -628,10 +632,10 @@ export function AssigneeSelector({
                     className={cn(
                       'mr-2 h-4 w-4',
                       multiple
-                        ? selectedAssignees.includes(member.userId)
+                        ? displayAssignees.includes(member.userId)
                           ? 'opacity-100'
                           : 'opacity-0'
-                        : (selectedAssignee || '') === member.userId
+                        : displayAssignee === member.userId
                           ? 'opacity-100'
                           : 'opacity-0',
                     )}

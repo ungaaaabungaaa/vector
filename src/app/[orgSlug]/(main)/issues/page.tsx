@@ -5,14 +5,14 @@ import { api } from '@/lib/convex';
 import { Button } from '@/components/ui/button';
 import { CreateIssueDialog } from '@/components/issues/create-issue-dialog';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { LayoutList, Columns3, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { IssuesTable } from '@/components/issues/issues-table';
 import { IssuesKanban } from '@/components/issues/issues-kanban';
-import { PageSkeleton } from '@/components/ui/table-skeleton';
+import { PageSkeleton, KanbanSkeleton } from '@/components/ui/table-skeleton';
 import {
   ProjectSelector,
   TeamSelector,
@@ -54,6 +54,7 @@ export default function IssuesPage() {
   const searchParams = useSearchParams();
   const orgSlug = params.orgSlug as string;
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const isMyIssuesView = searchParams.get('assignee') === 'me';
 
   const viewParam = searchParams.get('view');
   const [viewMode, setViewModeState] = useState<ViewMode>(
@@ -82,6 +83,7 @@ export default function IssuesPage() {
   const PAGE_SIZE = 25;
 
   const user = useQuery(api.users.currentUser);
+  const currentUserId = user?._id || '';
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingAssignees, setIsUpdatingAssignees] = useState(false);
@@ -117,26 +119,17 @@ export default function IssuesPage() {
     orgSlug,
     projectId: selectedProject || undefined,
     teamId: selectedTeam || undefined,
+    assigneeId: isMyIssuesView ? currentUserId || undefined : undefined,
     searchQuery: deferredSearch || undefined,
+    page: viewMode === 'table' ? page : undefined,
+    pageSize: viewMode === 'table' ? PAGE_SIZE : undefined,
+    includeCounts: true,
   });
-  const {
-    issues: allIssues,
-    total,
-    counts,
-  } = issuesData ?? {
+  const { issues, total, counts } = issuesData ?? {
     issues: [],
     total: 0,
     counts: {},
   };
-
-  // Paginate issues for table view
-  const paginatedIssues = useMemo(
-    () => allIssues.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [allIssues, page, PAGE_SIZE],
-  );
-
-  // Use all issues for kanban (no pagination), paginated for table
-  const issues = viewMode === 'table' ? paginatedIssues : allIssues;
 
   // Reset page when filters change
   useEffect(() => {
@@ -216,7 +209,6 @@ export default function IssuesPage() {
     }
   };
 
-  const currentUserId = user?._id || '';
   const canChangeAll = user?.role === 'admin';
 
   const updatedTabs = filterTabs.map(tab => ({
@@ -230,7 +222,24 @@ export default function IssuesPage() {
   const visibleTabs = updatedTabs.filter(t => t.key === 'all' || t.count > 0);
 
   if (user === undefined || issuesData === undefined || states === undefined) {
-    return (
+    return viewMode === 'kanban' ? (
+      <div className='bg-background h-full'>
+        <div className='border-b'>
+          <div className='flex items-center justify-between p-1'>
+            <div className='flex items-center gap-1'>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className='bg-muted/70 h-6 w-16 animate-pulse rounded-md'
+                />
+              ))}
+            </div>
+            <div className='bg-muted/70 h-6 w-20 animate-pulse rounded-md' />
+          </div>
+        </div>
+        <KanbanSkeleton />
+      </div>
+    ) : (
       <PageSkeleton
         showTabs={true}
         tabCount={5}

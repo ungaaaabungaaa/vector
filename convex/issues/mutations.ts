@@ -24,6 +24,7 @@ import {
   getIssueHref,
   resolveMentionedUsers,
 } from '../notifications/lib';
+import { buildIssueSearchText } from './search';
 
 function priorityLabel(
   priority: Doc<'issuePriorities'> | null | undefined,
@@ -153,6 +154,11 @@ export const create = mutation({
       sequenceNumber: nextNumber,
       title: args.data.title.trim(),
       description: args.data.description?.trim(),
+      searchText: buildIssueSearchText({
+        key: issueKey,
+        title: args.data.title.trim(),
+        description: args.data.description?.trim(),
+      }),
       priorityId: args.data.priorityId,
       reporterId: userId,
       teamId: project?.teamId ?? parentIssue?.teamId,
@@ -301,11 +307,20 @@ export const update = mutation({
     const previousPriority = issue.priorityId
       ? await ctx.db.get('issuePriorities', issue.priorityId)
       : null;
-    await ctx.db.patch('issues', issue._id, { ...args.data });
+    const nextTitle = args.data.title ?? issue.title;
+    const nextDescription = args.data.description ?? issue.description;
+    await ctx.db.patch('issues', issue._id, {
+      ...args.data,
+      searchText: buildIssueSearchText({
+        key: issue.key,
+        title: nextTitle,
+        description: nextDescription,
+      }),
+    });
 
     const snapshot = snapshotForIssue({
       ...issue,
-      title: args.data.title ?? issue.title,
+      title: nextTitle,
     });
 
     if (args.data.title !== undefined && args.data.title !== issue.title) {
@@ -1173,7 +1188,14 @@ export const updateTitle = mutation({
       throw new ConvexError('FORBIDDEN');
     }
 
-    await ctx.db.patch('issues', args.issueId, { title: args.title });
+    await ctx.db.patch('issues', args.issueId, {
+      title: args.title,
+      searchText: buildIssueSearchText({
+        key: issue.key,
+        title: args.title,
+        description: issue.description,
+      }),
+    });
 
     if (args.title !== issue.title) {
       await recordActivity(ctx, {
@@ -1217,6 +1239,11 @@ export const updateDescription = mutation({
 
     await ctx.db.patch('issues', args.issueId, {
       description: args.description ?? undefined,
+      searchText: buildIssueSearchText({
+        key: issue.key,
+        title: issue.title,
+        description: args.description,
+      }),
     });
 
     if (args.description !== issue.description) {

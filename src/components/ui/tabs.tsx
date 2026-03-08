@@ -91,7 +91,9 @@ function TabsTrigger({
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </TabsPrimitive.Tab>
   );
 }
 

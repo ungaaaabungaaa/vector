@@ -38,13 +38,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { getDynamicIcon } from '@/lib/dynamic-icons';
-import {
-  UsersIcon,
-  CalendarIcon,
-  ClockIcon,
-  Search,
-  Loader2,
-} from 'lucide-react';
+import { CalendarIcon, ClockIcon, Search, Loader2 } from 'lucide-react';
 import { MobileNavTrigger } from '../../layout';
 import type { Id } from '@/convex/_generated/dataModel';
 import {
@@ -55,7 +49,17 @@ import { useOptimisticValue } from '@/hooks/use-optimistic';
 import { IssuesKanban } from '@/components/issues/issues-kanban';
 import { IssuesTable } from '@/components/issues/issues-table';
 import { CreateIssueDialog } from '@/components/issues/create-issue-dialog';
+import { TableSkeleton, KanbanSkeleton } from '@/components/ui/table-skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useConfirm } from '@/hooks/use-confirm';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
+import { Calendar } from '@/components/ui/calendar';
+import type { DateRange } from 'react-day-picker';
 
 interface ProjectViewClientProps {
   params: { orgSlug: string; projectKey: string };
@@ -73,6 +77,111 @@ const DEFAULT_COLORS = [
   '#6b7280', // gray-500
 ];
 
+function ProjectDateRangePicker({
+  project,
+  updateMutation,
+  orgSlug,
+  permissionScope,
+}: {
+  project: { _id: Id<'projects'>; startDate?: string; dueDate?: string };
+  updateMutation: ReturnType<
+    typeof useMutation<typeof api.projects.mutations.update>
+  >;
+  orgSlug: string;
+  permissionScope: { teamId?: Id<'teams'> };
+}) {
+  const [displayStart, setOptimisticStart] = useOptimisticValue(
+    project.startDate ?? '',
+  );
+  const [displayDue, setOptimisticDue] = useOptimisticValue(
+    project.dueDate ?? '',
+  );
+
+  const handleSelect = (range: DateRange | undefined) => {
+    const start = range?.from ? range.from.toISOString().split('T')[0] : '';
+    const due = range?.to ? range.to.toISOString().split('T')[0] : '';
+    setOptimisticStart(start);
+    setOptimisticDue(due);
+    void updateMutation({
+      projectId: project._id,
+      data: {
+        startDate: start || null,
+        dueDate: due || null,
+      },
+    });
+  };
+
+  const handleClear = () => {
+    setOptimisticStart('');
+    setOptimisticDue('');
+    void updateMutation({
+      projectId: project._id,
+      data: { startDate: null, dueDate: null },
+    });
+  };
+
+  return (
+    <PermissionAware
+      orgSlug={orgSlug}
+      permission={PERMISSIONS.PROJECT_EDIT}
+      scope={permissionScope}
+      fallbackMessage="You don't have permission to change dates"
+    >
+      <Popover>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button className='text-muted-foreground hover:bg-muted/50 bg-muted/30 flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors'>
+                <CalendarIcon className='size-3.5' />
+                {displayStart || displayDue ? (
+                  <span>
+                    {displayStart
+                      ? formatDateHuman(new Date(displayStart))
+                      : '—'}
+                    {displayDue
+                      ? ` → ${formatDateHuman(new Date(displayDue))}`
+                      : ''}
+                  </span>
+                ) : null}
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side='bottom'>Dates</TooltipContent>
+        </Tooltip>
+        <PopoverContent className='w-auto p-0' align='start'>
+          <div className='flex flex-col'>
+            <Calendar
+              mode='range'
+              selected={
+                displayStart || displayDue
+                  ? {
+                      from: displayStart ? new Date(displayStart) : undefined,
+                      to: displayDue ? new Date(displayDue) : undefined,
+                    }
+                  : undefined
+              }
+              onSelect={handleSelect}
+              numberOfMonths={2}
+            />
+            {(displayStart || displayDue) && (
+              <div className='border-t px-3 py-2'>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='text-muted-foreground h-7 w-full text-xs'
+                  onClick={handleClear}
+                >
+                  Clear dates
+                </Button>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </PermissionAware>
+  );
+}
+
 export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const router = useRouter();
   const [editingTitle, setEditingTitle] = useState(false);
@@ -82,6 +191,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [isDeletingIssue, setIsDeletingIssue] = useState(false);
   const [confirmDelete, ConfirmDeleteDialog] = useConfirm();
+  const [projectTab, setProjectTab] = useState('issues');
   // Issue view mode from URL search params
   const issueViewParam =
     typeof window !== 'undefined'
@@ -108,6 +218,8 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
 
   const [issueSearchText, setIssueSearchText] = useState('');
   const deferredIssueSearch = useDeferredValue(issueSearchText);
+  const [memberSearchText, setMemberSearchText] = useState('');
+  const deferredMemberSearch = useDeferredValue(memberSearchText);
   const [issuePage, setIssuePage] = useState(1);
   const ISSUE_PAGE_SIZE = 25;
 
@@ -188,23 +300,13 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
           orgSlug: params.orgSlug,
           projectId: project._id,
           searchQuery: deferredIssueSearch || undefined,
+          page: issueViewMode === 'table' ? issuePage : undefined,
+          pageSize: issueViewMode === 'table' ? ISSUE_PAGE_SIZE : undefined,
         }
       : 'skip',
   );
-  const allProjectIssues = projectIssuesData?.issues ?? [];
+  const projectIssues = projectIssuesData?.issues ?? [];
   const projectIssuesTotal = projectIssuesData?.total ?? 0;
-
-  // Paginate for table view only
-  const paginatedProjectIssues = useMemo(
-    () =>
-      allProjectIssues.slice(
-        (issuePage - 1) * ISSUE_PAGE_SIZE,
-        issuePage * ISSUE_PAGE_SIZE,
-      ),
-    [allProjectIssues, issuePage, ISSUE_PAGE_SIZE],
-  );
-  const projectIssues =
-    issueViewMode === 'table' ? paginatedProjectIssues : allProjectIssues;
 
   // Reset page when search changes
   useEffect(() => {
@@ -750,297 +852,350 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
             </div>
 
             {/* Properties Bar */}
-            <div className='mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm'>
-              {/* Status */}
-              <div className='flex min-w-[120px] items-center gap-1'>
-                <span className='text-muted-foreground'>
-                  <PermissionAware
-                    orgSlug={params.orgSlug}
-                    permission={PERMISSIONS.PROJECT_EDIT}
-                    scope={permissionScope}
-                    fallbackMessage="You don't have permission to change status"
-                  >
-                    <StatusSelector
-                      statuses={statuses || []}
-                      selectedStatus={project.statusId || ''}
-                      onStatusSelect={handleStatusChange}
-                      className='h-5 w-5 border-none bg-transparent p-0 shadow-none'
-                      displayMode='iconOnly'
-                    />
-                  </PermissionAware>
-                </span>
-                <span className='text-muted-foreground text-xs'>Status</span>
-                <span className='ml-1 font-medium'>
-                  {statuses?.find(s => s._id === project.statusId)?.name || '—'}
-                </span>
+            <TooltipProvider>
+              <div className='mb-6 flex max-w-4xl flex-wrap items-center gap-2'>
+                {/* Status */}
+                <PermissionAware
+                  orgSlug={params.orgSlug}
+                  permission={PERMISSIONS.PROJECT_EDIT}
+                  scope={permissionScope}
+                  fallbackMessage="You don't have permission to change status"
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <StatusSelector
+                          statuses={statuses || []}
+                          selectedStatus={project.statusId || ''}
+                          onStatusSelect={handleStatusChange}
+                          displayMode='iconWhenUnselected'
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Status</TooltipContent>
+                  </Tooltip>
+                </PermissionAware>
+
+                {/* Lead */}
+                <PermissionAware
+                  orgSlug={params.orgSlug}
+                  permission={PERMISSIONS.PROJECT_EDIT}
+                  scope={permissionScope}
+                  fallbackMessage="You don't have permission to change lead"
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <ProjectLeadSelector
+                          orgSlug={params.orgSlug}
+                          projectKey={params.projectKey}
+                          selectedLead={project.leadId || ''}
+                          onLeadSelect={handleLeadChange}
+                          displayMode='iconWhenUnselected'
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Lead</TooltipContent>
+                  </Tooltip>
+                </PermissionAware>
+
+                {/* Team */}
+                <PermissionAware
+                  orgSlug={params.orgSlug}
+                  permission={PERMISSIONS.PROJECT_EDIT}
+                  scope={permissionScope}
+                  fallbackMessage="You don't have permission to change team"
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <TeamSelector
+                          teams={teams || []}
+                          selectedTeam={project.teamId || ''}
+                          onTeamSelect={handleTeamChange}
+                          displayMode='iconWhenUnselected'
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Team</TooltipContent>
+                  </Tooltip>
+                </PermissionAware>
+
+                {/* Dates */}
+                <ProjectDateRangePicker
+                  project={project}
+                  updateMutation={updateMutation}
+                  orgSlug={params.orgSlug}
+                  permissionScope={permissionScope}
+                />
+
+                {/* Created */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className='text-muted-foreground hover:bg-muted/50 flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors'>
+                      <ClockIcon className='size-3.5' />
+                      <span>
+                        {formatDateHuman(new Date(project._creationTime))}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side='bottom'>Created</TooltipContent>
+                </Tooltip>
               </div>
-              {/* Lead */}
-              <div className='flex min-w-[120px] items-center gap-1'>
-                <span className='text-muted-foreground'>
-                  <PermissionAware
-                    orgSlug={params.orgSlug}
-                    permission={PERMISSIONS.PROJECT_EDIT}
-                    scope={permissionScope}
-                    fallbackMessage="You don't have permission to change lead"
-                  >
-                    <ProjectLeadSelector
-                      orgSlug={params.orgSlug}
-                      projectKey={params.projectKey}
-                      selectedLead={project.leadId || ''}
-                      onLeadSelect={handleLeadChange}
-                      className='h-5 w-5 border-none bg-transparent p-0 shadow-none'
-                      displayMode='iconOnly'
-                    />
-                  </PermissionAware>
-                </span>
-                <span className='text-muted-foreground text-xs'>Lead</span>
-                <span className='ml-1 font-medium'>
-                  {project.lead?.name || '—'}
-                </span>
-              </div>
-              {/* Team */}
-              <div className='flex min-w-[120px] items-center gap-1'>
-                <span className='text-muted-foreground'>
-                  <UsersIcon className='size-4' />
-                </span>
-                <span className='text-muted-foreground text-xs'>Team</span>
-                <span className='ml-1 font-medium'>
-                  {teams?.find(t => t._id === project.teamId)?.name || '—'}
-                </span>
-              </div>
-              {/* Dates */}
-              <div className='flex min-w-[180px] items-center gap-1'>
-                <span className='text-muted-foreground'>
-                  <CalendarIcon className='size-4' />
-                </span>
-                <span className='text-muted-foreground text-xs'>Dates</span>
-                <span className='ml-1'>
-                  {project.startDate
-                    ? formatDateHuman(new Date(project.startDate))
-                    : '—'}
-                  {project.dueDate
-                    ? ` → ${formatDateHuman(new Date(project.dueDate))}`
-                    : ''}
-                </span>
-              </div>
-              {/* Created/Updated */}
-              <div className='flex min-w-[160px] items-center gap-1'>
-                <span className='text-muted-foreground'>
-                  <ClockIcon className='size-4' />
-                </span>
-                <span className='text-muted-foreground text-xs'>Created</span>
-                <span className='ml-1'>
-                  {formatDateHuman(new Date(project._creationTime))}
-                </span>
-              </div>
-            </div>
+            </TooltipProvider>
           </div>
           {/* end max-w-5xl */}
 
-          {/* Issues Board */}
-          <div className='mb-6'>
-            <div
-              className={cn(
-                'mb-2 flex items-center justify-between px-3 sm:px-4',
-                issueViewMode === 'table' && 'mx-auto max-w-5xl',
+          {/* Tabs: Issues / Activity / Members */}
+          <Tabs value={projectTab} onValueChange={setProjectTab}>
+            <div className='flex items-center justify-between px-3 sm:px-4'>
+              <TabsList>
+                <TabsTrigger value='issues'>Issues</TabsTrigger>
+                <TabsTrigger value='activity'>Activity</TabsTrigger>
+                <TabsTrigger value='members'>Members</TabsTrigger>
+              </TabsList>
+
+              {/* Members controls */}
+              {projectTab === 'members' && (
+                <div className='flex items-center gap-2'>
+                  <div className='relative'>
+                    {deferredMemberSearch !== memberSearchText ? (
+                      <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                    ) : (
+                      <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                    )}
+                    <Input
+                      placeholder='Search members...'
+                      value={memberSearchText}
+                      onChange={e => setMemberSearchText(e.target.value)}
+                      className='h-6 w-40 pl-7 text-xs'
+                    />
+                  </div>
+                </div>
               )}
-            >
-              <h2 className='text-sm font-semibold'>Issues</h2>
-              <div className='flex items-center gap-2'>
-                {/* Search */}
-                <div className='relative'>
-                  {deferredIssueSearch !== issueSearchText ? (
-                    <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
-                  ) : (
-                    <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+
+              {/* Issues controls — only visible on issues tab */}
+              {projectTab === 'issues' && (
+                <div className='flex items-center gap-2'>
+                  <div className='relative'>
+                    {deferredIssueSearch !== issueSearchText ? (
+                      <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                    ) : (
+                      <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                    )}
+                    <Input
+                      placeholder='Search issues...'
+                      value={issueSearchText}
+                      onChange={e => setIssueSearchText(e.target.value)}
+                      className='h-6 w-40 pl-7 text-xs'
+                    />
+                  </div>
+                  <div className='border-border flex items-center rounded-md border'>
+                    <Button
+                      variant={
+                        issueViewMode === 'kanban' ? 'secondary' : 'ghost'
+                      }
+                      size='sm'
+                      className='h-6 rounded-r-none px-2'
+                      onClick={() => setIssueViewMode('kanban')}
+                    >
+                      <Columns3 className='size-3.5' />
+                    </Button>
+                    <Button
+                      variant={
+                        issueViewMode === 'table' ? 'secondary' : 'ghost'
+                      }
+                      size='sm'
+                      className='h-6 rounded-l-none px-2'
+                      onClick={() => setIssueViewMode('table')}
+                    >
+                      <LayoutList className='size-3.5' />
+                    </Button>
+                  </div>
+                  {project && (
+                    <CreateIssueDialog
+                      orgSlug={params.orgSlug}
+                      defaultStates={{ projectId: project._id }}
+                      className='h-6 text-xs'
+                    />
                   )}
-                  <Input
-                    placeholder='Search issues...'
-                    value={issueSearchText}
-                    onChange={e => setIssueSearchText(e.target.value)}
-                    className='h-6 w-40 pl-7 text-xs'
-                  />
                 </div>
-                <div className='border-border flex items-center rounded-md border'>
-                  <Button
-                    variant={issueViewMode === 'kanban' ? 'secondary' : 'ghost'}
-                    size='sm'
-                    className='h-6 rounded-r-none px-2'
-                    onClick={() => setIssueViewMode('kanban')}
-                  >
-                    <Columns3 className='size-3.5' />
-                  </Button>
-                  <Button
-                    variant={issueViewMode === 'table' ? 'secondary' : 'ghost'}
-                    size='sm'
-                    className='h-6 rounded-l-none px-2'
-                    onClick={() => setIssueViewMode('table')}
-                  >
-                    <LayoutList className='size-3.5' />
-                  </Button>
-                </div>
-                {project && (
-                  <CreateIssueDialog
-                    orgSlug={params.orgSlug}
-                    defaultStates={{ projectId: project._id }}
-                    className='h-6 text-xs'
-                  />
-                )}
-              </div>
+              )}
             </div>
-            <AnimatePresence mode='wait' initial={false}>
-              {projectIssuesData === undefined ? (
-                <motion.div
-                  key='loading'
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className='mx-auto max-w-5xl px-3 sm:px-4'
-                >
-                  <div className='flex items-center justify-center py-8'>
-                    <Loader2 className='text-muted-foreground size-5 animate-spin' />
-                  </div>
-                </motion.div>
-              ) : projectIssues.length === 0 ? (
-                <motion.div
-                  key='empty'
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className='mx-auto max-w-5xl px-3 sm:px-4'
-                >
-                  <div className='text-muted-foreground rounded-lg border border-dashed px-3 py-8 text-center text-sm'>
-                    {issueSearchText
-                      ? 'No issues match your search.'
-                      : 'No issues yet. Create one to get started.'}
-                  </div>
-                </motion.div>
-              ) : issueViewMode === 'kanban' ? (
-                <motion.div
-                  key='kanban'
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className='overflow-hidden'
-                >
-                  <IssuesKanban
-                    orgSlug={params.orgSlug}
-                    issues={projectIssues}
-                    states={issueStates ?? []}
-                    priorities={issuePriorities ?? []}
-                    teams={teams ?? []}
-                    currentUserId={user?._id || ''}
-                    onStateChange={(_issueId, assignmentId, stateId) => {
-                      void changeAssignmentStateMutation({
-                        assignmentId: assignmentId as Id<'issueAssignees'>,
-                        stateId: stateId as Id<'issueStates'>,
-                      });
-                    }}
-                    onPriorityChange={(issueId, priorityId) => {
-                      void changePriorityMutation({
-                        issueId: issueId as Id<'issues'>,
-                        priorityId: priorityId as Id<'issuePriorities'>,
-                      });
-                    }}
-                    onAssigneesChange={(issueId, assigneeIds) => {
-                      void updateAssigneesMutation({
-                        issueId: issueId as Id<'issues'>,
-                        assigneeIds: assigneeIds as Id<'users'>[],
-                      });
-                    }}
-                    onDelete={canDeleteIssue ? handleDeleteIssue : undefined}
-                    deletePending={isDeletingIssue}
-                    createDefaults={{ projectId: project._id }}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key='table'
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className='mx-auto max-w-5xl px-3 sm:px-4'
-                >
-                  <div className='overflow-hidden rounded-lg border'>
-                    <IssuesTable
+
+            {/* Issues Tab */}
+            <TabsContent value='issues'>
+              <AnimatePresence mode='wait' initial={false}>
+                {projectIssuesData === undefined ? (
+                  <motion.div
+                    key='loading'
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    {issueViewMode === 'kanban' ? (
+                      <KanbanSkeleton />
+                    ) : (
+                      <div className='px-3 sm:px-4'>
+                        <div className='overflow-hidden rounded-lg border'>
+                          <TableSkeleton rows={5} columns={4} />
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : projectIssues.length === 0 ? (
+                  <motion.div
+                    key='empty'
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className='px-3 sm:px-4'
+                  >
+                    <div className='text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed px-3 py-12 text-center'>
+                      <div className='flex items-end gap-1'>
+                        <div className='bg-muted h-8 w-5 rounded-sm' />
+                        <div className='bg-muted h-12 w-5 rounded-sm' />
+                        <div className='bg-muted h-6 w-5 rounded-sm' />
+                        <div className='bg-muted h-10 w-5 rounded-sm' />
+                      </div>
+                      <p className='text-sm'>
+                        {issueSearchText
+                          ? 'No issues match your search.'
+                          : 'No issues yet. Create one to get started.'}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : issueViewMode === 'kanban' ? (
+                  <motion.div
+                    key='kanban'
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className='overflow-hidden'
+                  >
+                    <IssuesKanban
                       orgSlug={params.orgSlug}
                       issues={projectIssues}
                       states={issueStates ?? []}
                       priorities={issuePriorities ?? []}
                       teams={teams ?? []}
-                      projects={[]}
-                      onPriorityChange={() => {}}
-                      onAssigneesChange={() => {}}
-                      onTeamChange={() => {}}
-                      onProjectChange={() => {}}
-                      onDelete={() => {}}
-                      onAssignmentStateChange={() => {}}
                       currentUserId={user?._id || ''}
-                      activeFilter='all'
+                      onStateChange={(_issueId, assignmentId, stateId) => {
+                        void changeAssignmentStateMutation({
+                          assignmentId: assignmentId as Id<'issueAssignees'>,
+                          stateId: stateId as Id<'issueStates'>,
+                        });
+                      }}
+                      onPriorityChange={(issueId, priorityId) => {
+                        void changePriorityMutation({
+                          issueId: issueId as Id<'issues'>,
+                          priorityId: priorityId as Id<'issuePriorities'>,
+                        });
+                      }}
+                      onAssigneesChange={(issueId, assigneeIds) => {
+                        void updateAssigneesMutation({
+                          issueId: issueId as Id<'issues'>,
+                          assigneeIds: assigneeIds as Id<'users'>[],
+                        });
+                      }}
+                      onDelete={canDeleteIssue ? handleDeleteIssue : undefined}
+                      deletePending={isDeletingIssue}
+                      createDefaults={{ projectId: project._id }}
                     />
-                  </div>
-                  {projectIssuesTotal > ISSUE_PAGE_SIZE && (
-                    <div className='text-muted-foreground flex items-center justify-between px-1 py-1.5 text-xs'>
-                      <span>
-                        Page {issuePage} of{' '}
-                        {Math.max(
-                          1,
-                          Math.ceil(projectIssuesTotal / ISSUE_PAGE_SIZE),
-                        )}
-                      </span>
-                      <div className='flex gap-1'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='h-6 px-2 text-xs'
-                          disabled={issuePage === 1}
-                          onClick={() => setIssuePage(p => Math.max(1, p - 1))}
-                        >
-                          Prev
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='h-6 px-2 text-xs'
-                          disabled={
-                            issuePage * ISSUE_PAGE_SIZE >= projectIssuesTotal
-                          }
-                          onClick={() => setIssuePage(p => p + 1)}
-                        >
-                          Next
-                        </Button>
-                      </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key='table'
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className='px-3 sm:px-4'
+                  >
+                    <div className='overflow-hidden rounded-lg border'>
+                      <IssuesTable
+                        orgSlug={params.orgSlug}
+                        issues={projectIssues}
+                        states={issueStates ?? []}
+                        priorities={issuePriorities ?? []}
+                        teams={teams ?? []}
+                        projects={[]}
+                        onPriorityChange={() => {}}
+                        onAssigneesChange={() => {}}
+                        onTeamChange={() => {}}
+                        onProjectChange={() => {}}
+                        onDelete={() => {}}
+                        onAssignmentStateChange={() => {}}
+                        currentUserId={user?._id || ''}
+                        activeFilter='all'
+                      />
                     </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                    {projectIssuesTotal > ISSUE_PAGE_SIZE && (
+                      <div className='text-muted-foreground flex items-center justify-between px-1 py-1.5 text-xs'>
+                        <span>
+                          Page {issuePage} of{' '}
+                          {Math.max(
+                            1,
+                            Math.ceil(projectIssuesTotal / ISSUE_PAGE_SIZE),
+                          )}
+                        </span>
+                        <div className='flex gap-1'>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            className='h-6 px-2 text-xs'
+                            disabled={issuePage === 1}
+                            onClick={() =>
+                              setIssuePage(p => Math.max(1, p - 1))
+                            }
+                          >
+                            Prev
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            className='h-6 px-2 text-xs'
+                            disabled={
+                              issuePage * ISSUE_PAGE_SIZE >= projectIssuesTotal
+                            }
+                            onClick={() => setIssuePage(p => p + 1)}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </TabsContent>
 
-          {/* Project Details */}
-          <div className='mx-auto max-w-5xl space-y-6 px-3 sm:px-4'>
-            <div>
-              <h2 className='mb-2 text-sm font-semibold'>Activity</h2>
-              {projectId ? (
-                <ProjectActivityFeed
+            {/* Activity Tab */}
+            <TabsContent value='activity'>
+              <div className='px-3 sm:px-4'>
+                {projectId ? (
+                  <ProjectActivityFeed
+                    orgSlug={params.orgSlug}
+                    projectId={projectId}
+                  />
+                ) : null}
+              </div>
+            </TabsContent>
+
+            {/* Members Tab */}
+            <TabsContent value='members'>
+              <div className='px-3 sm:px-4'>
+                <ProjectMembersSection
                   orgSlug={params.orgSlug}
-                  projectId={projectId}
+                  projectKey={params.projectKey}
+                  searchQuery={deferredMemberSearch}
                 />
-              ) : null}
-            </div>
-
-            {/* Members */}
-            <div>
-              <ProjectMembersSection
-                orgSlug={params.orgSlug}
-                projectKey={params.projectKey}
-              />
-            </div>
-          </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       <ConfirmDeleteDialog />

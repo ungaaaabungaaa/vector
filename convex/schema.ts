@@ -381,6 +381,7 @@ export default defineSchema({
     sequenceNumber: v.number(), // monotonic per team
     title: v.string(),
     description: v.optional(v.string()),
+    searchText: v.optional(v.string()),
     priorityId: v.optional(v.id('issuePriorities')),
     teamId: v.optional(v.id('teams')),
     projectId: v.optional(v.id('projects')),
@@ -416,6 +417,10 @@ export default defineSchema({
     .searchIndex('search_title', {
       searchField: 'title',
       filterFields: ['organizationId'],
+    })
+    .searchIndex('search_text', {
+      searchField: 'searchText',
+      filterFields: ['organizationId', 'projectId', 'teamId'],
     }),
 
   // Issue assignees (equivalent to Drizzle 'issueAssignee' table)

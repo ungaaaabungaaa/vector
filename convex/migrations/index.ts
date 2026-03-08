@@ -7,6 +7,7 @@ import {
   resolveIssueScope,
   snapshotForIssue,
 } from '../activities/lib';
+import { buildIssueSearchTextFromIssue } from '../issues/search';
 import {
   createDefaultProjectRoles,
   createDefaultTeamRoles,
@@ -413,6 +414,30 @@ export const backfillActivityEvents = internalMutation({
     return {
       success: true,
       inserted,
+    };
+  },
+});
+
+export const backfillIssueSearchText = internalMutation({
+  args: {},
+  handler: async ctx => {
+    const issues = await ctx.db.query('issues').collect();
+    let updated = 0;
+
+    for (const issue of issues) {
+      const searchText = buildIssueSearchTextFromIssue(issue);
+      if (issue.searchText === searchText) {
+        continue;
+      }
+
+      await ctx.db.patch('issues', issue._id, { searchText });
+      updated += 1;
+    }
+
+    return {
+      success: true,
+      scanned: issues.length,
+      updated,
     };
   },
 });

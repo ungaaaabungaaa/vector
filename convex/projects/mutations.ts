@@ -184,6 +184,8 @@ export const update = mutation({
       statusId: v.optional(v.id('projectStatuses')),
       icon: v.optional(v.string()),
       color: v.optional(v.string()),
+      startDate: v.optional(v.union(v.string(), v.null())),
+      dueDate: v.optional(v.union(v.string(), v.null())),
     }),
   },
   handler: async (ctx, args) => {
@@ -227,7 +229,12 @@ export const update = mutation({
       }
     }
 
-    await ctx.db.patch('projects', project._id, { ...args.data });
+    const { startDate, dueDate, ...rest } = args.data;
+    await ctx.db.patch('projects', project._id, {
+      ...rest,
+      ...(startDate !== undefined && { startDate: startDate ?? undefined }),
+      ...(dueDate !== undefined && { dueDate: dueDate ?? undefined }),
+    });
 
     if (args.data.leadId) {
       const existingLeadMembership = await ctx.db

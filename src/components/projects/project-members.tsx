@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Button } from '@/components/ui/button';
@@ -41,10 +41,12 @@ export function ProjectMembersSection({
   orgSlug,
   projectKey,
   canEdit = true,
+  searchQuery,
 }: {
   orgSlug: string;
   projectKey: string;
   canEdit?: boolean;
+  searchQuery?: string;
 }) {
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
   const [confirm, ConfirmDialog] = useConfirm();
@@ -82,6 +84,16 @@ export function ProjectMembersSection({
     void removeMemberMutation({ membershipId });
   };
 
+  const filteredMembers = useMemo(() => {
+    const q = searchQuery?.trim().toLowerCase();
+    if (!q) return members ?? [];
+    return (members ?? []).filter(m => {
+      const name = m.user?.name?.toLowerCase() ?? '';
+      const email = m.user?.email?.toLowerCase() ?? '';
+      return name.includes(q) || email.includes(q);
+    });
+  }, [members, searchQuery]);
+
   if (members === undefined) {
     return (
       <div className='space-y-4'>
@@ -111,48 +123,35 @@ export function ProjectMembersSection({
 
   return (
     <div className='space-y-4'>
-      <div className='mb-4 flex items-center justify-between'>
-        <h2 className='flex items-center gap-2 text-sm font-semibold'>
-          <Users className='size-4' />
-          Members ({members.length})
-          {canEdit && (
-            <Button
-              onClick={() => setShowAddMemberDialog(true)}
-              className='h-5 gap-1 px-0 text-xs'
-              variant='outline'
-              disabled={
-                orgMembers.filter(
-                  member =>
-                    !members.some(
-                      projectMember => projectMember.userId === member.userId,
-                    ),
-                ).length === 0
-              }
-              title={
-                orgMembers.filter(
-                  member =>
-                    !members.some(
-                      projectMember => projectMember.userId === member.userId,
-                    ),
-                ).length === 0
-                  ? 'All organization members are already in this project'
-                  : ''
-              }
-            >
-              <Plus className='size-3' />
-            </Button>
-          )}
-        </h2>
-      </div>
-
       {hasMembers ? (
         <div className='rounded-lg border'>
           <MembersList
-            members={members}
+            members={filteredMembers}
             canEdit={canEdit}
             onRemoveMember={handleRemoveMember}
             removePending={false}
           />
+          {canEdit && (
+            <div className='border-t px-3 py-1.5'>
+              <Button
+                onClick={() => setShowAddMemberDialog(true)}
+                className='h-6 gap-1 text-xs'
+                variant='ghost'
+                size='sm'
+                disabled={
+                  orgMembers.filter(
+                    member =>
+                      !members.some(
+                        projectMember => projectMember.userId === member.userId,
+                      ),
+                  ).length === 0
+                }
+              >
+                <Plus className='size-3' />
+                Add member
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className='flex items-center justify-center py-12'>

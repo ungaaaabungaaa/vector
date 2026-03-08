@@ -18,6 +18,9 @@ import { useScopedPermission } from '@/hooks/use-permissions';
 import { PermissionAware } from '@/components/ui/permission-aware';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { UserAvatar } from '@/components/user-avatar';
+import { FunctionReturnType } from 'convex/server';
+import { useOptimisticValue } from '@/hooks/use-optimistic';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export interface IssueAssignmentsProps {
   orgSlug: string;
@@ -33,6 +36,157 @@ export interface IssueAssignmentsProps {
    */
   members: readonly Member[] | Member[];
   defaultStateId?: Id<'issueStates'>;
+}
+
+function IssueAssignmentsSkeleton() {
+  return (
+    <div className='divide-y'>
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div key={index} className='flex items-center gap-3 p-2'>
+          <div className='flex min-w-0 flex-1 items-center gap-2'>
+            <Skeleton className='h-6 w-6 rounded-full' />
+            <Skeleton className='h-4 w-28' />
+          </div>
+          <Skeleton className='h-6 w-20 rounded-md' />
+          <Skeleton className='h-6 w-6 rounded-sm' />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type IssueAssignment = FunctionReturnType<
+  typeof api.issues.queries.getAssignments
+>[number];
+
+interface IssueAssignmentRowProps {
+  assignment: IssueAssignment;
+  orgSlug: string;
+  states: readonly State[] | State[];
+  members: readonly Member[] | Member[];
+  assignedUserIds: readonly Id<'users'>[];
+  currentUserId: string;
+  canManage: boolean;
+  onStateChange: (assignmentId: string, stateId: string) => void;
+  onUpdateAssignee: (assignmentId: string, assigneeId: string) => void;
+  onRemoveAssignment: (assignmentId: string) => void;
+}
+
+function IssueAssignmentRow({
+  assignment,
+  orgSlug,
+  states,
+  members,
+  assignedUserIds,
+  currentUserId,
+  canManage,
+  onStateChange,
+  onUpdateAssignee,
+  onRemoveAssignment,
+}: IssueAssignmentRowProps) {
+  const [displayAssigneeId, setOptimisticAssigneeId] = useOptimisticValue(
+    assignment.assigneeId?.toString() || '',
+  );
+
+  const isOwnAssignment = assignment.assigneeId === currentUserId;
+  const canModifyAssignment = canManage || isOwnAssignment;
+  const assignedUserIdsExcludingCurrent = assignedUserIds.filter(
+    id => id !== assignment.assigneeId,
+  );
+  const availableMembers = members.filter(
+    member =>
+      member.userId === displayAssigneeId ||
+      !assignedUserIdsExcludingCurrent.includes(member.userId as Id<'users'>),
+  );
+  const displayMember =
+    members.find(member => member.userId === displayAssigneeId)?.user ||
+    assignment.assignee;
+
+  return (
+    <div className='hover:bg-muted/50 flex items-center gap-3 p-2 transition-colors'>
+      <div className='flex min-w-0 flex-1 items-center gap-2'>
+        <AssigneeSelector
+          members={availableMembers}
+          selectedAssignee={displayAssigneeId}
+          onAssigneeSelect={
+            canModifyAssignment
+              ? userId => {
+                  setOptimisticAssigneeId(userId);
+                  onUpdateAssignee(assignment._id, userId);
+                }
+              : undefined
+          }
+          displayMode='labelOnly'
+          trigger={
+            <div className='hover:bg-muted/30 -m-1 flex cursor-pointer items-center gap-2 rounded-md p-1 transition-colors'>
+              {displayAssigneeId && displayMember ? (
+                <>
+                  <UserAvatar
+                    name={displayMember.name}
+                    email={displayMember.email}
+                    image={displayMember.image}
+                    userId={displayAssigneeId}
+                    size='sm'
+                    className='flex-shrink-0'
+                  />
+                  <span className='truncate text-sm'>
+                    {displayMember.name || displayMember.email}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className='bg-muted flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full'>
+                    <User className='text-muted-foreground h-3 w-3' />
+                  </div>
+                  <span className='text-muted-foreground text-sm'>
+                    Unassigned
+                  </span>
+                </>
+              )}
+            </div>
+          }
+        />
+      </div>
+
+      {isOwnAssignment ? (
+        <StateSelector
+          states={states}
+          selectedState={assignment.stateId?.toString() || ''}
+          onStateSelect={stateId => onStateChange(assignment._id, stateId)}
+          align='end'
+          className='border-none bg-transparent p-0 shadow-none'
+        />
+      ) : (
+        <PermissionAware
+          orgSlug={orgSlug}
+          permission={PERMISSIONS.ISSUE_ASSIGNMENT_UPDATE}
+          fallbackMessage="You don't have permission to change assignment status"
+        >
+          <StateSelector
+            states={states}
+            selectedState={assignment.stateId?.toString() || ''}
+            onStateSelect={
+              canManage
+                ? stateId => onStateChange(assignment._id, stateId)
+                : () => {}
+            }
+            align='end'
+            className='border-none bg-transparent p-0 shadow-none'
+          />
+        </PermissionAware>
+      )}
+
+      <Button
+        variant='ghost'
+        size='sm'
+        onClick={() => onRemoveAssignment(assignment._id)}
+        disabled={!canModifyAssignment}
+        className='text-muted-foreground hover:text-destructive h-6 w-6 flex-shrink-0 p-0'
+      >
+        <X className='h-3 w-3' />
+      </Button>
+    </div>
+  );
 }
 
 export function IssueAssignments({
@@ -55,10 +209,11 @@ export function IssueAssignments({
   );
 
   // Fetch assignments for this issue
-  const assignments =
-    useQuery(api.issues.queries.getAssignments, {
-      issueId,
-    }) ?? [];
+  const assignments = useQuery(api.issues.queries.getAssignments, {
+    issueId,
+  });
+  const isAssignmentsLoading = assignments === undefined;
+  const assignmentList = assignments ?? [];
 
   // Mutations
   const addAssigneeMutation = useMutation(api.issues.mutations.addAssignee);
@@ -74,8 +229,8 @@ export function IssueAssignments({
 
   // Helper to filter members so the same user cannot be assigned twice
   const assignedUserIds = assignments
-    .map(a => a.assigneeId)
-    .filter((id): id is Id<'users'> => !!id);
+    ? assignments.map(a => a.assigneeId).filter((id): id is Id<'users'> => !!id)
+    : [];
 
   let availableMembers = members.filter(
     m => !assignedUserIds.includes(m.userId as Id<'users'>),
@@ -85,6 +240,20 @@ export function IssueAssignments({
   if (!canManage) {
     availableMembers = availableMembers.filter(m => m.userId === currentUserId);
   }
+
+  const handleUnassignAll = async () => {
+    try {
+      await Promise.all(
+        assignmentList.map(assignment =>
+          deleteAssignmentMutation({
+            assignmentId: assignment._id as Id<'issueAssignees'>,
+          }),
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to unassign all assignees:', error);
+    }
+  };
 
   const handleAddAssignee = async (assigneeId: string) => {
     try {
@@ -138,126 +307,57 @@ export function IssueAssignments({
     <div>
       <div className='flex items-center justify-between border-b px-1 py-1 pl-2'>
         <h4 className='text-sm'>Assignees</h4>
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={() => setAddDialogOpen(true)}
-          className='h-6 gap-1 text-xs'
-          disabled={availableMembers.length === 0}
-        >
-          <Plus className='h-3 w-3' />
-        </Button>
-      </div>
-
-      {/* Assignments list - matching issues table design */}
-      <div className='divide-y'>
-        {assignments.map(assignment => {
-          // Check if current user can modify this assignment
-          const isOwnAssignment = assignment.assigneeId === currentUserId;
-          const canModifyAssignment = canManage || isOwnAssignment;
-
-          return (
-            <div
-              key={assignment._id}
-              className='hover:bg-muted/50 flex items-center gap-3 p-2 transition-colors'
+        <div className='flex items-center gap-1'>
+          {assignmentList.length > 0 && (
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => void handleUnassignAll()}
+              className='h-6 gap-1 px-2 text-xs'
+              disabled={!canManage || isAssignmentsLoading}
             >
-              {/* Assignee - clickable like issues table */}
-              <div className='flex min-w-0 flex-1 items-center gap-2'>
-                <AssigneeSelector
-                  members={members.filter(
-                    m =>
-                      m.userId === assignment.assigneeId ||
-                      !assignedUserIds.includes(m.userId as Id<'users'>),
-                  )}
-                  selectedAssignee={assignment.assigneeId?.toString() || ''}
-                  onAssigneeSelect={
-                    canModifyAssignment
-                      ? userId => handleUpdateAssignee(assignment._id, userId)
-                      : undefined
-                  }
-                  displayMode='labelOnly'
-                  trigger={
-                    <div className='hover:bg-muted/30 -m-1 flex cursor-pointer items-center gap-2 rounded-md p-1 transition-colors'>
-                      {assignment.assigneeId && assignment.assignee ? (
-                        <>
-                          <UserAvatar
-                            name={assignment.assignee.name}
-                            email={assignment.assignee.email}
-                            image={assignment.assignee.image}
-                            userId={assignment.assigneeId}
-                            size='sm'
-                            className='flex-shrink-0'
-                          />
-                          <span className='truncate text-sm'>
-                            {assignment.assignee.name ||
-                              assignment.assignee.email}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <div className='bg-muted flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full'>
-                            <User className='text-muted-foreground h-3 w-3' />
-                          </div>
-                          <span className='text-muted-foreground text-sm'>
-                            Unassigned
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  }
-                />
-              </div>
-
-              {/* State badge - clickable like issues table */}
-              {isOwnAssignment ? (
-                // User can always change their own assignment status
-                <StateSelector
-                  states={states}
-                  selectedState={assignment.stateId?.toString() || ''}
-                  onStateSelect={stateId =>
-                    handleStateChange(assignment._id, stateId)
-                  }
-                  align='end'
-                  className='border-none bg-transparent p-0 shadow-none'
-                />
-              ) : (
-                // For other users' assignments, check if user has permission to manage assignments
-                <PermissionAware
-                  orgSlug={orgSlug}
-                  permission={PERMISSIONS.ISSUE_ASSIGNMENT_UPDATE}
-                  fallbackMessage="You don't have permission to change assignment status"
-                >
-                  <StateSelector
-                    states={states}
-                    selectedState={assignment.stateId?.toString() || ''}
-                    onStateSelect={
-                      canManage
-                        ? stateId => handleStateChange(assignment._id, stateId)
-                        : () => {}
-                    }
-                    align='end'
-                    className='border-none bg-transparent p-0 shadow-none'
-                  />
-                </PermissionAware>
-              )}
-
-              {/* Remove button */}
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() => handleRemoveAssignment(assignment._id)}
-                disabled={!canModifyAssignment}
-                className='text-muted-foreground hover:text-destructive h-6 w-6 flex-shrink-0 p-0'
-              >
-                <X className='h-3 w-3' />
-              </Button>
-            </div>
-          );
-        })}
+              <X className='h-3 w-3' />
+              <span>Unassign all</span>
+            </Button>
+          )}
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => setAddDialogOpen(true)}
+            className='h-6 gap-1 text-xs'
+            disabled={availableMembers.length === 0 || isAssignmentsLoading}
+          >
+            <Plus className='h-3 w-3' />
+          </Button>
+        </div>
       </div>
+
+      {isAssignmentsLoading ? (
+        <IssueAssignmentsSkeleton />
+      ) : (
+        <div className='divide-y'>
+          {assignmentList.map(assignment => {
+            return (
+              <IssueAssignmentRow
+                key={assignment._id}
+                assignment={assignment}
+                orgSlug={orgSlug}
+                states={states}
+                members={members}
+                assignedUserIds={assignedUserIds}
+                currentUserId={currentUserId}
+                canManage={canManage}
+                onStateChange={handleStateChange}
+                onUpdateAssignee={handleUpdateAssignee}
+                onRemoveAssignment={handleRemoveAssignment}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Empty state */}
-      {assignments.length === 0 && (
+      {!isAssignmentsLoading && assignmentList.length === 0 && (
         <div className='flex items-center justify-center py-8'>
           <div className='text-center'>
             <div className='mb-2 flex justify-center'>

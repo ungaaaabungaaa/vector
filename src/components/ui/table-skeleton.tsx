@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
 
 interface TableSkeletonProps {
@@ -39,6 +40,55 @@ export function TableSkeleton({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Fixed per-column card counts and title widths to look like a real board
+const KANBAN_COLUMNS = [
+  { cards: 3, responsive: '' }, // always visible
+  { cards: 1, responsive: '' }, // always visible
+  { cards: 4, responsive: 'hidden sm:block' }, // hidden on mobile
+  { cards: 2, responsive: 'hidden lg:block' }, // hidden below lg
+];
+const KANBAN_TITLE_WIDTHS = ['w-4/5', 'w-full', 'w-3/5', 'w-5/6', 'w-2/3'];
+
+export function KanbanSkeleton() {
+  return (
+    <div className='flex gap-3 overflow-x-auto p-3'>
+      {KANBAN_COLUMNS.map((column, col) => (
+        <div key={col} className={cn('w-72 flex-shrink-0', column.responsive)}>
+          {/* Column header */}
+          <div className='mb-2 flex items-center gap-2 px-1'>
+            <Skeleton className='size-3.5 rounded-full' />
+            <Skeleton className='h-4 w-20' />
+            <Skeleton className='h-3 w-4' />
+          </div>
+          {/* Cards */}
+          <div className='space-y-2'>
+            {Array.from({ length: column.cards }).map((_, card) => (
+              <div key={card} className='rounded-lg border p-3'>
+                <div className='mb-1.5 flex items-center gap-2'>
+                  <Skeleton className='size-3 rounded-full' />
+                  <Skeleton className='h-3 w-14' />
+                </div>
+                <Skeleton
+                  className={`mb-2 h-4 ${KANBAN_TITLE_WIDTHS[(col + card) % KANBAN_TITLE_WIDTHS.length]}`}
+                />
+                <div className='flex items-center justify-between'>
+                  <div className='flex -space-x-1.5'>
+                    <Skeleton className='size-5 rounded-full' />
+                    {card % 3 === 0 && (
+                      <Skeleton className='size-5 rounded-full' />
+                    )}
+                  </div>
+                  <Skeleton className='h-3 w-12' />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -71,12 +71,12 @@ export const searchEntities = query({
       color: p.color,
     }));
 
-    // Search issues by title
+    // Search issues by key, title, and description
     const issues = (
       await ctx.db
         .query('issues')
-        .withSearchIndex('search_title', s =>
-          s.search('title', q).eq('organizationId', org._id),
+        .withSearchIndex('search_text', s =>
+          s.search('searchText', q).eq('organizationId', org._id),
         )
         .take(limit)
     ).map(i => ({

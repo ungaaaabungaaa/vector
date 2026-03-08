@@ -1,105 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { ChevronsUpDown } from 'lucide-react';
+import { useAccess } from '@/components/ui/permission-aware';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { ChevronsUpDown } from 'lucide-react';
+import {
+  AVAILABLE_ICONS,
+  DynamicIcon,
+  findAvailableIcon,
+  ICON_LIBRARY_LABELS,
+  type AvailableIconDefinition,
+  type IconLibrary,
+} from '@/lib/dynamic-icons';
 import { cn } from '@/lib/utils';
-import { getDynamicIcon } from '@/lib/dynamic-icons';
-import { useAccess } from '@/components/ui/permission-aware';
 
-// Curated list of Lucide icons suitable for priorities and states
-export const AVAILABLE_ICONS = [
-  // Priority Icons
-  { name: 'ArrowUp', label: 'Arrow Up', category: 'Priority' },
-  { name: 'ArrowDown', label: 'Arrow Down', category: 'Priority' },
-  { name: 'ArrowRight', label: 'Arrow Right', category: 'Priority' },
-  { name: 'ArrowLeft', label: 'Arrow Left', category: 'Priority' },
-  { name: 'TrendingUp', label: 'Trending Up', category: 'Priority' },
-  { name: 'TrendingDown', label: 'Trending Down', category: 'Priority' },
-  { name: 'ChevronUp', label: 'Chevron Up', category: 'Priority' },
-  { name: 'ChevronDown', label: 'Chevron Down', category: 'Priority' },
-  { name: 'ChevronsUp', label: 'Double Chevron Up', category: 'Priority' },
-  { name: 'ChevronsDown', label: 'Double Chevron Down', category: 'Priority' },
-  { name: 'Minus', label: 'Minus', category: 'Priority' },
-  { name: 'Equal', label: 'Equal', category: 'Priority' },
-  { name: 'Plus', label: 'Plus', category: 'Priority' },
+export type AvailableIconName = AvailableIconDefinition['value'];
 
-  // State Icons - Basic Shapes
-  { name: 'Circle', label: 'Circle', category: 'State' },
-  { name: 'CircleDot', label: 'Circle Dot', category: 'State' },
-  { name: 'CircleCheck', label: 'Circle Check', category: 'State' },
-  { name: 'CircleX', label: 'Circle X', category: 'State' },
-  { name: 'CirclePause', label: 'Circle Pause', category: 'State' },
-  { name: 'CirclePlay', label: 'Circle Play', category: 'State' },
-  { name: 'CircleStop', label: 'Circle Stop', category: 'State' },
-  { name: 'CheckCircle', label: 'Check Circle', category: 'State' },
-  { name: 'XCircle', label: 'X Circle', category: 'State' },
-
-  // State Icons - Progress
-  { name: 'Play', label: 'Play', category: 'State' },
-  { name: 'Pause', label: 'Pause', category: 'State' },
-  { name: 'SkipForward', label: 'Skip Forward', category: 'State' },
-  { name: 'SkipBack', label: 'Skip Back', category: 'State' },
-  { name: 'FastForward', label: 'Fast Forward', category: 'State' },
-  { name: 'Rewind', label: 'Rewind', category: 'State' },
-
-  // State Icons - Status
-  { name: 'Check', label: 'Check', category: 'State' },
-  { name: 'X', label: 'X', category: 'State' },
-  { name: 'Loader', label: 'Loader', category: 'State' },
-  { name: 'Clock', label: 'Clock', category: 'State' },
-  { name: 'Timer', label: 'Timer', category: 'State' },
-  { name: 'Hourglass', label: 'Hourglass', category: 'State' },
-  { name: 'Ban', label: 'Ban', category: 'State' },
-  { name: 'AlertCircle', label: 'Alert Circle', category: 'State' },
-  { name: 'AlertTriangle', label: 'Alert Triangle', category: 'State' },
-  { name: 'Info', label: 'Info', category: 'State' },
-
-  // State Icons - Geometric
-  { name: 'Square', label: 'Square', category: 'State' },
-  { name: 'Triangle', label: 'Triangle', category: 'State' },
-  { name: 'Diamond', label: 'Diamond', category: 'State' },
-  { name: 'Hexagon', label: 'Hexagon', category: 'State' },
-  { name: 'Octagon', label: 'Octagon', category: 'State' },
-
-  // Workflow Icons
-  { name: 'GitBranch', label: 'Git Branch', category: 'Workflow' },
-  { name: 'GitCommit', label: 'Git Commit', category: 'Workflow' },
-  { name: 'GitMerge', label: 'Git Merge', category: 'Workflow' },
-  {
-    name: 'RotateCcw',
-    label: 'Rotate Counter-clockwise',
-    category: 'Workflow',
-  },
-  { name: 'RotateCw', label: 'Rotate Clockwise', category: 'Workflow' },
-  { name: 'Repeat', label: 'Repeat', category: 'Workflow' },
-  { name: 'RefreshCw', label: 'Refresh', category: 'Workflow' },
-
-  // Misc Icons
-  { name: 'Star', label: 'Star', category: 'Misc' },
-  { name: 'Heart', label: 'Heart', category: 'Misc' },
-  { name: 'Bookmark', label: 'Bookmark', category: 'Misc' },
-  { name: 'Flag', label: 'Flag', category: 'Misc' },
-  { name: 'Target', label: 'Target', category: 'Misc' },
-  { name: 'Zap', label: 'Zap', category: 'Misc' },
-  { name: 'Flame', label: 'Flame', category: 'Misc' },
-  { name: 'Settings', label: 'Settings', category: 'Misc' },
-] as const;
-
-export type AvailableIconName = (typeof AVAILABLE_ICONS)[number]['name'];
+const LIBRARY_FILTERS: Array<'all' | IconLibrary> = [
+  'all',
+  'lucide',
+  'phosphor',
+  'tabler',
+  'remix',
+  'font-awesome',
+];
 
 interface IconPickerProps {
   value?: string | null;
   onValueChange: (iconName: string | null) => void;
   placeholder?: string;
   className?: string;
-  /** Optional custom trigger element (e.g. an icon button). */
   trigger?: React.ReactElement;
 }
 
@@ -112,30 +48,50 @@ export function IconPicker({
 }: IconPickerProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeLibrary, setActiveLibrary] = useState<'all' | IconLibrary>(
+    'all',
+  );
   const { viewOnly } = useAccess();
 
-  const selectedIcon = AVAILABLE_ICONS.find(icon => icon.name === value);
-  const SelectedIconComponent = selectedIcon
-    ? getDynamicIcon(selectedIcon.name)
-    : null;
+  const selectedIcon = findAvailableIcon(value);
+  const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const filteredIcons = AVAILABLE_ICONS.filter(
-    icon =>
-      icon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      icon.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      icon.category.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredIcons = useMemo(
+    () =>
+      AVAILABLE_ICONS.filter(icon => {
+        const matchesLibrary =
+          activeLibrary === 'all' || icon.library === activeLibrary;
+        if (!matchesLibrary) return false;
+        if (!normalizedQuery) return true;
+
+        return [
+          icon.label,
+          icon.name,
+          icon.category,
+          icon.libraryLabel,
+          ...icon.keywords,
+        ].some(field => field.toLowerCase().includes(normalizedQuery));
+      }),
+    [activeLibrary, normalizedQuery],
   );
 
-  const groupedIcons = filteredIcons.reduce(
-    (acc, icon) => {
-      if (!acc[icon.category]) {
-        acc[icon.category] = [];
-      }
-      acc[icon.category].push(icon);
-      return acc;
-    },
-    {} as Record<string, Array<(typeof AVAILABLE_ICONS)[number]>>,
-  );
+  const groupedIcons = useMemo(() => {
+    return filteredIcons.reduce(
+      (acc, icon) => {
+        const sectionKey =
+          activeLibrary === 'all'
+            ? `${icon.libraryLabel} icons`
+            : icon.category;
+
+        if (!acc[sectionKey]) {
+          acc[sectionKey] = [];
+        }
+        acc[sectionKey].push(icon);
+        return acc;
+      },
+      {} as Record<string, AvailableIconDefinition[]>,
+    );
+  }, [activeLibrary, filteredIcons]);
 
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
@@ -145,117 +101,128 @@ export function IconPicker({
             variant='outline'
             role='combobox'
             aria-expanded={open}
-            className={cn('h-9 w-full justify-between', className)}
+            className={cn('h-9 w-full justify-between gap-2', className)}
           >
-            <div className='flex items-center gap-2'>
-              {SelectedIconComponent && (
-                <SelectedIconComponent className='size-4' />
-              )}
+            <div className='flex min-w-0 items-center gap-2'>
+              {value ? <DynamicIcon name={value} className='size-4' /> : null}
               <span className='truncate'>
-                {selectedIcon ? selectedIcon.label : placeholder}
+                {selectedIcon ? selectedIcon.label : value || placeholder}
               </span>
             </div>
-            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+            <ChevronsUpDown className='size-4 shrink-0 opacity-50' />
           </Button>
         )}
       </PopoverTrigger>
       <PopoverContent
         side='bottom'
         align='start'
-        className='max-h-[400px] w-96 overflow-y-auto p-0'
+        className='w-96 p-0 sm:w-[28rem]'
       >
-        {/* Search bar - sticky so it remains visible while scrolling */}
         <div className='bg-background sticky top-0 z-10 border-b p-3'>
           <Input
-            placeholder='Search icons...'
+            placeholder='Search icons, categories, or libraries...'
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className='h-8'
           />
-        </div>
+          <div className='mt-2 flex flex-wrap gap-1'>
+            {LIBRARY_FILTERS.map(library => {
+              const isActive = activeLibrary === library;
+              const label =
+                library === 'all' ? 'All' : ICON_LIBRARY_LABELS[library];
 
-        {/* Clear Selection Option */}
-        <div className='border-b p-3'>
-          <div className='text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase'>
-            Clear Selection
-            {viewOnly && (
-              <span className='text-muted-foreground ml-2 text-xs'>
-                (view only)
-              </span>
-            )}
+              return (
+                <button
+                  key={library}
+                  type='button'
+                  onClick={() => setActiveLibrary(library)}
+                  className={cn(
+                    'text-muted-foreground hover:bg-muted/60 h-7 rounded-md border px-2 text-xs transition-colors',
+                    isActive && 'border-primary bg-primary/10 text-foreground',
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
-          <button
-            type='button'
-            onClick={() => {
-              if (!viewOnly) {
-                onValueChange(null);
-                setOpen(false);
-              }
-            }}
-            disabled={viewOnly}
-            className={cn(
-              'hover:bg-muted/50 flex w-full items-center justify-start rounded-md border border-dashed p-2 text-left transition-all',
-              value === null
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border',
-              viewOnly && 'cursor-not-allowed opacity-50',
-            )}
-          >
-            <span className='text-sm'>No icon</span>
-          </button>
         </div>
 
-        {/* Icon Categories */}
-        {Object.entries(groupedIcons).map(([category, icons]) => (
-          <div key={category} className='border-b p-3 last:border-b-0'>
-            <div className='text-muted-foreground mb-3 text-xs font-medium tracking-wider uppercase'>
-              {category}
-              {viewOnly && (
-                <span className='text-muted-foreground ml-2 text-xs'>
-                  (view only)
-                </span>
+        <div className='max-h-[420px] overflow-y-auto'>
+          <div className='border-b p-3'>
+            <div className='text-muted-foreground mb-2 flex items-center justify-between text-[11px] font-medium tracking-[0.12em] uppercase'>
+              <span>Clear Selection</span>
+              {viewOnly ? <span>(view only)</span> : null}
+            </div>
+            <button
+              type='button'
+              onClick={() => {
+                if (!viewOnly) {
+                  onValueChange(null);
+                  setOpen(false);
+                }
+              }}
+              disabled={viewOnly}
+              className={cn(
+                'hover:bg-muted/50 flex h-8 w-full items-center justify-start rounded-md border border-dashed px-2 text-left text-sm transition-colors',
+                value === null
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border',
+                viewOnly && 'cursor-not-allowed opacity-50',
               )}
-            </div>
-            <div className='grid grid-cols-8 gap-1'>
-              {icons.map(icon => {
-                const IconComponent = getDynamicIcon(icon.name);
-                const isSelected = value === icon.name;
-
-                return (
-                  <button
-                    key={icon.name}
-                    type='button'
-                    onClick={() => {
-                      if (!viewOnly) {
-                        onValueChange(icon.name);
-                        setOpen(false);
-                      }
-                    }}
-                    disabled={viewOnly}
-                    className={cn(
-                      'hover:bg-muted/50 flex size-8 items-center justify-center rounded-md border transition-all',
-                      isSelected
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border',
-                      viewOnly && 'cursor-not-allowed opacity-50',
-                    )}
-                    title={`${icon.label}${viewOnly ? ' (view only)' : ''}`}
-                  >
-                    {IconComponent && <IconComponent className='size-4' />}
-                  </button>
-                );
-              })}
-            </div>
+            >
+              No icon
+            </button>
           </div>
-        ))}
 
-        {/* Scrollable icon list */}
-        <div className='pb-3'>
-          {filteredIcons.length === 0 && (
+          {Object.entries(groupedIcons).map(([section, icons]) => (
+            <div key={section} className='border-b p-3 last:border-b-0'>
+              <div className='text-muted-foreground mb-3 flex items-center justify-between text-[11px] font-medium tracking-[0.12em] uppercase'>
+                <span>{section}</span>
+                {activeLibrary === 'all' ? (
+                  <span>{icons.length}</span>
+                ) : viewOnly ? (
+                  <span>(view only)</span>
+                ) : null}
+              </div>
+              <div className='grid grid-cols-8 gap-1'>
+                {icons.map(icon => {
+                  const isSelected = value === icon.value;
+
+                  return (
+                    <button
+                      key={icon.value}
+                      type='button'
+                      onClick={() => {
+                        if (!viewOnly) {
+                          onValueChange(icon.value);
+                          setOpen(false);
+                        }
+                      }}
+                      disabled={viewOnly}
+                      aria-label={`${icon.label} from ${icon.libraryLabel}`}
+                      className={cn(
+                        'hover:bg-muted/50 flex size-8 items-center justify-center rounded-md border transition-colors',
+                        isSelected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border',
+                        viewOnly && 'cursor-not-allowed opacity-50',
+                      )}
+                      title={`${icon.label} · ${icon.libraryLabel}${viewOnly ? ' (view only)' : ''}`}
+                    >
+                      <DynamicIcon name={icon.value} className='size-4' />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {filteredIcons.length === 0 ? (
             <div className='text-muted-foreground p-8 text-center text-sm'>
               No icons found matching &quot;{searchQuery}&quot;
             </div>
-          )}
+          ) : null}
         </div>
       </PopoverContent>
     </Popover>

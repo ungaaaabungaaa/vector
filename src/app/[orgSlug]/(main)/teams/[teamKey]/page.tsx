@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useDeferredValue } from 'react';
 import { useQuery, useMutation } from '@/lib/convex';
 import { api } from '@/convex/_generated/api';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,12 @@ import {
   Target,
   FolderOpen,
   FileText,
+  Columns3,
+  LayoutList,
+  Search,
+  Loader2,
+  Clock,
+  UsersRound,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { IconPicker } from '@/components/ui/icon-picker';
@@ -27,8 +33,10 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { IssuesTable } from '@/components/issues/issues-table';
+import { IssuesKanban } from '@/components/issues/issues-kanban';
 import { ProjectsTable } from '@/components/projects/projects-table';
 import { TeamActivityFeed } from '@/components/activity/team-activity-feed';
+import { KanbanSkeleton } from '@/components/ui/table-skeleton';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -49,6 +57,12 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import {
   Popover,
   PopoverContent,
@@ -323,6 +337,13 @@ export default function TeamViewPage() {
   const [colorValue, setColorValue] = useState<string | null>(null);
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('members');
+  const [issueViewMode, setIssueViewMode] = useState<'table' | 'kanban'>(
+    'kanban',
+  );
+  const [issueSearchText, setIssueSearchText] = useState('');
+  const deferredIssueSearch = useDeferredValue(issueSearchText);
+  const [memberSearchText, setMemberSearchText] = useState('');
+  const deferredMemberSearch = useDeferredValue(memberSearchText);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingIssues, setIsUpdatingIssues] = useState(false);
   const [isUpdatingProjects, setIsUpdatingProjects] = useState(false);
@@ -352,11 +373,26 @@ export default function TeamViewPage() {
     team?._id ? { teamId: team._id } : 'skip',
   );
   const teamMembers = teamMembersQuery.data ?? [];
+  const filteredMembers = useMemo(() => {
+    const q = deferredMemberSearch.trim().toLowerCase();
+    if (!q) return teamMembers;
+    return teamMembers.filter(m => {
+      const name = m.user?.name?.toLowerCase() ?? '';
+      const email = m.user?.email?.toLowerCase() ?? '';
+      return name.includes(q) || email.includes(q);
+    });
+  }, [teamMembers, deferredMemberSearch]);
 
   // Fetch team issues
   const teamIssuesQuery = useQuery(
     api.issues.queries.listIssues,
-    team?.key ? { orgSlug, teamId: team.key } : 'skip',
+    team?._id
+      ? {
+          orgSlug,
+          teamId: team._id,
+          searchQuery: deferredIssueSearch || undefined,
+        }
+      : 'skip',
   );
   const teamIssuesData = teamIssuesQuery.data;
 
@@ -887,502 +923,658 @@ export default function TeamViewPage() {
           </div>
 
           {/* Main Content */}
-          <div className='mx-auto max-w-5xl px-3 py-3 sm:px-4 sm:py-4'>
+          <div className='py-3 sm:py-4'>
             {/* Team Header */}
-            <div className='mb-2 max-w-4xl space-y-2'>
-              <div className='text-muted-foreground flex items-center gap-2 text-xs'>
-                <span className='font-mono'>{team?.key}</span>
-                <span>•</span>
-                <span>
-                  Created {formatDateHuman(new Date(team?._creationTime || 0))}
-                </span>
-              </div>
-
-              {/* Name */}
-              {editingName ? (
-                <div className='flex items-center gap-2'>
-                  {/* Icon that stays visible during editing */}
-                  {canEdit ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className='flex items-center gap-0 transition-opacity hover:opacity-80'>
-                          {iconValue ? (
-                            (() => {
-                              const IconComp = getDynamicIcon(iconValue);
-                              if (!IconComp)
+            <div className='px-3 sm:px-4'>
+              <div className='mb-2 max-w-4xl space-y-2'>
+                {/* Name */}
+                {editingName ? (
+                  <div className='flex items-center gap-2'>
+                    {/* Icon that stays visible during editing */}
+                    {canEdit ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className='flex items-center gap-0 transition-opacity hover:opacity-80'>
+                            {iconValue ? (
+                              (() => {
+                                const IconComp = getDynamicIcon(iconValue);
+                                if (!IconComp)
+                                  return (
+                                    <Users className='text-muted-foreground size-6' />
+                                  );
                                 return (
-                                  <Users className='text-muted-foreground size-6' />
+                                  <IconComp
+                                    className='size-6'
+                                    style={{ color: colorValue || undefined }}
+                                  />
                                 );
-                              return (
-                                <IconComp
-                                  className='size-6'
-                                  style={{ color: colorValue || undefined }}
-                                />
-                              );
-                            })()
-                          ) : (
-                            <div className='border-muted-foreground/50 flex size-6 items-center justify-center rounded border-2 border-dashed'>
-                              <Plus className='text-muted-foreground size-3' />
+                              })()
+                            ) : (
+                              <div className='border-muted-foreground/50 flex size-6 items-center justify-center rounded border-2 border-dashed'>
+                                <Plus className='text-muted-foreground size-3' />
+                              </div>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-80' align='start'>
+                          <div className='space-y-4'>
+                            <div>
+                              <h4 className='mb-2 text-sm font-medium'>
+                                Team Icon
+                              </h4>
+                              <IconPicker
+                                value={iconValue}
+                                onValueChange={handleIconChange}
+                                placeholder='Select team icon'
+                                className='h-8 w-full'
+                              />
                             </div>
-                          )}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className='w-80' align='start'>
-                        <div className='space-y-4'>
-                          <div>
-                            <h4 className='mb-2 text-sm font-medium'>
-                              Team Icon
-                            </h4>
-                            <IconPicker
-                              value={iconValue}
-                              onValueChange={handleIconChange}
-                              placeholder='Select team icon'
-                              className='h-8 w-full'
-                            />
-                          </div>
-                          <div>
-                            <h4 className='mb-2 text-sm font-medium'>
-                              Team Color
-                            </h4>
-                            <div className='flex flex-wrap gap-2'>
-                              {DEFAULT_COLORS.map(colorOption => (
-                                <button
-                                  key={colorOption}
-                                  type='button'
-                                  className={`size-8 rounded-md border-2 transition-all ${
-                                    colorValue === colorOption
-                                      ? 'border-foreground scale-110'
-                                      : 'border-border hover:scale-105'
-                                  }`}
-                                  style={{ backgroundColor: colorOption }}
-                                  onClick={() => handleColorChange(colorOption)}
-                                />
-                              ))}
+                            <div>
+                              <h4 className='mb-2 text-sm font-medium'>
+                                Team Color
+                              </h4>
+                              <div className='flex flex-wrap gap-2'>
+                                {DEFAULT_COLORS.map(colorOption => (
+                                  <button
+                                    key={colorOption}
+                                    type='button'
+                                    className={`size-8 rounded-md border-2 transition-all ${
+                                      colorValue === colorOption
+                                        ? 'border-foreground scale-110'
+                                        : 'border-border hover:scale-105'
+                                    }`}
+                                    style={{ backgroundColor: colorOption }}
+                                    onClick={() =>
+                                      handleColorChange(colorOption)
+                                    }
+                                  />
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    iconValue &&
-                    (() => {
-                      const IconComp = getDynamicIcon(iconValue);
-                      if (!IconComp) return null;
-                      return (
-                        <IconComp
-                          className='size-6'
-                          style={{ color: colorValue || undefined }}
-                        />
-                      );
-                    })()
-                  )}
-                  <Input
-                    value={nameValue}
-                    onChange={e => setNameValue(e.target.value)}
-                    className='h-auto border-none p-0 !text-3xl !leading-tight font-semibold shadow-none focus-visible:ring-0'
-                    style={{ fontFamily: 'var(--font-title)' }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') void handleNameSave();
-                      if (e.key === 'Escape') {
-                        setNameValue(displayName);
-                        setEditingName(false);
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <div className='flex items-center gap-1'>
-                    <Button
-                      size='sm'
-                      onClick={handleNameSave}
-                      disabled={isUpdating}
-                    >
-                      <Save className='size-4' />
-                    </Button>
-                    <Button
-                      size='sm'
-                      variant='ghost'
-                      onClick={() => {
-                        setNameValue(displayName);
-                        setEditingName(false);
-                      }}
-                    >
-                      <X className='size-4' />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <h1 className='flex items-center gap-2 text-3xl leading-tight font-semibold'>
-                  {/* Clickable Icon with Color */}
-                  {canEdit ? (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className='flex items-center gap-0 transition-opacity hover:opacity-80'>
-                          {iconValue ? (
-                            (() => {
-                              const IconComp = getDynamicIcon(iconValue);
-                              if (!IconComp)
-                                return (
-                                  <Users className='text-muted-foreground size-6' />
-                                );
-                              return (
-                                <IconComp
-                                  className='size-6'
-                                  style={{ color: colorValue || undefined }}
-                                />
-                              );
-                            })()
-                          ) : (
-                            <div className='border-muted-foreground/50 flex size-6 items-center justify-center rounded border-2 border-dashed'>
-                              <Plus className='text-muted-foreground size-3' />
-                            </div>
-                          )}
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className='w-80' align='start'>
-                        <div className='space-y-4'>
-                          <div>
-                            <h4 className='mb-2 text-sm font-medium'>
-                              Team Icon
-                            </h4>
-                            <IconPicker
-                              value={iconValue}
-                              onValueChange={handleIconChange}
-                              placeholder='Select team icon'
-                              className='h-8 w-full'
-                            />
-                          </div>
-                          <div>
-                            <h4 className='mb-2 text-sm font-medium'>
-                              Team Color
-                            </h4>
-                            <div className='flex flex-wrap gap-2'>
-                              {DEFAULT_COLORS.map(colorOption => (
-                                <button
-                                  key={colorOption}
-                                  type='button'
-                                  className={`size-8 rounded-md border-2 transition-all ${
-                                    colorValue === colorOption
-                                      ? 'border-foreground scale-110'
-                                      : 'border-border hover:scale-105'
-                                  }`}
-                                  style={{ backgroundColor: colorOption }}
-                                  onClick={() => handleColorChange(colorOption)}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    iconValue &&
-                    (() => {
-                      const IconComp = getDynamicIcon(iconValue);
-                      if (!IconComp) return null;
-                      return (
-                        <IconComp
-                          className='size-6'
-                          style={{ color: colorValue || undefined }}
-                        />
-                      );
-                    })()
-                  )}
-                  <span
-                    className={cn(
-                      'transition-colors',
-                      canEdit && 'hover:text-muted-foreground cursor-pointer',
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      iconValue &&
+                      (() => {
+                        const IconComp = getDynamicIcon(iconValue);
+                        if (!IconComp) return null;
+                        return (
+                          <IconComp
+                            className='size-6'
+                            style={{ color: colorValue || undefined }}
+                          />
+                        );
+                      })()
                     )}
-                    onClick={() => {
-                      if (!canEdit) return;
-                      setNameValue(displayName);
-                      setEditingName(true);
-                    }}
-                  >
-                    {displayName}
-                  </span>
-                </h1>
-              )}
-            </div>
-
-            {/* Description */}
-            <div className='mb-2'>
-              {editingDescription ? (
-                <div className='space-y-4'>
-                  <RichEditor
-                    value={descriptionValue}
-                    onChange={setDescriptionValue}
-                    placeholder='Add a description...'
-                    mode='compact'
-                  />
-                  <div className='flex items-center gap-3'>
-                    <Button
-                      onClick={handleDescriptionSave}
-                      disabled={isUpdating}
-                    >
-                      <Save className='mr-2 size-4' />
-                      Save
-                    </Button>
-                    <Button
-                      variant='outline'
-                      onClick={() => {
-                        setDescriptionValue(displayDescription);
-                        setEditingDescription(false);
+                    <Input
+                      value={nameValue}
+                      onChange={e => setNameValue(e.target.value)}
+                      className='h-auto border-none p-0 !text-3xl !leading-tight font-semibold shadow-none focus-visible:ring-0'
+                      style={{ fontFamily: 'var(--font-title)' }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') void handleNameSave();
+                        if (e.key === 'Escape') {
+                          setNameValue(displayName);
+                          setEditingName(false);
+                        }
                       }}
-                    >
-                      Cancel
-                    </Button>
+                      autoFocus
+                    />
+                    <div className='flex items-center gap-1'>
+                      <Button
+                        size='sm'
+                        onClick={handleNameSave}
+                        disabled={isUpdating}
+                      >
+                        <Save className='size-4' />
+                      </Button>
+                      <Button
+                        size='sm'
+                        variant='ghost'
+                        onClick={() => {
+                          setNameValue(displayName);
+                          setEditingName(false);
+                        }}
+                      >
+                        <X className='size-4' />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div>
-                  {displayDescription ? (
-                    <div
+                ) : (
+                  <h1 className='flex items-center gap-2 text-3xl leading-tight font-semibold'>
+                    {/* Clickable Icon with Color */}
+                    {canEdit ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className='flex items-center gap-0 transition-opacity hover:opacity-80'>
+                            {iconValue ? (
+                              (() => {
+                                const IconComp = getDynamicIcon(iconValue);
+                                if (!IconComp)
+                                  return (
+                                    <Users className='text-muted-foreground size-6' />
+                                  );
+                                return (
+                                  <IconComp
+                                    className='size-6'
+                                    style={{ color: colorValue || undefined }}
+                                  />
+                                );
+                              })()
+                            ) : (
+                              <div className='border-muted-foreground/50 flex size-6 items-center justify-center rounded border-2 border-dashed'>
+                                <Plus className='text-muted-foreground size-3' />
+                              </div>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-80' align='start'>
+                          <div className='space-y-4'>
+                            <div>
+                              <h4 className='mb-2 text-sm font-medium'>
+                                Team Icon
+                              </h4>
+                              <IconPicker
+                                value={iconValue}
+                                onValueChange={handleIconChange}
+                                placeholder='Select team icon'
+                                className='h-8 w-full'
+                              />
+                            </div>
+                            <div>
+                              <h4 className='mb-2 text-sm font-medium'>
+                                Team Color
+                              </h4>
+                              <div className='flex flex-wrap gap-2'>
+                                {DEFAULT_COLORS.map(colorOption => (
+                                  <button
+                                    key={colorOption}
+                                    type='button'
+                                    className={`size-8 rounded-md border-2 transition-all ${
+                                      colorValue === colorOption
+                                        ? 'border-foreground scale-110'
+                                        : 'border-border hover:scale-105'
+                                    }`}
+                                    style={{ backgroundColor: colorOption }}
+                                    onClick={() =>
+                                      handleColorChange(colorOption)
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      iconValue &&
+                      (() => {
+                        const IconComp = getDynamicIcon(iconValue);
+                        if (!IconComp) return null;
+                        return (
+                          <IconComp
+                            className='size-6'
+                            style={{ color: colorValue || undefined }}
+                          />
+                        );
+                      })()
+                    )}
+                    <span
                       className={cn(
-                        'prose prose-sm text-muted-foreground max-w-none transition-colors',
-                        canEdit && 'hover:text-foreground cursor-pointer',
+                        'transition-colors',
+                        canEdit && 'hover:text-muted-foreground cursor-pointer',
                       )}
                       onClick={() => {
                         if (!canEdit) return;
-                        setDescriptionValue(displayDescription);
-                        setEditingDescription(true);
+                        setNameValue(displayName);
+                        setEditingName(true);
                       }}
                     >
-                      <RichEditor
-                        value={displayDescription}
-                        onChange={() => {}}
-                        mode='compact'
-                        disabled={true}
-                      />
+                      {displayName}
+                    </span>
+                  </h1>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className='mb-2'>
+                {editingDescription ? (
+                  <div className='space-y-4'>
+                    <RichEditor
+                      value={descriptionValue}
+                      onChange={setDescriptionValue}
+                      placeholder='Add a description...'
+                      mode='compact'
+                    />
+                    <div className='flex items-center gap-3'>
+                      <Button
+                        onClick={handleDescriptionSave}
+                        disabled={isUpdating}
+                      >
+                        <Save className='mr-2 size-4' />
+                        Save
+                      </Button>
+                      <Button
+                        variant='outline'
+                        onClick={() => {
+                          setDescriptionValue(displayDescription);
+                          setEditingDescription(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  ) : canEdit ? (
-                    <button
-                      className='text-muted-foreground hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40 w-full rounded-lg border-2 border-dashed bg-transparent p-4 text-left text-base'
-                      onClick={() => {
-                        setDescriptionValue(displayDescription);
-                        setEditingDescription(true);
-                      }}
-                    >
-                      Add a description...
-                    </button>
-                  ) : (
-                    <p className='text-muted-foreground text-sm'>
-                      No description provided.
-                    </p>
-                  )}
+                  </div>
+                ) : (
+                  <div>
+                    {displayDescription ? (
+                      <div
+                        className={cn(
+                          'prose prose-sm text-muted-foreground max-w-none transition-colors',
+                          canEdit && 'hover:text-foreground cursor-pointer',
+                        )}
+                        onClick={() => {
+                          if (!canEdit) return;
+                          setDescriptionValue(displayDescription);
+                          setEditingDescription(true);
+                        }}
+                      >
+                        <RichEditor
+                          value={displayDescription}
+                          onChange={() => {}}
+                          mode='compact'
+                          disabled={true}
+                        />
+                      </div>
+                    ) : canEdit ? (
+                      <button
+                        className='text-muted-foreground hover:text-foreground border-muted-foreground/20 hover:border-muted-foreground/40 w-full rounded-lg border-2 border-dashed bg-transparent p-4 text-left text-base'
+                        onClick={() => {
+                          setDescriptionValue(displayDescription);
+                          setEditingDescription(true);
+                        }}
+                      >
+                        Add a description...
+                      </button>
+                    ) : (
+                      <p className='text-muted-foreground text-sm'>
+                        No description provided.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Properties */}
+              <TooltipProvider>
+                <div className='mt-4 mb-2 flex max-w-4xl flex-wrap items-center gap-2'>
+                  {/* Identifier */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='text-muted-foreground hover:bg-muted/50 flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-sm transition-colors'>
+                        {team?.key}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Identifier</TooltipContent>
+                  </Tooltip>
+
+                  {/* Members */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='text-muted-foreground hover:bg-muted/50 flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors'>
+                        <UsersRound className='size-3.5' />
+                        <span>{teamMembers.length}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Members</TooltipContent>
+                  </Tooltip>
+
+                  {/* Created */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='text-muted-foreground hover:bg-muted/50 flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-sm transition-colors'>
+                        <Clock className='size-3.5' />
+                        <span>
+                          {formatDateHuman(new Date(team?._creationTime || 0))}
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>Created</TooltipContent>
+                  </Tooltip>
                 </div>
-              )}
+              </TooltipProvider>
             </div>
+            {/* end max-w-5xl */}
 
             {/* Team Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className='flex w-full'>
-                <TabsTrigger asChild value='members'>
-                  <div className='flex items-center gap-1'>
-                    <span className='truncate'>Members</span>
+              <div className='flex items-center justify-between px-3 sm:px-4'>
+                <TabsList>
+                  <TabsTrigger value='members'>
+                    Members
                     <span className='text-muted-foreground text-xs'>
                       {teamMembers.length}
                     </span>
-                    {canEdit && (
-                      <Button
-                        onClick={() => setShowAddMemberDialog(true)}
-                        className='hidden h-5 gap-1 px-0 text-xs sm:flex'
-                        variant='outline'
-                      >
-                        <Plus className='size-3' />
-                      </Button>
-                    )}
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger asChild value='issues'>
-                  <div className='flex items-center gap-1'>
-                    <span className='truncate'>Issues</span>
+                  </TabsTrigger>
+                  <TabsTrigger value='issues'>
+                    Issues
                     <span className='text-muted-foreground text-xs'>
                       {teamIssuesData?.total || 0}
                     </span>
-                    {canEdit && (
-                      <div className='hidden sm:block'>
-                        <CreateIssueDialog
-                          orgSlug={orgSlug}
-                          defaultStates={{ teamId: team?._id }}
-                          className='h-5 gap-1 px-0 text-xs'
-                        />
-                      </div>
-                    )}
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger asChild value='projects'>
-                  <div className='flex items-center gap-1'>
-                    <span className='truncate'>Projects</span>
+                  </TabsTrigger>
+                  <TabsTrigger value='projects'>
+                    Projects
                     <span className='text-muted-foreground text-xs'>
                       {teamProjects.length}
                     </span>
+                  </TabsTrigger>
+                  <TabsTrigger value='documents'>Documents</TabsTrigger>
+                  <TabsTrigger value='activity'>Activity</TabsTrigger>
+                </TabsList>
+
+                {/* Tab-specific controls */}
+                {activeTab === 'members' && (
+                  <div className='flex items-center gap-2'>
+                    <div className='relative'>
+                      {deferredMemberSearch !== memberSearchText ? (
+                        <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                      ) : (
+                        <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                      )}
+                      <Input
+                        placeholder='Search members...'
+                        value={memberSearchText}
+                        onChange={e => setMemberSearchText(e.target.value)}
+                        className='h-6 w-40 pl-7 text-xs'
+                      />
+                    </div>
                     {canEdit && (
-                      <div className='hidden sm:block'>
-                        <CreateProjectDialog
-                          orgSlug={orgSlug}
-                          defaultStates={{ teamId: team?._id }}
-                          className='h-5 gap-1 px-0 text-xs'
-                        />
-                      </div>
+                      <Button
+                        onClick={() => setShowAddMemberDialog(true)}
+                        className='h-6 gap-1 text-xs'
+                        variant='outline'
+                        size='sm'
+                      >
+                        <Plus className='size-3' />
+                        Add
+                      </Button>
                     )}
                   </div>
-                </TabsTrigger>
-                <TabsTrigger asChild value='documents'>
-                  <div className='flex items-center gap-1'>
-                    <span className='truncate'>Documents</span>
+                )}
+                {activeTab === 'projects' && canEdit && (
+                  <CreateProjectDialog
+                    orgSlug={orgSlug}
+                    defaultStates={{ teamId: team?._id }}
+                    className='h-6 text-xs'
+                  />
+                )}
+                {activeTab === 'issues' && (
+                  <div className='flex items-center gap-2'>
+                    <div className='relative'>
+                      {deferredIssueSearch !== issueSearchText ? (
+                        <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                      ) : (
+                        <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                      )}
+                      <Input
+                        placeholder='Search issues...'
+                        value={issueSearchText}
+                        onChange={e => setIssueSearchText(e.target.value)}
+                        className='h-6 w-40 pl-7 text-xs'
+                      />
+                    </div>
+                    <div className='border-border flex items-center rounded-md border'>
+                      <Button
+                        variant={
+                          issueViewMode === 'kanban' ? 'secondary' : 'ghost'
+                        }
+                        size='sm'
+                        className='h-6 rounded-r-none px-2'
+                        onClick={() => setIssueViewMode('kanban')}
+                      >
+                        <Columns3 className='size-3.5' />
+                      </Button>
+                      <Button
+                        variant={
+                          issueViewMode === 'table' ? 'secondary' : 'ghost'
+                        }
+                        size='sm'
+                        className='h-6 rounded-l-none px-2'
+                        onClick={() => setIssueViewMode('table')}
+                      >
+                        <LayoutList className='size-3.5' />
+                      </Button>
+                    </div>
+                    {canEdit && (
+                      <CreateIssueDialog
+                        orgSlug={orgSlug}
+                        defaultStates={{ teamId: team?._id }}
+                        className='h-6 text-xs'
+                      />
+                    )}
                   </div>
-                </TabsTrigger>
-                <TabsTrigger asChild value='activity'>
-                  <div className='flex items-center gap-1'>
-                    <span className='truncate'>Activity</span>
-                  </div>
-                </TabsTrigger>
-              </TabsList>
+                )}
+              </div>
 
               {/* Members Tab */}
               <TabsContent value='members'>
-                <div className='rounded-lg border'>
-                  <MembersList
-                    members={teamMembers}
-                    onRemoveMember={canEdit ? handleRemoveMember : undefined}
-                    removePending={isUpdating}
-                    canEdit={canEdit}
-                  />
+                <div className='px-3 sm:px-4'>
+                  <div className='rounded-lg border'>
+                    <MembersList
+                      members={filteredMembers}
+                      onRemoveMember={canEdit ? handleRemoveMember : undefined}
+                      removePending={isUpdating}
+                      canEdit={canEdit}
+                    />
+                  </div>
                 </div>
               </TabsContent>
 
               {/* Issues Tab */}
               <TabsContent value='issues'>
-                <div className='rounded-lg border'>
-                  {teamIssuesData?.issues &&
-                  teamIssuesData.issues.length > 0 ? (
-                    <IssuesTable
-                      orgSlug={orgSlug}
-                      issues={teamIssuesData.issues}
-                      states={states}
-                      priorities={priorities}
-                      teams={teams}
-                      projects={projects}
-                      onPriorityChange={handlePriorityChange}
-                      onAssigneesChange={handleAssigneesChange}
-                      onTeamChange={handleIssueTeamChange}
-                      onProjectChange={handleIssueProjectChange}
-                      onDelete={handleIssueDelete}
-                      deletePending={isUpdatingIssues}
-                      isUpdatingAssignees={isUpdatingIssues}
-                      onAssignmentStateChange={handleAssignmentStateChange}
-                      isUpdatingAssignmentStates={isUpdatingIssues}
-                      currentUserId={user?._id || ''}
-                      canChangeAll={user?.role === 'admin'}
-                      activeFilter='all'
-                    />
+                {teamIssuesData === undefined ? (
+                  issueViewMode === 'kanban' ? (
+                    <KanbanSkeleton />
                   ) : (
-                    <div className='flex items-center justify-center py-12'>
-                      <div className='text-center'>
-                        <div className='mb-4 flex justify-center'>
-                          <Target className='text-muted-foreground/50 h-16 w-16' />
+                    <div className='px-3 sm:px-4'>
+                      <div className='rounded-lg border p-4'>
+                        <div className='space-y-3'>
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className='bg-muted/60 h-8 animate-pulse rounded'
+                            />
+                          ))}
                         </div>
-                        <h3 className='mb-2 text-lg font-semibold'>
-                          No issues found
-                        </h3>
-                        <p className='text-muted-foreground mb-6'>
-                          This team doesn&apos;t have any issues yet.
-                        </p>
                       </div>
                     </div>
-                  )}
-                </div>
+                  )
+                ) : (
+                  <AnimatePresence mode='wait' initial={false}>
+                    {issueViewMode === 'kanban' ? (
+                      <motion.div
+                        key='kanban'
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className='flex-1 overflow-hidden'
+                      >
+                        <IssuesKanban
+                          orgSlug={orgSlug}
+                          issues={teamIssuesData.issues}
+                          states={states}
+                          priorities={priorities}
+                          teams={teams}
+                          projects={projects}
+                          currentUserId={user?._id || ''}
+                          onStateChange={(_issueId, assignmentId, stateId) => {
+                            void handleAssignmentStateChange(
+                              assignmentId,
+                              stateId,
+                            );
+                          }}
+                          onPriorityChange={handlePriorityChange}
+                          onAssigneesChange={(issueId, ids) => {
+                            void handleAssigneesChange(issueId, ids);
+                          }}
+                          onTeamChange={handleIssueTeamChange}
+                          onProjectChange={handleIssueProjectChange}
+                          onDelete={handleIssueDelete}
+                          deletePending={isUpdatingIssues}
+                        />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key='table'
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className='px-3 sm:px-4'
+                      >
+                        {teamIssuesData.issues.length > 0 ? (
+                          <div className='rounded-lg border'>
+                            <IssuesTable
+                              orgSlug={orgSlug}
+                              issues={teamIssuesData.issues}
+                              states={states}
+                              priorities={priorities}
+                              teams={teams}
+                              projects={projects}
+                              onPriorityChange={handlePriorityChange}
+                              onAssigneesChange={handleAssigneesChange}
+                              onTeamChange={handleIssueTeamChange}
+                              onProjectChange={handleIssueProjectChange}
+                              onDelete={handleIssueDelete}
+                              deletePending={isUpdatingIssues}
+                              isUpdatingAssignees={isUpdatingIssues}
+                              onAssignmentStateChange={
+                                handleAssignmentStateChange
+                              }
+                              isUpdatingAssignmentStates={isUpdatingIssues}
+                              currentUserId={user?._id || ''}
+                              canChangeAll={user?.role === 'admin'}
+                              activeFilter='all'
+                            />
+                          </div>
+                        ) : (
+                          <div className='flex items-center justify-center py-12'>
+                            <div className='text-center'>
+                              <div className='mb-4 flex justify-center'>
+                                <Target className='text-muted-foreground/50 h-16 w-16' />
+                              </div>
+                              <h3 className='mb-2 text-lg font-semibold'>
+                                No issues found
+                              </h3>
+                              <p className='text-muted-foreground mb-6'>
+                                This team doesn&apos;t have any issues yet.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
               </TabsContent>
 
               {/* Projects Tab */}
               <TabsContent value='projects'>
-                <div className='rounded-lg border'>
-                  {teamProjects && teamProjects.length > 0 ? (
-                    <ProjectsTable
-                      orgSlug={orgSlug}
-                      projects={teamProjects.map(project => ({
-                        ...project,
-                        id: project._id,
-                        icon: project.icon,
-                        color: project.color,
-                        statusId: project.status?._id,
-                        statusName: project.status?.name,
-                        statusColor: project.status?.color,
-                        statusIcon: project.status?.icon,
-                        statusType: project.status?.type,
-                        updatedAt: new Date(project._creationTime),
-                        createdAt: new Date(project._creationTime),
-                      }))}
-                      statuses={statuses.map(s => ({ ...s, id: s._id }))}
-                      teams={teams.map(t => ({ ...t, id: t._id }))}
-                      onStatusChange={handleStatusChange}
-                      onTeamChange={handleProjectTeamChange}
-                      onLeadChange={handleProjectLeadChange}
-                      onDelete={handleProjectDelete}
-                      deletePending={isUpdatingProjects}
-                    />
-                  ) : (
-                    <div className='flex items-center justify-center py-12'>
-                      <div className='text-center'>
-                        <div className='mb-4 flex justify-center'>
-                          <FolderOpen className='text-muted-foreground/50 h-16 w-16' />
+                <div className='px-3 sm:px-4'>
+                  <div className='rounded-lg border'>
+                    {teamProjects && teamProjects.length > 0 ? (
+                      <ProjectsTable
+                        orgSlug={orgSlug}
+                        projects={teamProjects.map(project => ({
+                          ...project,
+                          id: project._id,
+                          icon: project.icon,
+                          color: project.color,
+                          statusId: project.status?._id,
+                          statusName: project.status?.name,
+                          statusColor: project.status?.color,
+                          statusIcon: project.status?.icon,
+                          statusType: project.status?.type,
+                          updatedAt: new Date(project._creationTime),
+                          createdAt: new Date(project._creationTime),
+                        }))}
+                        statuses={statuses.map(s => ({ ...s, id: s._id }))}
+                        teams={teams.map(t => ({ ...t, id: t._id }))}
+                        onStatusChange={handleStatusChange}
+                        onTeamChange={handleProjectTeamChange}
+                        onLeadChange={handleProjectLeadChange}
+                        onDelete={handleProjectDelete}
+                        deletePending={isUpdatingProjects}
+                      />
+                    ) : (
+                      <div className='flex items-center justify-center py-12'>
+                        <div className='text-center'>
+                          <div className='mb-4 flex justify-center'>
+                            <FolderOpen className='text-muted-foreground/50 h-16 w-16' />
+                          </div>
+                          <h3 className='mb-2 text-lg font-semibold'>
+                            No projects found
+                          </h3>
+                          <p className='text-muted-foreground mb-6'>
+                            This team doesn&apos;t have any projects yet.
+                          </p>
                         </div>
-                        <h3 className='mb-2 text-lg font-semibold'>
-                          No projects found
-                        </h3>
-                        <p className='text-muted-foreground mb-6'>
-                          This team doesn&apos;t have any projects yet.
-                        </p>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
               <TabsContent value='documents'>
-                <div className='rounded-lg border'>
-                  {teamDocuments && teamDocuments.length > 0 ? (
-                    <div className='divide-y'>
-                      {teamDocuments.map(doc => (
-                        <Link
-                          key={doc._id}
-                          href={`/${orgSlug}/documents/${doc._id}`}
-                          className='hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors'
-                        >
-                          <FileText className='text-muted-foreground size-4 flex-shrink-0' />
-                          <div className='min-w-0 flex-1'>
-                            <div className='truncate text-sm font-medium'>
-                              {doc.title}
+                <div className='px-3 sm:px-4'>
+                  <div className='rounded-lg border'>
+                    {teamDocuments && teamDocuments.length > 0 ? (
+                      <div className='divide-y'>
+                        {teamDocuments.map(doc => (
+                          <Link
+                            key={doc._id}
+                            href={`/${orgSlug}/documents/${doc._id}`}
+                            className='hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors'
+                          >
+                            <FileText className='text-muted-foreground size-4 flex-shrink-0' />
+                            <div className='min-w-0 flex-1'>
+                              <div className='truncate text-sm font-medium'>
+                                {doc.title}
+                              </div>
+                              <div className='text-muted-foreground text-xs'>
+                                {doc.author?.name || doc.author?.email}
+                              </div>
                             </div>
-                            <div className='text-muted-foreground text-xs'>
-                              {doc.author?.name || doc.author?.email}
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className='flex items-center justify-center py-12'>
-                      <div className='text-center'>
-                        <div className='mb-4 flex justify-center'>
-                          <FileText className='text-muted-foreground/50 h-16 w-16' />
-                        </div>
-                        <h3 className='mb-2 text-lg font-semibold'>
-                          No documents found
-                        </h3>
-                        <p className='text-muted-foreground mb-6'>
-                          This team doesn&apos;t have any documents yet.
-                        </p>
+                          </Link>
+                        ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className='flex items-center justify-center py-12'>
+                        <div className='text-center'>
+                          <div className='mb-4 flex justify-center'>
+                            <FileText className='text-muted-foreground/50 h-16 w-16' />
+                          </div>
+                          <h3 className='mb-2 text-lg font-semibold'>
+                            No documents found
+                          </h3>
+                          <p className='text-muted-foreground mb-6'>
+                            This team doesn&apos;t have any documents yet.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
               <TabsContent value='activity'>
-                {team?._id ? (
-                  <TeamActivityFeed orgSlug={orgSlug} teamId={team._id} />
-                ) : null}
+                <div className='px-3 sm:px-4'>
+                  {team?._id ? (
+                    <TeamActivityFeed orgSlug={orgSlug} teamId={team._id} />
+                  ) : null}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

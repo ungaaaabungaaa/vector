@@ -1,5 +1,5 @@
-import { getDynamicIcon } from '@/lib/dynamic-icons';
-import { Circle, type LucideIcon } from 'lucide-react';
+import { getDynamicIcon, type DynamicIconComponent } from '@/lib/dynamic-icons';
+import { Circle } from 'lucide-react';
 
 // Fallback priority icon mappings for backward compatibility
 const FALLBACK_PRIORITY_ICONS: Record<string, string> = {
@@ -25,7 +25,7 @@ export function getPriorityIcon(
   priorityIcon?: string | null,
   priorityColor?: string | null,
 ): {
-  icon: LucideIcon;
+  icon: DynamicIconComponent;
   className: string;
   style?: React.CSSProperties;
 } {
@@ -76,7 +76,7 @@ export function getStateTypeIcon(
   stateColor?: string | null,
   stateIcon?: string | null,
 ): {
-  icon: LucideIcon;
+  icon: DynamicIconComponent;
   className: string;
   style?: React.CSSProperties;
 } {

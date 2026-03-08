@@ -151,30 +151,28 @@ function CreateProjectDialogContent({
         className='gap-2 p-2 sm:max-w-2xl'
       >
         <form onSubmit={handleSubmit} className='space-y-2'>
-          {/* Project Name with inline selectors */}
-          <div className='flex items-center gap-2'>
-            <div className='relative flex-1'>
-              <Input
-                placeholder='Project name'
-                value={name}
-                onChange={e => handleNameChange(e.target.value)}
-                className='pr-20 text-base'
-                autoFocus
-              />
-              <span className='text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs'>
-                Name
-              </span>
-            </div>
+          {/* Project Name */}
+          <div className='relative'>
+            <Input
+              placeholder='Project name'
+              value={name}
+              onChange={e => handleNameChange(e.target.value)}
+              className='pr-20 text-base'
+              autoFocus
+            />
+            <span className='text-muted-foreground bg-background pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs'>
+              Name
+            </span>
+          </div>
 
-            {/* Inline selectors */}
+          {/* Inline selectors */}
+          <div className='flex items-center gap-2'>
             <TeamSelector
               teams={teams}
               selectedTeam={selectedTeam}
               onTeamSelect={setSelectedTeam}
               displayMode='iconWhenUnselected'
-              // Matches the height of the input box on the left for visual alignment
               className='h-9'
-              // (applies to all inline selectors below)
             />
 
             <ProjectLeadSelector

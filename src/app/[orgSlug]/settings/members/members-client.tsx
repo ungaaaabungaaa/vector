@@ -21,11 +21,11 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog';
 import { AssignRoleDialog } from '@/components/organization/assign-role-dialog';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -171,14 +171,14 @@ export default function MembersSettingsPageClient({
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <Dialog
+                  <ResponsiveDialog
                     open={selectedMember?.userId === member.userId}
                     onOpenChange={open => !open && setSelectedMember(null)}
                   >
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Assign Role</DialogTitle>
-                      </DialogHeader>
+                    <ResponsiveDialogHeader className='sr-only'>
+                      <ResponsiveDialogTitle>Assign Role</ResponsiveDialogTitle>
+                    </ResponsiveDialogHeader>
+                    <ResponsiveDialogContent>
                       <AssignRoleDialog
                         orgSlug={orgSlug}
                         roleId={member.customRoles?.[0]?._id || null}
@@ -187,8 +187,8 @@ export default function MembersSettingsPageClient({
                           toast.success('Role assigned');
                         }}
                       />
-                    </DialogContent>
-                  </Dialog>
+                    </ResponsiveDialogContent>
+                  </ResponsiveDialog>
                 </TableCell>
               </TableRow>
             ))}

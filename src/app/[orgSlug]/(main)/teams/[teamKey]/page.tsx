@@ -35,11 +35,11 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from '@/components/ui/responsive-dialog';
 import {
   Command,
   CommandEmpty,
@@ -123,11 +123,17 @@ function AddMemberDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
-      <DialogContent showCloseButton={false} className='gap-0 p-0 sm:max-w-sm'>
-        <DialogHeader className='sr-only'>
-          <DialogTitle>Add team member</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog
+      open
+      onOpenChange={(isOpen: boolean) => !isOpen && onClose()}
+    >
+      <ResponsiveDialogHeader className='sr-only'>
+        <ResponsiveDialogTitle>Add team member</ResponsiveDialogTitle>
+      </ResponsiveDialogHeader>
+      <ResponsiveDialogContent
+        showCloseButton={false}
+        className='gap-0 p-0 sm:max-w-sm'
+      >
         <Command className='rounded-lg'>
           <CommandInput placeholder='Search members...' className='h-9' />
           <CommandList className='max-h-[300px]'>
@@ -166,8 +172,8 @@ function AddMemberDialog({
             </CommandGroup>
           </CommandList>
         </Command>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 

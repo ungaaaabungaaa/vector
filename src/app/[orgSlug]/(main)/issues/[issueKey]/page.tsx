@@ -511,8 +511,8 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                   <h1
                     className={cn(
                       canEditIssue
-                        ? 'hover:text-muted-foreground cursor-pointer text-3xl leading-tight font-semibold transition-colors'
-                        : 'text-3xl leading-tight font-semibold',
+                        ? 'hover:text-muted-foreground cursor-pointer text-2xl leading-tight font-semibold transition-colors sm:text-3xl'
+                        : 'text-2xl leading-tight font-semibold sm:text-3xl',
                     )}
                     onClick={
                       canEditIssue ? () => setEditingTitle(true) : undefined

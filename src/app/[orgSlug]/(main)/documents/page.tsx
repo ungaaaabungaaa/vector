@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Pencil,
   MoreHorizontal,
+  GripVertical,
 } from 'lucide-react';
 import { PageSkeleton } from '@/components/ui/table-skeleton';
 import { useConfirm } from '@/hooks/use-confirm';
@@ -40,6 +41,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Folder colors
@@ -244,6 +257,162 @@ function RenameFolderDialog({
 }
 
 // ---------------------------------------------------------------------------
+// Draggable document row
+// ---------------------------------------------------------------------------
+function DraggableDocRow({
+  doc,
+  orgSlug,
+  onDelete,
+}: {
+  doc: {
+    _id: string;
+    title: string;
+    folderId?: string;
+    team?: { name: string } | null;
+    project?: { name: string } | null;
+    author?: { name?: string | null; email?: string } | null;
+    lastEditedAt?: number;
+    _creationTime: number;
+  };
+  orgSlug: string;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `doc:${doc._id}`,
+    data: { type: 'document', documentId: doc._id },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'hover:bg-muted/50 flex items-center gap-2 px-3 py-2 transition-colors',
+        isDragging && 'opacity-30',
+      )}
+    >
+      <button
+        {...listeners}
+        {...attributes}
+        className='text-muted-foreground/50 hover:text-muted-foreground flex-shrink-0 cursor-grab touch-none active:cursor-grabbing'
+      >
+        <GripVertical className='size-3.5' />
+      </button>
+      <FileText className='text-muted-foreground size-4 flex-shrink-0' />
+      <Link
+        href={`/${orgSlug}/documents/${doc._id}`}
+        className='min-w-0 flex-1'
+      >
+        <div className='truncate text-sm font-medium'>{doc.title}</div>
+        <div className='text-muted-foreground flex items-center gap-2 text-xs'>
+          {doc.team && <span>{doc.team.name}</span>}
+          {doc.project && (
+            <>
+              {doc.team && <span>·</span>}
+              <span>{doc.project.name}</span>
+            </>
+          )}
+          {doc.author && (
+            <>
+              <span>·</span>
+              <span>{doc.author.name || doc.author.email}</span>
+            </>
+          )}
+          <span>·</span>
+          <span>
+            {formatDateHuman(new Date(doc.lastEditedAt || doc._creationTime))}
+          </span>
+        </div>
+      </Link>
+      <Button
+        variant='ghost'
+        size='sm'
+        className='text-muted-foreground hover:text-destructive h-7 w-7 flex-shrink-0 p-0'
+        onClick={() => onDelete(doc._id)}
+      >
+        <Trash2 className='size-3' />
+      </Button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Droppable folder book
+// ---------------------------------------------------------------------------
+function DroppableFolderBook({
+  folder,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  folder: {
+    _id: string;
+    name: string;
+    description?: string;
+    color?: string;
+    documentCount: number;
+  };
+  onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `folder:${folder._id}`,
+    data: { type: 'folder', folderId: folder._id },
+  });
+
+  return (
+    <div ref={setNodeRef} className='group relative'>
+      <button onClick={onOpen} className='text-left'>
+        <PerspectiveBook size='sm' className='text-white'>
+          <div
+            className={cn(
+              'absolute inset-0 rounded-[inherit] transition-all',
+              isOver && 'ring-4 ring-white/40 brightness-110',
+            )}
+            style={{ backgroundColor: folder.color || '#6366f1' }}
+          />
+          <div className='relative z-10'>
+            <BookTitle className='text-sm'>{folder.name}</BookTitle>
+            {folder.description && (
+              <BookDescription>{folder.description}</BookDescription>
+            )}
+            <p className='mt-1 text-[10px] opacity-60'>
+              {isOver
+                ? 'Drop to add'
+                : `${folder.documentCount} ${folder.documentCount === 1 ? 'doc' : 'docs'}`}
+            </p>
+          </div>
+        </PerspectiveBook>
+      </button>
+      {/* Folder actions */}
+      <div className='absolute top-1 right-1 z-20 opacity-0 transition-opacity group-hover:opacity-100'>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-5 w-5 rounded-full bg-black/30 p-0 text-white hover:bg-black/50 hover:text-white'
+            >
+              <MoreHorizontal className='size-3' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className='size-4' />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem variant='destructive' onClick={onDelete}>
+              <Trash2 className='size-4' />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Documents Page Content
 // ---------------------------------------------------------------------------
 
@@ -260,6 +429,13 @@ function DocumentsPageContent({ orgSlug }: { orgSlug: string }) {
     description?: string;
     color?: string;
   } | null>(null);
+  const [draggedDocId, setDraggedDocId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
 
   const folders = useQuery(api.documents.folderQueries.listFolders, {
     orgSlug,
@@ -271,6 +447,7 @@ function DocumentsPageContent({ orgSlug }: { orgSlug: string }) {
       : {}),
   });
   const removeMutation = useMutation(api.documents.mutations.remove);
+  const updateDocMutation = useMutation(api.documents.mutations.update);
   const removeFolderMutation = useMutation(
     api.documents.folderMutations.removeFolder,
   );
@@ -325,228 +502,204 @@ function DocumentsPageContent({ orgSlug }: { orgSlug: string }) {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current;
+    if (data?.type === 'document') {
+      setDraggedDocId(data.documentId as string);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setDraggedDocId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeData = active.data.current;
+    const overData = over.data.current;
+
+    if (activeData?.type === 'document' && overData?.type === 'folder') {
+      const documentId = activeData.documentId as string;
+      const folderId = overData.folderId as string;
+
+      void updateDocMutation({
+        documentId: documentId as Id<'documents'>,
+        data: { folderId: folderId as Id<'documentFolders'> },
+      });
+      toast.success('Moved to folder');
+    }
+  };
+
+  const draggedDoc = draggedDocId
+    ? documents.find(d => d._id === draggedDocId)
+    : null;
+
   // Filter unfiled documents when viewing all (no active folder)
   const displayDocs = activeFolderId
     ? documents
     : documents.filter(d => !d.folderId);
 
   return (
-    <div className='bg-background h-full overflow-y-auto'>
-      <ConfirmDeleteDialog />
-      {showCreateFolder && (
-        <CreateFolderDialog
-          orgSlug={orgSlug}
-          onClose={() => setShowCreateFolder(false)}
-        />
-      )}
-      {editingFolder && (
-        <RenameFolderDialog
-          folder={editingFolder}
-          onClose={() => setEditingFolder(null)}
-        />
-      )}
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className='bg-background h-full overflow-y-auto'>
+        <ConfirmDeleteDialog />
+        {showCreateFolder && (
+          <CreateFolderDialog
+            orgSlug={orgSlug}
+            onClose={() => setShowCreateFolder(false)}
+          />
+        )}
+        {editingFolder && (
+          <RenameFolderDialog
+            folder={editingFolder}
+            onClose={() => setEditingFolder(null)}
+          />
+        )}
 
-      {/* Header */}
-      <div className='border-b'>
-        <div className='flex items-center justify-between p-1'>
-          <div className='flex items-center gap-1'>
-            <MobileNavTrigger />
-            {activeFolder ? (
-              <>
+        {/* Header */}
+        <div className='border-b'>
+          <div className='flex items-center justify-between p-1'>
+            <div className='flex items-center gap-1'>
+              <MobileNavTrigger />
+              {activeFolder ? (
+                <>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    className='h-6 gap-1 px-2 text-xs'
+                    onClick={() => setActiveFolderId(null)}
+                  >
+                    <ArrowLeft className='size-3' />
+                    Back
+                  </Button>
+                  <span
+                    className='inline-block size-2 rounded-full'
+                    style={{
+                      backgroundColor: activeFolder.color || '#6b7280',
+                    }}
+                  />
+                  <span className='text-sm font-medium'>
+                    {activeFolder.name}
+                  </span>
+                  <span className='text-muted-foreground text-xs'>
+                    {documents.length}
+                  </span>
+                </>
+              ) : (
                 <Button
-                  variant='ghost'
+                  variant='secondary'
                   size='sm'
-                  className='h-6 gap-1 px-2 text-xs'
-                  onClick={() => setActiveFolderId(null)}
+                  className='bg-secondary h-6 gap-2 rounded-xs px-3 text-xs font-normal'
                 >
-                  <ArrowLeft className='size-3' />
-                  Back
+                  <span>All documents</span>
                 </Button>
-                <span
-                  className='inline-block size-2 rounded-full'
-                  style={{ backgroundColor: activeFolder.color || '#6b7280' }}
-                />
-                <span className='text-sm font-medium'>{activeFolder.name}</span>
-                <span className='text-muted-foreground text-xs'>
-                  {documents.length}
-                </span>
-              </>
-            ) : (
-              <Button
-                variant='secondary'
-                size='sm'
-                className='bg-secondary h-6 gap-2 rounded-xs px-3 text-xs font-normal'
-              >
-                <span>All documents</span>
-              </Button>
-            )}
-          </div>
-          <div className='flex items-center gap-1'>
-            {!activeFolder && (
+              )}
+            </div>
+            <div className='flex items-center gap-1'>
+              {!activeFolder && (
+                <ScopedPermissionGate
+                  scope={{ orgSlug }}
+                  permission={PERMISSIONS.DOCUMENT_CREATE}
+                >
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setShowCreateFolder(true)}
+                    className='h-6 gap-1 text-xs'
+                  >
+                    <Plus className='size-3' />
+                    Folder
+                  </Button>
+                </ScopedPermissionGate>
+              )}
               <ScopedPermissionGate
                 scope={{ orgSlug }}
                 permission={PERMISSIONS.DOCUMENT_CREATE}
               >
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => setShowCreateFolder(true)}
-                  className='h-6 gap-1 text-xs'
-                >
-                  <Plus className='size-3' />
-                  Folder
-                </Button>
+                <CreateDocumentDialog
+                  orgSlug={orgSlug}
+                  onDocumentCreated={() => {}}
+                  className='h-6'
+                  defaultStates={
+                    activeFolderId ? { folderId: activeFolderId } : undefined
+                  }
+                />
               </ScopedPermissionGate>
-            )}
-            <ScopedPermissionGate
-              scope={{ orgSlug }}
-              permission={PERMISSIONS.DOCUMENT_CREATE}
-            >
-              <CreateDocumentDialog
-                orgSlug={orgSlug}
-                onDocumentCreated={() => {}}
-                className='h-6'
-                defaultStates={
-                  activeFolderId ? { folderId: activeFolderId } : undefined
-                }
-              />
-            </ScopedPermissionGate>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Folders grid (only when not inside a folder) */}
-      {!activeFolder && folders.length > 0 && (
-        <div className='border-b px-3 py-4 sm:px-4'>
-          <div className='flex flex-wrap gap-4'>
-            {folders.map(folder => (
-              <div key={folder._id} className='group relative'>
-                <button
-                  onClick={() => setActiveFolderId(folder._id)}
-                  className='text-left'
-                >
-                  <PerspectiveBook size='sm' className={`text-white`}>
-                    <div
-                      className='absolute inset-0 rounded-[inherit]'
-                      style={{ backgroundColor: folder.color || '#6366f1' }}
-                    />
-                    <div className='relative z-10'>
-                      <BookTitle className='text-sm'>{folder.name}</BookTitle>
-                      {folder.description && (
-                        <BookDescription>{folder.description}</BookDescription>
-                      )}
-                      <p className='mt-1 text-[10px] opacity-60'>
-                        {folder.documentCount}{' '}
-                        {folder.documentCount === 1 ? 'doc' : 'docs'}
-                      </p>
-                    </div>
-                  </PerspectiveBook>
-                </button>
-                {/* Folder actions */}
-                <div className='absolute top-1 right-1 z-20 opacity-0 transition-opacity group-hover:opacity-100'>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-5 w-5 rounded-full bg-black/30 p-0 text-white hover:bg-black/50 hover:text-white'
-                      >
-                        <MoreHorizontal className='size-3' />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end'>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          setEditingFolder({
-                            _id: folder._id,
-                            name: folder.name,
-                            description: folder.description,
-                            color: folder.color,
-                          })
-                        }
-                      >
-                        <Pencil className='size-4' />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        variant='destructive'
-                        onClick={() => handleDeleteFolder(folder._id)}
-                      >
-                        <Trash2 className='size-4' />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+        {/* Folders grid (only when not inside a folder) */}
+        {!activeFolder && folders.length > 0 && (
+          <div className='border-b px-3 py-4 sm:px-4'>
+            <div className='flex flex-wrap gap-4'>
+              {folders.map(folder => (
+                <DroppableFolderBook
+                  key={folder._id}
+                  folder={folder}
+                  onOpen={() => setActiveFolderId(folder._id)}
+                  onEdit={() =>
+                    setEditingFolder({
+                      _id: folder._id,
+                      name: folder.name,
+                      description: folder.description,
+                      color: folder.color,
+                    })
+                  }
+                  onDelete={() => handleDeleteFolder(folder._id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Documents list */}
+        {displayDocs.length === 0 && !activeFolder && folders.length === 0 ? (
+          <div className='flex flex-col items-center justify-center py-16 text-center'>
+            <FileText className='text-muted-foreground mb-4 size-12' />
+            <h3 className='text-lg font-medium'>No documents yet</h3>
+            <p className='text-muted-foreground mt-1 text-sm'>
+              Create your first document to get started.
+            </p>
+          </div>
+        ) : displayDocs.length === 0 ? (
+          <div className='text-muted-foreground px-3 py-8 text-center text-sm'>
+            {activeFolder
+              ? 'No documents in this folder.'
+              : 'No unfiled documents.'}
+          </div>
+        ) : (
+          <div className='divide-y'>
+            {displayDocs.map(doc => (
+              <DraggableDocRow
+                key={doc._id}
+                doc={doc}
+                orgSlug={orgSlug}
+                onDelete={handleDeleteDoc}
+              />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Documents list */}
-      {displayDocs.length === 0 && !activeFolder && folders.length === 0 ? (
-        <div className='flex flex-col items-center justify-center py-16 text-center'>
-          <FileText className='text-muted-foreground mb-4 size-12' />
-          <h3 className='text-lg font-medium'>No documents yet</h3>
-          <p className='text-muted-foreground mt-1 text-sm'>
-            Create your first document to get started.
-          </p>
-        </div>
-      ) : displayDocs.length === 0 ? (
-        <div className='text-muted-foreground px-3 py-8 text-center text-sm'>
-          {activeFolder
-            ? 'No documents in this folder.'
-            : 'No unfiled documents.'}
-        </div>
-      ) : (
-        <div className='divide-y'>
-          {displayDocs.map(doc => (
-            <div
-              key={doc._id}
-              className='hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors'
-            >
-              <FileText className='text-muted-foreground size-4 flex-shrink-0' />
-              <Link
-                href={`/${orgSlug}/documents/${doc._id}`}
-                className='min-w-0 flex-1'
-              >
-                <div className='truncate text-sm font-medium'>{doc.title}</div>
-                <div className='text-muted-foreground flex items-center gap-2 text-xs'>
-                  {doc.team && <span>{doc.team.name}</span>}
-                  {doc.project && (
-                    <>
-                      {doc.team && <span>·</span>}
-                      <span>{doc.project.name}</span>
-                    </>
-                  )}
-                  {doc.author && (
-                    <>
-                      <span>·</span>
-                      <span>{doc.author.name || doc.author.email}</span>
-                    </>
-                  )}
-                  <span>·</span>
-                  <span>
-                    {formatDateHuman(
-                      new Date(doc.lastEditedAt || doc._creationTime),
-                    )}
-                  </span>
-                </div>
-              </Link>
-              <Button
-                variant='ghost'
-                size='sm'
-                className='text-muted-foreground hover:text-destructive h-7 w-7 flex-shrink-0 p-0'
-                onClick={() => handleDeleteDoc(doc._id)}
-              >
-                <Trash2 className='size-3' />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      {/* Drag overlay */}
+      <DragOverlay
+        dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}
+      >
+        {draggedDoc ? (
+          <div className='bg-card flex items-center gap-2 rounded-lg border px-3 py-2 shadow-lg'>
+            <FileText className='text-muted-foreground size-4' />
+            <span className='text-sm font-medium'>{draggedDoc.title}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 

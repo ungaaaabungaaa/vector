@@ -61,56 +61,44 @@ Vector is under active development. The top-level docs in this repository reflec
 
 ## Environment Variables
 
-Copy `sample.env` to `.env.local` and update the values. All `NEXT_PUBLIC_` variables are exposed to the browser.
+Copy `sample.env` to `.env.local` and update the values. For local development, both Next.js and Convex read from the same root env files, so one `.env.local` is enough. For production, split variables by the runtime that actually reads them.
 
-### Required
+### Set In Next.js Environment (`.env.local`, Vercel)
 
-| Variable                 | Description                                                                 |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment HTTP endpoint. Local default: `http://127.0.0.1:3210`     |
-| `NEXT_PUBLIC_APP_URL`    | Public base URL of the app. Local default: `http://localhost:3000`          |
-| `BETTER_AUTH_SECRET`     | Secret key for signing auth tokens. Generate with `openssl rand -base64 32` |
+| Variable                       | Why it belongs here                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CONVEX_URL`       | Read by the browser Convex providers and Next.js server code that talks to Convex. |
+| `CONVEX_SITE_URL`              | Read by `src/lib/auth-server.ts` on the Next.js server for auth helper requests.   |
+| `NEXT_PUBLIC_CONVEX_SITE_URL`  | Fallback for `CONVEX_SITE_URL` in `src/lib/auth-server.ts`.                        |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Read in browser push-subscription code.                                            |
 
-### Authentication
+### Set In Convex Environment
 
-| Variable                      | Description                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| `AUTH_SECRET`                 | Backward-compatible fallback for `BETTER_AUTH_SECRET`                             |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated allowed origins for auth callbacks (e.g. `http://localhost:3000`) |
+| Variable                      | Why it belongs here                                              |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET`          | Read in `convex/auth.ts` to sign Better Auth tokens.             |
+| `AUTH_SECRET`                 | Optional fallback for `BETTER_AUTH_SECRET` in `convex/auth.ts`.  |
+| `NEXT_PUBLIC_APP_URL`         | Read in `convex/auth.ts` as the Better Auth base URL.            |
+| `NEXT_PUBLIC_SITE_URL`        | Optional fallback for `NEXT_PUBLIC_APP_URL` in `convex/auth.ts`. |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Read in `convex/auth.ts` for the auth callback allowlist.        |
+| `SMTP_HOST`                   | Read in `convex/notifications/actions.ts` for email delivery.    |
+| `SMTP_PORT`                   | Read in `convex/notifications/actions.ts` for email delivery.    |
+| `SMTP_USER`                   | Read in `convex/notifications/actions.ts` for email delivery.    |
+| `SMTP_PASS`                   | Read in `convex/notifications/actions.ts` for email delivery.    |
+| `SMTP_FROM`                   | Read in `convex/notifications/actions.ts` for email delivery.    |
+| `VAPID_PUBLIC_KEY`            | Read in `convex/notifications/actions.ts` for push delivery.     |
+| `VAPID_PRIVATE_KEY`           | Read in `convex/notifications/actions.ts` for push delivery.     |
+| `VAPID_SUBJECT`               | Read in `convex/notifications/actions.ts` for push delivery.     |
 
-### Convex
+`NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_SITE_URL` have a public-looking prefix, but they are currently consumed by Convex auth code rather than browser code.
 
-| Variable                      | Description                                                          |
-| ----------------------------- | -------------------------------------------------------------------- |
-| `CONVEX_URL`                  | Convex URL for CLI scripts. Defaults to `http://localhost:8000`      |
-| `CONVEX_SITE_URL`             | Convex site/auth helper URL. Local default: `http://127.0.0.1:3211`  |
-| `NEXT_PUBLIC_CONVEX_SITE_URL` | Public version of the site URL. Fallback for `CONVEX_SITE_URL`       |
-| `NEXT_PUBLIC_SITE_URL`        | Optional fallback for `NEXT_PUBLIC_APP_URL`                          |
-| `CONVEX_DEPLOYMENT`           | Convex deployment identifier (set automatically by `npx convex dev`) |
-| `CONVEX_ADMIN_KEY`            | Admin API key, only needed for running permission migrations         |
+### Local CLI / Convex Tooling Only
 
-### SMTP (Optional)
-
-Email notifications. If unset, emails are logged to the console.
-
-| Variable    | Description                                   |
-| ----------- | --------------------------------------------- |
-| `SMTP_HOST` | SMTP server hostname (e.g. `smtp.resend.com`) |
-| `SMTP_PORT` | SMTP port. Defaults to `587`                  |
-| `SMTP_USER` | SMTP username                                 |
-| `SMTP_PASS` | SMTP password or API key                      |
-| `SMTP_FROM` | From address for outgoing email               |
-
-### Web Push Notifications (Optional)
-
-Required for PWA push notifications. Generate VAPID keys with `npx web-push generate-vapid-keys`.
-
-| Variable                       | Description                                                   |
-| ------------------------------ | ------------------------------------------------------------- |
-| `VAPID_PUBLIC_KEY`             | VAPID public key (server-side)                                |
-| `VAPID_PRIVATE_KEY`            | VAPID private key (server-side)                               |
-| `VAPID_SUBJECT`                | VAPID subject, e.g. `mailto:notifications@example.com`        |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key (client-side, must match `VAPID_PUBLIC_KEY`) |
+| Variable            | Why it belongs here                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `CONVEX_URL`        | Used by `scripts/run-permission-migrations.ts` when invoking `pnpm convex run`.                |
+| `CONVEX_ADMIN_KEY`  | Only needed by `scripts/run-permission-migrations.ts` for admin-only migrations.               |
+| `CONVEX_DEPLOYMENT` | Managed by the Convex CLI during local development. It is not read by the application runtime. |
 
 ## Development
 

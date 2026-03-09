@@ -3,6 +3,7 @@ import { v, ConvexError } from 'convex/values';
 import type { Id, Doc, DataModel } from '../_generated/dataModel';
 import { getAuthUserId } from '../authUtils';
 import { canViewIssue, canViewProject, canViewTeam } from '../access';
+import { isDefined } from '../_shared/typeGuards';
 
 export const getByKey = query({
   args: {
@@ -47,7 +48,7 @@ export const getByKey = query({
         if (!assignee.assigneeId) return null;
         return await ctx.db.get('users', assignee.assigneeId);
       }),
-    ).then(users => users.filter(Boolean));
+    ).then(users => users.filter(isDefined));
 
     const createdByUser = issue.reporterId
       ? await ctx.db.get('users', issue.reporterId)
@@ -104,7 +105,7 @@ type IssueVisibilityAccess = {
 };
 
 type IssueListResult = {
-  issues: Array<Record<string, unknown>>;
+  issues: Awaited<ReturnType<typeof flattenIssueRows>>;
   total: number;
   counts: Record<string, number>;
 };
@@ -515,13 +516,10 @@ async function buildIssueCounts(
     .withIndex('by_organization', q => q.eq('organizationId', organizationId))
     .collect();
 
-  const counts = allStates.reduce(
-    (acc, state) => {
-      acc[state.type] = 0;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+  const counts: Record<string, number> = {};
+  for (const state of allStates) {
+    counts[state.type] = 0;
+  }
 
   if (issues.length === 0) {
     return counts;
@@ -651,15 +649,9 @@ export const list = query({
       (issue): issue is Doc<'issues'> => issue !== null,
     );
 
-    const projectIds = visibleIssues
-      .map(i => i.projectId)
-      .filter(Boolean) as Id<'projects'>[];
-    const priorityIds = visibleIssues
-      .map(i => i.priorityId)
-      .filter(Boolean) as Id<'issuePriorities'>[];
-    const reporterIds = visibleIssues
-      .map(i => i.reporterId)
-      .filter(Boolean) as Id<'users'>[];
+    const projectIds = visibleIssues.map(i => i.projectId).filter(isDefined);
+    const priorityIds = visibleIssues.map(i => i.priorityId).filter(isDefined);
+    const reporterIds = visibleIssues.map(i => i.reporterId).filter(isDefined);
 
     const projects = await Promise.all(
       projectIds.map(id => ctx.db.get('projects', id)),
@@ -695,9 +687,7 @@ export const list = query({
       ),
     ).then(results => results.flat());
 
-    const assigneeIds = allAssignments
-      .map(a => a.assigneeId)
-      .filter(Boolean) as Id<'users'>[];
+    const assigneeIds = allAssignments.map(a => a.assigneeId).filter(isDefined);
     const assigneeUsers = await Promise.all(
       assigneeIds.map(id => ctx.db.get('users', id)),
     );
@@ -729,7 +719,7 @@ export const list = query({
           if (!assignment.assigneeId) return null;
           return assigneeMap.get(assignment.assigneeId);
         })
-        .filter(Boolean);
+        .filter(isDefined);
 
       return {
         ...issue,

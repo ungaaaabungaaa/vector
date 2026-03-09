@@ -1,7 +1,12 @@
 import { mutation } from '../_generated/server';
 import { ConvexError, v } from 'convex/values';
+import type { Doc } from '../_generated/dataModel';
 import { getOrganizationBySlug, requireAuthUser } from '../authz';
 import { PERMISSIONS, requirePermission } from '../permissions/utils';
+
+type DocumentFolderPatch = Partial<
+  Pick<Doc<'documentFolders'>, 'name' | 'description' | 'color'>
+>;
 
 export const createFolder = mutation({
   args: {
@@ -59,7 +64,7 @@ export const updateFolder = mutation({
       PERMISSIONS.DOCUMENT_EDIT,
     );
 
-    const patchData: Record<string, unknown> = {};
+    const patchData: DocumentFolderPatch = {};
     if (args.data.name !== undefined) {
       if (!args.data.name.trim()) throw new ConvexError('INVALID_INPUT');
       patchData.name = args.data.name.trim();

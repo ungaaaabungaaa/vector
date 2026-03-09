@@ -12,6 +12,7 @@ import type * as _shared_activity from "../_shared/activity.js";
 import type * as _shared_auth from "../_shared/auth.js";
 import type * as _shared_pagination from "../_shared/pagination.js";
 import type * as _shared_permissions from "../_shared/permissions.js";
+import type * as _shared_typeGuards from "../_shared/typeGuards.js";
 import type * as _shared_validation from "../_shared/validation.js";
 import type * as access from "../access.js";
 import type * as activities_lib from "../activities/lib.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "_shared/auth": typeof _shared_auth;
   "_shared/pagination": typeof _shared_pagination;
   "_shared/permissions": typeof _shared_permissions;
+  "_shared/typeGuards": typeof _shared_typeGuards;
   "_shared/validation": typeof _shared_validation;
   access: typeof access;
   "activities/lib": typeof activities_lib;

@@ -40,9 +40,10 @@ async function hydrateIssues(
     uniqueIds.map(id => ctx.db.get('issues', id)),
   );
   return new Map(
-    uniqueIds.flatMap((id, index) =>
-      issues[index] ? [[id, issues[index] as Doc<'issues'>]] : [],
-    ),
+    uniqueIds.flatMap((id, index) => {
+      const issue = issues[index];
+      return issue ? [[id, issue]] : [];
+    }),
   );
 }
 
@@ -55,9 +56,10 @@ async function hydrateProjects(
     uniqueIds.map(id => ctx.db.get('projects', id)),
   );
   return new Map(
-    uniqueIds.flatMap((id, index) =>
-      projects[index] ? [[id, projects[index] as Doc<'projects'>]] : [],
-    ),
+    uniqueIds.flatMap((id, index) => {
+      const project = projects[index];
+      return project ? [[id, project]] : [];
+    }),
   );
 }
 
@@ -68,9 +70,10 @@ async function hydrateTeams(
   const uniqueIds = [...new Set(ids)];
   const teams = await Promise.all(uniqueIds.map(id => ctx.db.get('teams', id)));
   return new Map(
-    uniqueIds.flatMap((id, index) =>
-      teams[index] ? [[id, teams[index] as Doc<'teams'>]] : [],
-    ),
+    uniqueIds.flatMap((id, index) => {
+      const team = teams[index];
+      return team ? [[id, team]] : [];
+    }),
   );
 }
 
@@ -83,9 +86,10 @@ async function hydrateDocuments(
     uniqueIds.map(id => ctx.db.get('documents', id)),
   );
   return new Map(
-    uniqueIds.flatMap((id, index) =>
-      documents[index] ? [[id, documents[index] as Doc<'documents'>]] : [],
-    ),
+    uniqueIds.flatMap((id, index) => {
+      const document = documents[index];
+      return document ? [[id, document]] : [];
+    }),
   );
 }
 

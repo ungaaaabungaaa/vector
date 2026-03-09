@@ -54,7 +54,7 @@ export const PERMISSIONS = {
 // Helper type for permission values
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
-export const PERMISSION_VALUES = Object.values(PERMISSIONS) as Permission[];
+export const PERMISSION_VALUES: Permission[] = Object.values(PERMISSIONS);
 
 // Define wildcard permission for owner role (full access)
 const WILDCARD: Permission = PERMISSIONS.ALL;

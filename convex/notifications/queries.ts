@@ -3,8 +3,10 @@ import { query, internalQuery } from '../_generated/server';
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '../authUtils';
 import { getDefaultPreference } from './lib';
-import type { NotificationCategory } from './shared';
-import { notificationCategoryValidator } from './shared';
+import {
+  NOTIFICATION_CATEGORIES,
+  notificationCategoryValidator,
+} from './shared';
 
 export const listInbox = query({
   args: {
@@ -74,14 +76,7 @@ export const getPreferences = query({
 
     const map = new Map(rows.map(row => [row.category, row]));
 
-    return (
-      [
-        'invites',
-        'assignments',
-        'mentions',
-        'comments',
-      ] as NotificationCategory[]
-    ).map(category => {
+    return NOTIFICATION_CATEGORIES.map(category => {
       const row = map.get(category);
       return row
         ? {

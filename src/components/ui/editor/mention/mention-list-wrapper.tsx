@@ -1,4 +1,11 @@
-import { forwardRef, useImperativeHandle, useRef, useMemo } from 'react';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+} from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@/lib/convex';
 import MentionList, {
@@ -16,11 +23,21 @@ export type MentionListWrapperHandle = {
   onKeyDown: (event: KeyboardEvent) => boolean;
 };
 
+function useDebouncedValue(value: string, delay: number): string {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 const MentionListWrapper = forwardRef<
   MentionListWrapperHandle,
   MentionListWrapperProps
 >(({ items: rawItems, command, orgSlug }, ref) => {
   const query = rawItems[0] || '';
+  const debouncedQuery = useDebouncedValue(query.trim(), 150);
   const innerRef = useRef<MentionListHandle>(null);
 
   useImperativeHandle(ref, () => ({
@@ -31,7 +48,7 @@ const MentionListWrapper = forwardRef<
 
   const searchResults = useQuery(
     api.search.queries.searchEntities,
-    query.trim() ? { orgSlug, query: query.trim(), limit: 5 } : 'skip',
+    debouncedQuery ? { orgSlug, query: debouncedQuery, limit: 5 } : 'skip',
   );
 
   const mentionItems: MentionItem[] = useMemo(() => {
@@ -78,10 +95,12 @@ const MentionListWrapper = forwardRef<
     for (const issue of searchResults.issues) {
       items.push({
         id: issue._id,
-        label: issue.title,
+        label: `${issue.key} ${issue.title}`,
         type: 'issue',
         href: `/${orgSlug}/issues/${issue.key}`,
         subtitle: issue.key,
+        icon: issue.stateIcon ?? undefined,
+        color: issue.stateColor ?? undefined,
       });
     }
 
@@ -89,7 +108,8 @@ const MentionListWrapper = forwardRef<
   }, [searchResults, orgSlug]);
 
   const hasQuery = query.trim() !== '';
-  const isLoading = hasQuery && searchResults === undefined;
+  const isDebouncing = hasQuery && query.trim() !== debouncedQuery;
+  const isLoading = hasQuery && (isDebouncing || searchResults === undefined);
 
   return (
     <MentionList

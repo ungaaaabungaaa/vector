@@ -52,9 +52,7 @@ async function getUserNames(ctx: MutationCtx, userIds: readonly Id<'users'>[]) {
   const users = await Promise.all(
     userIds.map(userId => ctx.db.get('users', userId)),
   );
-  return users
-    .map(user => getUserDisplayName(user, 'Unknown user'))
-    .filter(Boolean);
+  return users.map(user => getUserDisplayName(user, 'Unknown user'));
 }
 
 export const create = mutation({

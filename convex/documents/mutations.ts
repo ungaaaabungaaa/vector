@@ -1,5 +1,6 @@
 import { mutation } from '../_generated/server';
 import { ConvexError, v } from 'convex/values';
+import type { Doc } from '../_generated/dataModel';
 import { getOrganizationBySlug, requireAuthUser } from '../authz';
 import { canDeleteDocument, canEditDocument } from '../access';
 import {
@@ -9,6 +10,20 @@ import {
   getVisibilityLabel,
 } from '../activities/lib';
 import { PERMISSIONS, requirePermission } from '../permissions/utils';
+
+type DocumentUpdatePatch = Partial<
+  Pick<
+    Doc<'documents'>,
+    | 'title'
+    | 'content'
+    | 'folderId'
+    | 'teamId'
+    | 'projectId'
+    | 'visibility'
+    | 'lastEditedBy'
+    | 'lastEditedAt'
+  >
+>;
 
 export const create = mutation({
   args: {
@@ -149,7 +164,7 @@ export const update = mutation({
       }
     }
 
-    const patchData: Record<string, unknown> = {
+    const patchData: DocumentUpdatePatch = {
       lastEditedBy: userId,
       lastEditedAt: Date.now(),
     };

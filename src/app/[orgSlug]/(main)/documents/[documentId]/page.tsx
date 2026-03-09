@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,12 +14,9 @@ import {
   VisibilitySelector,
   type VisibilityState,
 } from '@/components/ui/visibility-selector';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { UserAvatar } from '@/components/user-avatar';
+import { UserProfilePopover } from '@/components/user-profile-popover';
+import { MentionClickHandler } from '@/components/mention-click-handler';
 import { withIds } from '@/lib/convex-helpers';
 import type { Id } from '@/convex/_generated/dataModel';
 import { usePermissionCheck } from '@/components/ui/permission-aware';
@@ -102,28 +99,6 @@ function useDocumentPresence(documentId: string | null) {
 
   return viewers ?? [];
 }
-
-function getInitials(name?: string | null, email?: string | null) {
-  const display = name || email;
-  if (!display) return '?';
-  return display
-    .split(' ')
-    .map(p => p.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-// Presence colors for viewer avatars
-const PRESENCE_COLORS = [
-  '#22c55e',
-  '#3b82f6',
-  '#f97316',
-  '#8b5cf6',
-  '#ec4899',
-  '#06b6d4',
-  '#eab308',
-];
 
 export default function DocumentDetailPage({
   params,
@@ -309,35 +284,28 @@ export default function DocumentDetailPage({
             {/* Live viewers */}
             {viewers.length > 0 && (
               <div className='flex -space-x-1.5'>
-                {viewers.slice(0, 5).map((viewer, i) =>
+                {viewers.slice(0, 5).map(viewer =>
                   viewer ? (
-                    <Tooltip key={viewer._id}>
-                      <TooltipTrigger asChild>
-                        <Avatar className='ring-background size-5 ring-[1.5px]'>
-                          {viewer.image && (
-                            <AvatarImage
-                              src={viewer.image}
-                              alt={viewer.name || viewer.email || ''}
-                            />
-                          )}
-                          <AvatarFallback
-                            className='text-[9px] font-medium'
-                            style={{
-                              backgroundColor:
-                                PRESENCE_COLORS[i % PRESENCE_COLORS.length] +
-                                '22',
-                              color:
-                                PRESENCE_COLORS[i % PRESENCE_COLORS.length],
-                            }}
-                          >
-                            {getInitials(viewer.name, viewer.email)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </TooltipTrigger>
-                      <TooltipContent side='bottom' className='text-xs'>
-                        {viewer.name || viewer.email}
-                      </TooltipContent>
-                    </Tooltip>
+                    <UserProfilePopover
+                      key={viewer._id}
+                      name={viewer.name}
+                      email={viewer.email}
+                      image={viewer.image}
+                      userId={viewer._id}
+                      side='bottom'
+                      align='end'
+                    >
+                      <button type='button' className='cursor-pointer'>
+                        <UserAvatar
+                          name={viewer.name}
+                          email={viewer.email}
+                          image={viewer.image}
+                          userId={viewer._id}
+                          size='sm'
+                          className='ring-background size-5 ring-[1.5px]'
+                        />
+                      </button>
+                    </UserProfilePopover>
                   ) : null,
                 )}
                 {viewers.length > 5 && (
@@ -374,17 +342,19 @@ export default function DocumentDetailPage({
 
         {/* Full-page editor */}
         <div className='mx-auto max-w-[720px] px-6 py-10 sm:px-8 sm:py-14'>
-          <div className='document-prose'>
-            <RichEditor
-              value={contentValue}
-              onChange={handleChange}
-              mode='full'
-              disabled={!canEdit}
-              placeholder='Start writing... Use headings, lists, and more.'
-              orgSlug={resolvedParams.orgSlug}
-              className='notion-editor'
-            />
-          </div>
+          <MentionClickHandler>
+            <div className='document-prose'>
+              <RichEditor
+                value={contentValue}
+                onChange={handleChange}
+                mode='full'
+                disabled={!canEdit}
+                placeholder='Start writing... Use headings, lists, and more.'
+                orgSlug={resolvedParams.orgSlug}
+                className='notion-editor'
+              />
+            </div>
+          </MentionClickHandler>
 
           {/* Activity Feed */}
           <div className='mt-20 border-t pt-8'>

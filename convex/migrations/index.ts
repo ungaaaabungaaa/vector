@@ -16,12 +16,12 @@ import {
   syncTeamRoleAssignment,
 } from '../roles';
 
-const knownPermissions = new Set<Permission>(PERMISSION_VALUES);
+const knownPermissions = new Set<string>(PERMISSION_VALUES);
 
 function assertKnownPermission(
   permission: string,
 ): asserts permission is Permission {
-  if (!knownPermissions.has(permission as Permission)) {
+  if (!knownPermissions.has(permission)) {
     throw new ConvexError(`UNKNOWN_PERMISSION:${permission}`);
   }
 }

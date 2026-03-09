@@ -362,19 +362,41 @@
   border-collapse: collapse;
   width: 100%;
   margin: 1rem 0;
+  caption-side: bottom;
+  font-size: 0.875rem;
 }
 
-.document-prose .tiptap th,
-.document-prose .tiptap td {
-  border: 1px solid var(--border);
-  padding: 0.5rem 0.75rem;
-  text-align: left;
+.document-prose .tiptap tr {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.15s;
+}
+
+.document-prose .tiptap tbody tr:last-child {
+  border-bottom: none;
+}
+
+.document-prose .tiptap tbody tr:hover {
+  background-color: color-mix(in oklch, var(--muted) 50%, transparent);
 }
 
 .document-prose .tiptap th {
-  background-color: var(--muted);
-  font-weight: 600;
+  height: 2.5rem;
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 500;
   font-size: 0.875em;
+  color: var(--foreground);
+  white-space: nowrap;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+}
+
+.document-prose .tiptap td {
+  padding: 0.5rem;
+  vertical-align: middle;
+  border: none;
 }
 
 .document-prose .tiptap strong {

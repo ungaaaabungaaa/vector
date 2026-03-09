@@ -81,7 +81,7 @@ export const MENTION_TYPES: MentionTypeConfig[] = [
     hrefPattern: /\/issues\/[A-Z]+-\d+/,
     cssClass: 'mention-issue',
     textPrefix: '',
-    hashEncoding: 'none',
+    hashEncoding: 'icon',
     roundIcon: false,
   },
 ];

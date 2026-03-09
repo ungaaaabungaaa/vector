@@ -55,6 +55,12 @@ export function scopeFromEntity(entity: {
   };
 }
 
+function getVisibility(
+  visibility: VisibilityState | null | undefined,
+): VisibilityState {
+  return visibility ?? 'organization';
+}
+
 // -----------------------------------------------------------------------------
 // Issue-Specific Access Control
 // -----------------------------------------------------------------------------
@@ -68,8 +74,7 @@ export async function canViewIssue(
   issue: Doc<'issues'>,
 ): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
-  const vis: VisibilityState = (issue.visibility ??
-    'organization') as VisibilityState;
+  const vis = getVisibility(issue.visibility);
 
   if (vis === 'public') return true;
   if (!userId) return false;
@@ -208,8 +213,7 @@ export async function canViewTeam(
   team: Doc<'teams'>,
 ): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
-  const vis: VisibilityState = (team.visibility ??
-    'organization') as VisibilityState;
+  const vis = getVisibility(team.visibility);
 
   if (vis === 'public') return true;
   if (!userId) return false;
@@ -292,8 +296,7 @@ export async function canViewProject(
   project: Doc<'projects'>,
 ): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
-  const vis: VisibilityState = (project.visibility ??
-    'organization') as VisibilityState;
+  const vis = getVisibility(project.visibility);
 
   if (vis === 'public') return true;
   if (!userId) return false;
@@ -367,8 +370,7 @@ export async function canViewDocument(
   doc: Doc<'documents'>,
 ): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
-  const vis: VisibilityState = (doc.visibility ??
-    'organization') as VisibilityState;
+  const vis = getVisibility(doc.visibility);
 
   if (vis === 'public') return true;
   if (!userId) return false;

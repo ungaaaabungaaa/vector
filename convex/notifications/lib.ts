@@ -2,6 +2,7 @@ import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import {
+  NOTIFICATION_CATEGORIES,
   categoryForEvent,
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationCategory,
@@ -108,9 +109,7 @@ export async function getMergedPreferences(
 
   const map = new Map(rows.map(row => [row.category, row]));
 
-  return (
-    Object.keys(DEFAULT_NOTIFICATION_PREFERENCES) as NotificationCategory[]
-  ).map(category => {
+  return NOTIFICATION_CATEGORIES.map(category => {
     const row = map.get(category);
     return row
       ? {
@@ -246,7 +245,7 @@ export async function resolveMentionedUsers(
     }
 
     const candidates = [user.username, user.name, user.email?.split('@')[0]]
-      .filter(Boolean)
+      .filter((value): value is string => Boolean(value))
       .map(value => normalizeMentionToken(String(value).replace(/\s+/g, '-')));
 
     if (tokens.some(token => candidates.includes(token))) {

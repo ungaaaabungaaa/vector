@@ -7,6 +7,7 @@ import { convex } from '@convex-dev/better-auth/plugins';
 import { APIError, betterAuth } from 'better-auth';
 import type { BetterAuthOptions } from 'better-auth';
 import { username, emailOTP } from 'better-auth/plugins';
+import type { GenericActionCtx, GenericMutationCtx } from 'convex/server';
 import { v } from 'convex/values';
 import { api, components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -43,6 +44,18 @@ const getTrustedOrigins = () => {
 
 const authFunctions: AuthFunctions = internal.auth;
 
+const hasScheduler = (
+  ctx: GenericCtx<DataModel>,
+): ctx is GenericActionCtx<DataModel> | GenericMutationCtx<DataModel> =>
+  'scheduler' in ctx;
+
+function normalizeUserId(
+  ctx: Pick<GenericMutationCtx<DataModel>, 'db'>,
+  userId: string | null | undefined,
+): Id<'users'> | null {
+  return userId ? ctx.db.normalizeId('users', userId) : null;
+}
+
 export const authComponent = createClient<DataModel, typeof authSchema>(
   components.betterAuth,
   {
@@ -66,11 +79,12 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
           await authComponent.setUserId(ctx, authUser._id, userId);
         },
         onUpdate: async (ctx, newAuthUser) => {
-          if (!newAuthUser.userId) {
+          const userId = normalizeUserId(ctx, newAuthUser.userId);
+          if (!userId) {
             return;
           }
 
-          await ctx.db.patch('users', newAuthUser.userId as Id<'users'>, {
+          await ctx.db.patch('users', userId, {
             name: newAuthUser.name,
             email: newAuthUser.email,
             image: newAuthUser.image ?? undefined,
@@ -81,11 +95,12 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
           });
         },
         onDelete: async (ctx, authUser) => {
-          if (!authUser.userId) {
+          const userId = normalizeUserId(ctx, authUser.userId);
+          if (!userId) {
             return;
           }
 
-          await ctx.db.delete('users', authUser.userId as Id<'users'>);
+          await ctx.db.delete('users', userId);
         },
       },
     },
@@ -165,18 +180,8 @@ export const createAuthOptions = (
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
         console.log(`[otp] ${type} for ${email}: ${otp}`);
-        // Schedule the Node.js action to send the email via SMTP.
-        // The ctx from createAuthOptions closure has scheduler access
-        // when called from an HTTP handler or action context.
-        if ('scheduler' in ctx) {
-          const scheduler = (ctx as Record<string, unknown>).scheduler as {
-            runAfter: (
-              delay: number,
-              fn: unknown,
-              args: Record<string, unknown>,
-            ) => Promise<void>;
-          };
-          await scheduler.runAfter(0, internal.email.otp.sendOtpEmail, {
+        if (hasScheduler(ctx)) {
+          await ctx.scheduler.runAfter(0, internal.email.otp.sendOtpEmail, {
             to: email,
             otp,
             type,
@@ -205,11 +210,10 @@ export const setBootstrapAdminRole = internalMutation({
   handler: async (ctx, args) => {
     const authUser = await authComponent.getAnyUserById(ctx, args.authUserId);
 
-    if (!authUser?.userId) {
+    const userId = normalizeUserId(ctx, authUser?.userId);
+    if (!userId) {
       throw new Error('Failed to locate bootstrap admin user');
     }
-
-    const userId = authUser.userId as Id<'users'>;
 
     await ctx.db.patch('users', userId, {
       role: PLATFORM_ADMIN_ROLE,

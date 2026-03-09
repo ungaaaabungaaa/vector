@@ -44,6 +44,22 @@ type OrganizationRoleSummary = {
   system: boolean;
 };
 
+type UnifiedOrganizationRole = Omit<Doc<'roles'>, 'scopeType'> & {
+  scopeType: 'organization';
+};
+
+type ResolvedOrganizationRole =
+  | {
+      source: 'unified';
+      role: UnifiedOrganizationRole;
+      summary: OrganizationRoleSummary;
+    }
+  | {
+      source: 'legacy';
+      role: Doc<'orgRoles'>;
+      summary: OrganizationRoleSummary;
+    };
+
 type OrganizationRolePermissionSummary = {
   _id: Id<'rolePermissions'> | Id<'orgRolePermissions'>;
   _creationTime: number;
@@ -93,7 +109,7 @@ async function getUnifiedOrganizationRole(
   ctx: QueryCtx | MutationCtx,
   organizationId: Id<'organizations'>,
   roleId: Id<'roles'>,
-) {
+): Promise<UnifiedOrganizationRole | null> {
   const role = await ctx.db.get('roles', roleId);
   if (
     !role ||
@@ -102,7 +118,7 @@ async function getUnifiedOrganizationRole(
   ) {
     return null;
   }
-  return role;
+  return { ...role, scopeType: 'organization' };
 }
 
 async function getLegacyOrganizationRole(
@@ -121,7 +137,7 @@ async function resolveOrganizationRole(
   ctx: QueryCtx | MutationCtx,
   organizationId: Id<'organizations'>,
   roleId: OrganizationRoleId,
-) {
+): Promise<ResolvedOrganizationRole | null> {
   const normalizedUnified = ctx.db.normalizeId('roles', roleId);
   if (normalizedUnified) {
     const role = await getUnifiedOrganizationRole(
@@ -133,7 +149,7 @@ async function resolveOrganizationRole(
       return {
         source: 'unified' as const,
         role,
-        summary: role as OrganizationRoleSummary,
+        summary: role,
       };
     }
   }
@@ -1025,11 +1041,13 @@ export const getPermissions = query({
       );
     }
 
+    if (!normalizedUnifiedRoleId) {
+      throw new ConvexError('ROLE_NOT_FOUND');
+    }
+
     return ctx.db
       .query('rolePermissions')
-      .withIndex('by_role', q =>
-        q.eq('roleId', normalizedUnifiedRoleId as Id<'roles'>),
-      )
+      .withIndex('by_role', q => q.eq('roleId', normalizedUnifiedRoleId))
       .collect();
   },
 });

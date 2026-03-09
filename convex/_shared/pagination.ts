@@ -1,5 +1,9 @@
 import type { QueryCtx } from '../_generated/server';
-import type { QueryInitializer, GenericTableInfo } from 'convex/server';
+import type {
+  DocumentByInfo,
+  GenericTableInfo,
+  QueryInitializer,
+} from 'convex/server';
 import { v } from 'convex/values';
 
 /**
@@ -22,19 +26,19 @@ export interface PaginationResult<T> {
 /**
  * Apply pagination to a query
  */
-export async function applyPagination<T>(
+export async function applyPagination<TableInfo extends GenericTableInfo>(
   ctx: QueryCtx,
-  query: QueryInitializer<GenericTableInfo>, // Convex query object
+  query: QueryInitializer<TableInfo>, // Convex query object
   limit: number = 25,
   cursor?: string,
-): Promise<PaginationResult<T>> {
+): Promise<PaginationResult<DocumentByInfo<TableInfo>>> {
   const result = await query.order('desc').paginate({
     numItems: limit,
     cursor: cursor ?? null,
   });
 
   return {
-    items: result.page as T[],
+    items: result.page,
     hasMore: !result.isDone,
     cursor: result.continueCursor,
   };

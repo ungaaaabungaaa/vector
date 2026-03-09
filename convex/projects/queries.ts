@@ -2,6 +2,7 @@ import { query } from '../_generated/server';
 import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
 import { canViewProject } from '../access';
+import { isDefined } from '../_shared/typeGuards';
 
 export const getByKey = query({
   args: {
@@ -83,12 +84,8 @@ export const list = query({
       (project): project is Doc<'projects'> => project !== null,
     );
 
-    const leadIds = projects
-      .map(p => p.leadId)
-      .filter(Boolean) as Id<'users'>[];
-    const statusIds = projects
-      .map(p => p.statusId)
-      .filter(Boolean) as Id<'projectStatuses'>[];
+    const leadIds = projects.map(p => p.leadId).filter(isDefined);
+    const statusIds = projects.map(p => p.statusId).filter(isDefined);
 
     const leadUsers = await Promise.all(
       leadIds.map(id => ctx.db.get('users', id)),

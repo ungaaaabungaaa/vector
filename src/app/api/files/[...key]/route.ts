@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
 
 interface Params {
   key: string[];
@@ -21,7 +22,7 @@ export async function GET(
     const fileUrl = await convex.query(
       api.organizations.queries.getFileUrlByString,
       {
-        storageIdString: storageId,
+        storageIdString: storageId as Id<'_storage'>,
       },
     );
 

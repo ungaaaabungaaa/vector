@@ -1,6 +1,7 @@
 import { mutation, query } from '../_generated/server';
 import { v } from 'convex/values';
 import { requireAuthUser } from '../authz';
+import { isDefined } from '../_shared/typeGuards';
 
 const PRESENCE_TIMEOUT = 30_000; // 30 seconds
 
@@ -80,6 +81,6 @@ export const getViewers = query({
       }),
     );
 
-    return viewers.filter(Boolean);
+    return viewers.filter(isDefined);
   },
 });

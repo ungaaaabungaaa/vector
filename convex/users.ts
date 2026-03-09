@@ -3,6 +3,7 @@ import { v, ConvexError } from 'convex/values';
 import { api, components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { createAuth } from './auth';
+import { isDefined } from './_shared/typeGuards';
 import { getAuthUserId } from './authUtils';
 import { PLATFORM_ADMIN_ROLE } from './platformAdmin/lib';
 
@@ -46,6 +47,24 @@ export const currentUser = query({
 
     const user = await ctx.db.get('users', userId);
     return user;
+  },
+});
+
+/**
+ * Get a user by ID (public fields only)
+ */
+export const getUser = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get('users', args.userId);
+    if (!user) return null;
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      username: user.username,
+    };
   },
 });
 
@@ -367,7 +386,7 @@ export const getOrganizations = query({
     const orgs = await Promise.all(
       orgIds.map(id => ctx.db.get('organizations', id)),
     );
-    return orgs.filter(Boolean);
+    return orgs.filter(isDefined);
   },
 });
 

@@ -859,16 +859,9 @@ export const getLogoUrl = query({
  */
 export const getFileUrlByString = query({
   args: {
-    storageIdString: v.string(),
+    storageIdString: v.id('_storage'),
   },
   handler: async (ctx, args) => {
-    try {
-      // Convert string to storage ID
-      const storageId = args.storageIdString as Id<'_storage'>;
-      // Generate URL for the file
-      return await ctx.storage.getUrl(storageId);
-    } catch {
-      return null;
-    }
+    return await ctx.storage.getUrl(args.storageIdString);
   },
 });

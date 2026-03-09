@@ -2,6 +2,7 @@ import { query } from '../_generated/server';
 import { v, ConvexError } from 'convex/values';
 import type { Id, Doc } from '../_generated/dataModel';
 import { canViewTeam } from '../access';
+import { isDefined } from '../_shared/typeGuards';
 
 /**
  * Get team by organization slug and team key
@@ -85,7 +86,7 @@ export const list = query({
     );
 
     // Batch database calls for better performance
-    const leadIds = teams.map(t => t.leadId).filter(Boolean) as Id<'users'>[];
+    const leadIds = teams.map(t => t.leadId).filter(isDefined);
     const leadUsers = await Promise.all(
       leadIds.map(id => ctx.db.get('users', id)),
     );

@@ -1,13 +1,13 @@
 import { getAuthUserId } from '../authUtils';
+import type { Doc, Id } from '../_generated/dataModel';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
-import type { Id } from '../_generated/dataModel';
 
 /**
  * Require authentication and return user ID
  */
 export async function requireAuth(
   ctx: QueryCtx | MutationCtx,
-): Promise<string> {
+): Promise<Id<'users'>> {
   const userId = await getAuthUserId(ctx);
   if (!userId) {
     throw new Error('Not authenticated');
@@ -22,9 +22,9 @@ export async function requireOrgAccess(
   ctx: QueryCtx | MutationCtx,
   orgSlug: string,
 ): Promise<{
-  userId: string;
-  org: unknown; // Doc<"organizations">
-  membership: unknown; // Doc<"members">
+  userId: Id<'users'>;
+  org: Doc<'organizations'>;
+  membership: Doc<'members'>;
 }> {
   const userId = await requireAuth(ctx);
 
@@ -42,7 +42,7 @@ export async function requireOrgAccess(
   const membership = await ctx.db
     .query('members')
     .withIndex('by_org_user', q =>
-      q.eq('organizationId', org._id).eq('userId', userId as Id<'users'>),
+      q.eq('organizationId', org._id).eq('userId', userId),
     )
     .first();
 
@@ -61,9 +61,9 @@ export async function requirePermission(
   orgSlug: string,
   _permission: string,
 ): Promise<{
-  userId: string;
-  org: unknown; // Doc<"organizations">
-  membership: unknown; // Doc<"members">
+  userId: Id<'users'>;
+  org: Doc<'organizations'>;
+  membership: Doc<'members'>;
 }> {
   const { userId, org, membership } = await requireOrgAccess(ctx, orgSlug);
 

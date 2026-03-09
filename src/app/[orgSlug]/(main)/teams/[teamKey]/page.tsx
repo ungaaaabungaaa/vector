@@ -1492,29 +1492,31 @@ export default function TeamViewPage() {
 
             {/* Team Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className='flex items-center justify-between px-3 sm:px-4'>
-                <TabsList>
-                  <TabsTrigger value='members'>
-                    Members
-                    <span className='text-muted-foreground text-xs'>
-                      {teamMembers?.length ?? 0}
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger value='issues'>
-                    Issues
-                    <span className='text-muted-foreground text-xs'>
-                      {teamIssuesData?.total || 0}
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger value='projects'>
-                    Projects
-                    <span className='text-muted-foreground text-xs'>
-                      {teamProjects.length}
-                    </span>
-                  </TabsTrigger>
-                  <TabsTrigger value='documents'>Documents</TabsTrigger>
-                  <TabsTrigger value='activity'>Activity</TabsTrigger>
-                </TabsList>
+              <div className='space-y-2 px-3 sm:px-4'>
+                <div className='overflow-x-auto'>
+                  <TabsList>
+                    <TabsTrigger value='members'>
+                      Members
+                      <span className='text-muted-foreground text-xs'>
+                        {teamMembers?.length ?? 0}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value='issues'>
+                      Issues
+                      <span className='text-muted-foreground text-xs'>
+                        {teamIssuesData?.total || 0}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value='projects'>
+                      Projects
+                      <span className='text-muted-foreground text-xs'>
+                        {teamProjects.length}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value='documents'>Documents</TabsTrigger>
+                    <TabsTrigger value='activity'>Activity</TabsTrigger>
+                  </TabsList>
+                </div>
 
                 {/* Tab-specific controls */}
                 {activeTab === 'members' && (

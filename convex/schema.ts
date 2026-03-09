@@ -524,6 +524,8 @@ export default defineSchema({
     organizationId: v.id('organizations'),
     title: v.string(),
     content: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    color: v.optional(v.string()),
     folderId: v.optional(v.id('documentFolders')),
     teamId: v.optional(v.id('teams')),
     projectId: v.optional(v.id('projects')),

@@ -13,6 +13,7 @@ import { formatDateHuman } from '@/lib/date';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FileText, Trash2, Plus, Pencil, MoreHorizontal } from 'lucide-react';
+import { DynamicIcon } from '@/lib/dynamic-icons';
 import { PageSkeleton } from '@/components/ui/table-skeleton';
 import { useConfirm } from '@/hooks/use-confirm';
 import { toast } from 'sonner';
@@ -262,6 +263,8 @@ function DraggableDocRow({
   doc: {
     _id: string;
     title: string;
+    icon?: string;
+    color?: string;
     folderId?: string;
     team?: { name: string } | null;
     project?: { name: string } | null;
@@ -294,7 +297,16 @@ function DraggableDocRow({
         isDragging && 'opacity-30',
       )}
     >
-      <FileText className='text-muted-foreground size-4 flex-shrink-0' />
+      {doc.icon ? (
+        <DynamicIcon
+          name={doc.icon}
+          fallback={FileText}
+          className='size-4 flex-shrink-0'
+          style={{ color: doc.color || undefined }}
+        />
+      ) : (
+        <FileText className='text-muted-foreground size-4 flex-shrink-0' />
+      )}
       <Link
         href={`/${orgSlug}/documents/${doc._id}`}
         className='min-w-0 flex-1'
@@ -706,7 +718,16 @@ function DocumentsPageContent({ orgSlug }: { orgSlug: string }) {
       >
         {draggedDoc ? (
           <div className='bg-card flex items-center gap-2 rounded-lg border px-3 py-2 shadow-lg'>
-            <FileText className='text-muted-foreground size-4' />
+            {draggedDoc.icon ? (
+              <DynamicIcon
+                name={draggedDoc.icon}
+                fallback={FileText}
+                className='size-4'
+                style={{ color: draggedDoc.color || undefined }}
+              />
+            ) : (
+              <FileText className='text-muted-foreground size-4' />
+            )}
             <span className='text-sm font-medium'>{draggedDoc.title}</span>
           </div>
         ) : null}

@@ -18,6 +18,7 @@ import {
   Pencil,
   MoreHorizontal,
 } from 'lucide-react';
+import { DynamicIcon } from '@/lib/dynamic-icons';
 import { PageSkeleton } from '@/components/ui/table-skeleton';
 import { useConfirm } from '@/hooks/use-confirm';
 import { toast } from 'sonner';
@@ -394,7 +395,16 @@ function FolderContent({
               key={doc._id}
               className='hover:bg-muted/50 flex items-center gap-2 px-3 py-2 transition-colors'
             >
-              <FileText className='text-muted-foreground size-4 flex-shrink-0' />
+              {doc.icon ? (
+                <DynamicIcon
+                  name={doc.icon}
+                  fallback={FileText}
+                  className='size-4 flex-shrink-0'
+                  style={{ color: doc.color || undefined }}
+                />
+              ) : (
+                <FileText className='text-muted-foreground size-4 flex-shrink-0' />
+              )}
               <Link
                 href={`/${orgSlug}/documents/${doc._id}`}
                 className='min-w-0 flex-1'

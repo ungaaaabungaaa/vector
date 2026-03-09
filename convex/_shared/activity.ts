@@ -49,6 +49,8 @@ export const ACTIVITY_EVENT_TYPES = [
   'document_created',
   'document_title_changed',
   'document_content_changed',
+  'document_icon_changed',
+  'document_color_changed',
   'document_team_changed',
   'document_project_changed',
   'document_visibility_changed',

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Check, Loader2, Plus } from 'lucide-react';
 import { MobileNavTrigger } from '../../layout';
 import Link from 'next/link';
 import { formatDateHuman } from '@/lib/date';
@@ -19,12 +19,122 @@ import { UserProfilePopover } from '@/components/user-profile-popover';
 import { MentionClickHandler } from '@/components/mention-click-handler';
 import { withIds } from '@/lib/convex-helpers';
 import type { Id } from '@/convex/_generated/dataModel';
-import { usePermissionCheck } from '@/components/ui/permission-aware';
+import {
+  PermissionAwareSelector,
+  useAccess,
+  usePermissionCheck,
+} from '@/components/ui/permission-aware';
 import { PERMISSIONS } from '@/convex/_shared/permissions';
 import { DocumentActivityFeed } from '@/components/activity/document-activity-feed';
+import { IconPicker } from '@/components/ui/icon-picker';
+import { DynamicIcon } from '@/lib/dynamic-icons';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { useOptimisticValue } from '@/hooks/use-optimistic';
+import { DEFAULT_DOCUMENT_COLORS } from '@/convex/_shared/document_appearance';
 
 interface DocumentDetailPageProps {
   params: Promise<{ orgSlug: string; documentId: string }>;
+}
+
+const DOCUMENT_COLOR_LABELS: Record<string, string> = {
+  '#94a3b8': 'Slate',
+  '#3b82f6': 'Blue',
+  '#10b981': 'Emerald',
+  '#f59e0b': 'Amber',
+  '#ef4444': 'Red',
+  '#8b5cf6': 'Violet',
+  '#06b6d4': 'Cyan',
+  '#6b7280': 'Gray',
+};
+
+function DocumentAppearanceSelector({
+  icon,
+  color,
+  onIconChange,
+  onColorChange,
+}: {
+  icon: string | null;
+  color: string | null;
+  onIconChange: (iconName: string | null) => void;
+  onColorChange: (colorValue: string) => void;
+}) {
+  const { viewOnly } = useAccess();
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type='button'
+          aria-label={
+            icon
+              ? 'Change document icon and color'
+              : 'Set document icon and color'
+          }
+          className='focus-visible:ring-primary/50 flex size-5 items-center justify-center rounded-sm transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none'
+        >
+          {icon ? (
+            <DynamicIcon
+              name={icon}
+              fallback={FileText}
+              className='size-3.5'
+              style={{ color: color || undefined }}
+            />
+          ) : (
+            <div className='border-muted-foreground/50 flex size-3.5 items-center justify-center rounded border border-dashed'>
+              <Plus className='text-muted-foreground size-2' />
+            </div>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className='w-80' align='start'>
+        <div className='space-y-4'>
+          <div>
+            <h4 className='mb-2 text-sm font-medium'>Document Icon</h4>
+            <IconPicker
+              value={icon}
+              onValueChange={onIconChange}
+              placeholder='Select document icon'
+              className='h-8 w-full'
+            />
+          </div>
+          <div>
+            <div className='mb-2 flex items-center justify-between gap-2'>
+              <h4 className='text-sm font-medium'>Document Color</h4>
+              {viewOnly ? (
+                <span className='text-muted-foreground text-xs'>View only</span>
+              ) : null}
+            </div>
+            <div className='flex flex-wrap gap-2'>
+              {DEFAULT_DOCUMENT_COLORS.map(colorOption => (
+                <button
+                  key={colorOption}
+                  type='button'
+                  aria-label={`Set document color to ${DOCUMENT_COLOR_LABELS[colorOption] ?? colorOption}`}
+                  aria-pressed={color === colorOption}
+                  disabled={viewOnly}
+                  className={`size-8 rounded-md border-2 transition-all ${
+                    color === colorOption
+                      ? 'border-foreground scale-110'
+                      : 'border-border hover:scale-105'
+                  } ${viewOnly ? 'cursor-not-allowed opacity-50 hover:scale-100' : ''}`}
+                  style={{ backgroundColor: colorOption }}
+                  onClick={() => {
+                    if (!viewOnly) {
+                      onColorChange(colorOption);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function DocumentLoadingSkeleton() {
@@ -135,6 +245,12 @@ export default function DocumentDetailPage({
 
   const updateMutation = useMutation(api.documents.mutations.update);
   const viewers = useDocumentPresence(resolvedParams?.documentId ?? null);
+  const [displayIcon, setOptimisticIcon] = useOptimisticValue(
+    document?.icon ?? null,
+  );
+  const [displayColor, setOptimisticColor] = useOptimisticValue(
+    document?.color ?? null,
+  );
 
   const { isAllowed: canEdit } = usePermissionCheck(
     resolvedParams?.orgSlug || '',
@@ -251,6 +367,22 @@ export default function DocumentDetailPage({
     });
   };
 
+  const handleIconChange = (iconName: string | null) => {
+    setOptimisticIcon(iconName);
+    void updateMutation({
+      documentId: document._id,
+      data: { icon: iconName },
+    });
+  };
+
+  const handleColorChange = (color: string) => {
+    setOptimisticColor(color);
+    void updateMutation({
+      documentId: document._id,
+      data: { color },
+    });
+  };
+
   return (
     <div className='bg-background h-full overflow-y-auto'>
       <div className='h-full'>
@@ -268,6 +400,18 @@ export default function DocumentDetailPage({
             <span className='text-muted-foreground/50 hidden text-xs sm:inline'>
               /
             </span>
+            <PermissionAwareSelector
+              orgSlug={resolvedParams.orgSlug}
+              permission={PERMISSIONS.DOCUMENT_EDIT}
+              fallbackMessage="You don't have permission to change document appearance"
+            >
+              <DocumentAppearanceSelector
+                icon={displayIcon}
+                color={displayColor}
+                onIconChange={handleIconChange}
+                onColorChange={handleColorChange}
+              />
+            </PermissionAwareSelector>
             <span className='text-foreground hidden max-w-48 truncate text-xs font-medium sm:inline'>
               {document.title || 'Untitled'}
             </span>
@@ -295,7 +439,10 @@ export default function DocumentDetailPage({
                       side='bottom'
                       align='end'
                     >
-                      <button type='button' className='cursor-pointer'>
+                      <button
+                        type='button'
+                        className='focus-visible:ring-primary/50 relative cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none'
+                      >
                         <UserAvatar
                           name={viewer.name}
                           email={viewer.email}

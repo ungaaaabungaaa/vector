@@ -869,7 +869,6 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                     value={titleValue}
                     onChange={e => setTitleValue(e.target.value)}
                     className='h-auto border-none p-0 !text-3xl !leading-tight font-semibold shadow-none focus-visible:ring-0'
-                    style={{ fontFamily: 'var(--font-title)' }}
                     onKeyDown={e => {
                       if (e.key === 'Enter') handleTitleSave();
                       if (e.key === 'Escape') {

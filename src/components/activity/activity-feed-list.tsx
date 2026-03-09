@@ -408,6 +408,27 @@ function renderActivityDescription(
           <ActivityTarget orgSlug={orgSlug} target={item.target} />
         </>
       );
+    case 'document_icon_changed':
+      return (
+        <>
+          updated the icon on{' '}
+          <ActivityTarget orgSlug={orgSlug} target={item.target} />
+        </>
+      );
+    case 'document_color_changed':
+      return (
+        <>
+          changed the color on{' '}
+          <ActivityTarget orgSlug={orgSlug} target={item.target} /> from{' '}
+          <span className='text-foreground/75'>
+            {details.fromLabel ?? 'Unset'}
+          </span>{' '}
+          to{' '}
+          <span className='text-foreground/75'>
+            {details.toLabel ?? 'Unset'}
+          </span>
+        </>
+      );
     case 'document_team_changed':
       return (
         <>

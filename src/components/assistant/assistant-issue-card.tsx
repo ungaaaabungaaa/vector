@@ -39,6 +39,28 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
     api.issues.mutations.changeAssignmentState,
   );
   const updateAssignees = useMutation(api.issues.mutations.updateAssignees);
+  const firstAssignment = assignments?.[0];
+  const firstState = firstAssignment?.state;
+  const assigneeIds = (assignments ?? [])
+    .map(a => a.assignee?._id)
+    .filter((id): id is Id<'users'> => Boolean(id));
+  const serverPriorityId =
+    issue && issue !== null ? (issue.priorityId ?? '') : '';
+  const serverStateId = firstAssignment?.stateId ?? '';
+  const serverAssigneeIds = assigneeIds.map(String);
+  const [displayPriorityId, setDisplayPriorityId] =
+    useOptimisticValue(serverPriorityId);
+  const [displayStateId, setDisplayStateId] = useOptimisticValue(serverStateId);
+  const [displayAssigneeIdsKey, setDisplayAssigneeIdsKey] = useOptimisticValue(
+    serverAssigneeIds.join(','),
+  );
+  const displayAssigneeIds = displayAssigneeIdsKey
+    ? displayAssigneeIdsKey.split(',').filter(Boolean)
+    : [];
+  const displayPriority = priorities?.find(
+    priority => priority._id === displayPriorityId,
+  );
+  const displayState = states?.find(state => state._id === displayStateId);
 
   if (issue === undefined) {
     return (
@@ -62,30 +84,6 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
 
   const priorityColor = issue.priority?.color ?? '#94a3b8';
   const priorityIcon = issue.priority?.icon;
-
-  // Build assignment data for state selector
-  const firstAssignment = assignments?.[0];
-  const firstState = firstAssignment?.state;
-
-  const assigneeIds = (assignments ?? [])
-    .map(a => a.assignee?._id)
-    .filter((id): id is Id<'users'> => Boolean(id));
-  const serverPriorityId = issue.priorityId ?? '';
-  const serverStateId = firstAssignment?.stateId ?? '';
-  const serverAssigneeIds = assigneeIds.map(String);
-  const [displayPriorityId, setDisplayPriorityId] =
-    useOptimisticValue(serverPriorityId);
-  const [displayStateId, setDisplayStateId] = useOptimisticValue(serverStateId);
-  const [displayAssigneeIdsKey, setDisplayAssigneeIdsKey] = useOptimisticValue(
-    serverAssigneeIds.join(','),
-  );
-  const displayAssigneeIds = displayAssigneeIdsKey
-    ? displayAssigneeIdsKey.split(',').filter(Boolean)
-    : [];
-  const displayPriority = priorities?.find(
-    priority => priority._id === displayPriorityId,
-  );
-  const displayState = states?.find(state => state._id === displayStateId);
 
   return (
     <div className='bg-background hover:bg-muted/30 flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors'>

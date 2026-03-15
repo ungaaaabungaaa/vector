@@ -576,12 +576,12 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
                 className='min-h-8 flex-1 px-2 py-1.5 text-xs'
                 placeholder='Ask anything...'
               />
-              <div className='flex shrink-0 items-center gap-0.5 p-0.5'>
+              <div className='flex shrink-0 items-center gap-0.5 p-1'>
                 {hasMessages ? (
                   <button
                     type='button'
                     onClick={() => void handleClearHistory()}
-                    className='text-muted-foreground/40 hover:text-muted-foreground flex size-6 items-center justify-center rounded transition-colors'
+                    className='text-muted-foreground/40 hover:text-muted-foreground flex size-5 items-center justify-center rounded transition-colors'
                     aria-label='Clear conversation'
                   >
                     <Trash2 className='size-2.5' />
@@ -589,14 +589,14 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
                 ) : null}
                 <Button
                   size='sm'
-                  className='size-6 rounded p-0'
+                  className='size-5 rounded p-0'
                   disabled={isSending}
                   onClick={() => inputRef.current?.submit()}
                 >
                   {isSending || threadRow?.threadStatus === 'pending' ? (
-                    <BarsSpinner size={12} />
+                    <BarsSpinner size={10} />
                   ) : (
-                    <ArrowUp className='size-3' />
+                    <ArrowUp className='size-2.5' />
                   )}
                 </Button>
               </div>

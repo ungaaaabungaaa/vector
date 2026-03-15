@@ -100,6 +100,7 @@ export function IssuesTable({
           assigneeId: string | null;
           assigneeName: string | null;
           assigneeEmail: string | null;
+          assigneeImage?: string | null;
           stateId: string | null;
           stateIcon: string | null;
           stateColor: string | null;
@@ -127,6 +128,7 @@ export function IssuesTable({
           assigneeId: row.assigneeId ?? null,
           assigneeName: row.assigneeName ?? null,
           assigneeEmail: row.assigneeEmail ?? null,
+          assigneeImage: row.assigneeImage ?? null,
           stateId: row.stateId ?? null,
           stateIcon: row.stateIcon ?? null,
           stateColor: row.stateColor ?? null,
@@ -163,6 +165,7 @@ export function IssuesTable({
               assigneeId: row.assigneeId ?? null,
               assigneeName: row.assigneeName ?? null,
               assigneeEmail: row.assigneeEmail ?? null,
+              assigneeImage: row.assigneeImage ?? null,
               stateId: row.stateId ?? null,
               stateIcon: row.stateIcon ?? null,
               stateColor: row.stateColor ?? null,

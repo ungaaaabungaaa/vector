@@ -13,6 +13,15 @@ import {
 import { Plus, X, User } from 'lucide-react';
 import { StateSelector, AssigneeSelector } from './issue-selectors';
 import type { Member, State } from './issue-selectors';
+import { Input } from '@/components/ui/input';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { PERMISSIONS } from '@/convex/_shared/permissions';
 import { useScopedPermission } from '@/hooks/use-permissions';
 import { PermissionAware } from '@/components/ui/permission-aware';
@@ -148,6 +157,11 @@ function IssueAssignmentRow({
             </div>
           }
         />
+        {assignment.note && (
+          <span className='bg-muted text-muted-foreground inline-flex max-w-[120px] truncate rounded px-1.5 py-0.5 text-[10px] leading-tight'>
+            {assignment.note}
+          </span>
+        )}
       </div>
 
       {isOwnAssignment ? (
@@ -232,6 +246,7 @@ export function IssueAssignments({
       issueId,
       assigneeId: args.assigneeId,
       stateId: nextState?._id,
+      note: args.note,
       assignee: null,
       state: nextState
         ? {
@@ -337,12 +352,13 @@ export function IssueAssignments({
     }
   };
 
-  const handleAddAssignee = async (assigneeId: string) => {
+  const handleAddAssignee = async (assigneeId: string, note?: string) => {
     try {
       await addAssigneeMutation({
         issueId,
         assigneeId: assigneeId as Id<'users'>,
         stateId: defaultStateId || undefined,
+        note: note?.trim() || undefined,
       });
       setAddDialogOpen(false);
     } catch (error) {
@@ -459,25 +475,154 @@ export function IssueAssignments({
         permission={PERMISSIONS.ISSUE_ASSIGN}
         fallbackMessage="You don't have permission to add assignees"
       >
-        <ResponsiveDialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <ResponsiveDialogContent>
-            <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Add Assignee</ResponsiveDialogTitle>
-            </ResponsiveDialogHeader>
-            <div className='space-y-4'>
-              <div className='space-y-2'>
-                <label className='text-sm font-medium'>Select assignee</label>
-                <AssigneeSelector
-                  members={availableMembers}
-                  selectedAssignee=''
-                  onAssigneeSelect={handleAddAssignee}
-                  displayMode='labelOnly'
-                />
-              </div>
-            </div>
-          </ResponsiveDialogContent>
-        </ResponsiveDialog>
+        <AddAssigneeDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          members={availableMembers}
+          onAdd={handleAddAssignee}
+        />
       </PermissionAware>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Compact add-assignee dialog (Vector design pattern)
+// ---------------------------------------------------------------------------
+
+interface AddAssigneeDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  members: readonly Member[] | Member[];
+  onAdd: (assigneeId: string, note?: string) => void;
+}
+
+function AddAssigneeDialog({
+  open,
+  onOpenChange,
+  members,
+  onAdd,
+}: AddAssigneeDialogProps) {
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [note, setNote] = useState('');
+
+  const handleSelect = (userId: string) => {
+    setSelectedMemberId(userId);
+  };
+
+  const handleSubmit = () => {
+    if (!selectedMemberId) return;
+    onAdd(selectedMemberId, note);
+    setSelectedMemberId(null);
+    setNote('');
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    setSelectedMemberId(null);
+    setNote('');
+  };
+
+  const selectedMember = members.find(m => m.userId === selectedMemberId);
+
+  return (
+    <ResponsiveDialog open={open} onOpenChange={v => !v && handleClose()}>
+      <ResponsiveDialogHeader className='sr-only'>
+        <ResponsiveDialogTitle>Add Assignee</ResponsiveDialogTitle>
+      </ResponsiveDialogHeader>
+      <ResponsiveDialogContent
+        showCloseButton={false}
+        className='gap-2 p-2 sm:max-w-md'
+      >
+        {!selectedMemberId ? (
+          <Command className='border-none shadow-none'>
+            <CommandInput placeholder='Search members…' autoFocus />
+            <CommandList className='max-h-[240px]'>
+              <CommandEmpty>No members available</CommandEmpty>
+              <CommandGroup>
+                {members.map(member => (
+                  <CommandItem
+                    key={member.userId}
+                    value={`${member.user?.name ?? ''} ${member.user?.email ?? ''}`}
+                    onSelect={() => handleSelect(member.userId)}
+                    className='flex items-center gap-2 px-2 py-1.5'
+                  >
+                    <UserAvatar
+                      name={member.user?.name}
+                      email={member.user?.email}
+                      image={member.user?.image}
+                      userId={member.userId}
+                      size='sm'
+                    />
+                    <div className='min-w-0 flex-1'>
+                      <div className='truncate text-sm font-medium'>
+                        {member.user?.name ?? 'Unknown'}
+                      </div>
+                      <div className='text-muted-foreground truncate text-xs'>
+                        {member.user?.email}
+                      </div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        ) : (
+          <div className='space-y-2'>
+            {/* Selected member preview */}
+            <div className='flex items-center gap-2 px-1'>
+              <UserAvatar
+                name={selectedMember?.user?.name}
+                email={selectedMember?.user?.email}
+                image={selectedMember?.user?.image}
+                userId={selectedMemberId}
+                size='sm'
+              />
+              <div className='min-w-0 flex-1'>
+                <span className='text-sm font-medium'>
+                  {selectedMember?.user?.name ?? 'Unknown'}
+                </span>
+              </div>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='h-6 w-6 p-0'
+                onClick={() => setSelectedMemberId(null)}
+              >
+                <X className='h-3 w-3' />
+              </Button>
+            </div>
+
+            {/* Optional note */}
+            <div className='relative'>
+              <Input
+                placeholder='Add a note (optional)'
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                className='h-8 text-sm'
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className='flex w-full flex-row items-center justify-between gap-2'>
+          <Button variant='ghost' size='sm' onClick={handleClose}>
+            Cancel
+          </Button>
+          {selectedMemberId && (
+            <Button size='sm' onClick={handleSubmit}>
+              Add assignee
+            </Button>
+          )}
+        </div>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

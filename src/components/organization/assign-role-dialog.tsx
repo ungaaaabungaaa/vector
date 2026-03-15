@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/responsive-dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/lib/convex';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -88,11 +88,12 @@ export function AssignRoleDialog({
                   onClick={() => setSelectedUserId(member.userId)}
                 >
                   <div className='flex items-center gap-3'>
-                    <Avatar className='size-8'>
-                      <div className='bg-primary text-primary-foreground flex size-full items-center justify-center text-xs font-medium'>
-                        {member.user?.name?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                    </Avatar>
+                    <UserAvatar
+                      name={member.user?.name}
+                      email={member.user?.email}
+                      image={member.user?.image}
+                      userId={member.userId}
+                    />
                     <div>
                       <div className='text-sm font-medium'>
                         {member.user?.name}

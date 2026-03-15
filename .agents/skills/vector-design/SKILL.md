@@ -72,6 +72,21 @@ The common sizes are deliberate:
 - Search input inside popovers: `h-9`
 - Row avatars: `size-6`
 - Trigger avatars: `size-5`
+
+### User Avatars
+
+Always use the `UserAvatar` component (`@/components/user-avatar`) for displaying user avatars — never raw `Avatar` + `AvatarFallback` with initials. `UserAvatar` shows the user's profile image when available and falls back to a deterministic Avvvatars shape (the same pattern used in the sidebar footer). Pass `name`, `email`, `image`, and optionally `userId` and `size` (`'sm'` | `'default'` | `'lg'`).
+
+```tsx
+<UserAvatar
+  name={user.name}
+  email={user.email}
+  image={user.image}
+  userId={user._id}
+  size='sm'
+/>
+```
+
 - Section labels and metadata: `text-xs` or `text-sm`
 
 Common spacing:

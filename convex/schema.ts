@@ -464,6 +464,7 @@ export default defineSchema({
     issueId: v.id('issues'),
     assigneeId: v.optional(v.id('users')), // nullable for "unassigned"
     stateId: v.id('issueStates'),
+    note: v.optional(v.string()),
   })
     .index('by_issue', ['issueId'])
     .index('by_assignee', ['assigneeId'])

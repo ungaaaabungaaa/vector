@@ -2,16 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  User,
-  Mail,
-  Bell,
-  Settings,
-  ArrowLeft,
-  type LucideIcon,
-} from 'lucide-react';
+import { User, Mail, Bell, Settings, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { useQuery } from '@/lib/convex';
 import { api } from '@/lib/convex';
 
@@ -53,40 +45,18 @@ export function UserSettingsSidebar() {
     },
   ];
 
-  const handleBackClick = () => {
-    // If user has organizations, go to the first one's issues page
-    if (
-      userOrgsQuery.data &&
-      userOrgsQuery.data.length > 0 &&
-      userOrgsQuery.data[0]
-    ) {
-      window.location.href = `/${userOrgsQuery.data[0].slug}/issues`;
-    } else {
-      // Fallback to browser back
-      window.history.back();
-    }
-  };
+  const firstOrg = userOrgsQuery.data?.[0];
 
   return (
     <nav className='space-y-1 p-2 pt-0'>
-      {/* Back Button */}
-      <div className='mb-4'>
-        <Button
-          variant='ghost'
-          size='sm'
-          className='text-muted-foreground hover:text-foreground w-full justify-start gap-2 px-3 py-1.5 text-sm font-medium'
-          onClick={handleBackClick}
+      {firstOrg && (
+        <Link
+          href={`/${firstOrg.slug}/issues`}
+          className='text-muted-foreground hover:text-foreground hover:bg-foreground/5 mb-2 flex h-8 items-center gap-2 rounded-md px-2 text-sm font-medium transition-colors'
         >
-          <ArrowLeft className='size-4' />
-          <span>
-            {userOrgsQuery.data &&
-            userOrgsQuery.data.length > 0 &&
-            userOrgsQuery.data[0]
-              ? `Back to ${userOrgsQuery.data[0].name}`
-              : 'Back'}
-          </span>
-        </Button>
-      </div>
+          <span className='truncate'>{firstOrg.name}</span>
+        </Link>
+      )}
 
       <div className='pb-2'>
         <h2 className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>

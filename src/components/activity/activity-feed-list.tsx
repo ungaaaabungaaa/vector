@@ -13,7 +13,7 @@ import {
   Target,
   Users,
 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateHuman } from '@/lib/date';
@@ -68,16 +68,6 @@ interface ActivityFeedListProps {
   /** Number of items to load per "Show more" click (default: 20) */
   pageSize?: number;
   className?: string;
-}
-
-function getInitials(name?: string | null) {
-  if (!name) return '?';
-  return name
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 }
 
 function getTargetHref(orgSlug: string, target: ActivityFeedItem['target']) {
@@ -526,11 +516,14 @@ function ActivityRow({
 
   return (
     <div className='hover:bg-muted/40 flex items-center gap-3 px-3 py-2 transition-colors'>
-      <Avatar className='size-6 shrink-0'>
-        <AvatarFallback className='text-[10px]'>
-          {getInitials(actorName)}
-        </AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        name={item.actor?.name}
+        email={item.actor?.email}
+        image={item.actor?.image}
+        userId={item.actor?._id}
+        size='sm'
+        className='size-6 shrink-0'
+      />
 
       <div className='min-w-0 flex-1 space-y-1'>
         <div className='flex flex-wrap items-center gap-1 text-sm leading-5'>

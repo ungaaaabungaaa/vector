@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, Check, Loader2, Plus } from 'lucide-react';
+import { FileText, Check, Loader2, Plus } from 'lucide-react';
 import { MobileNavTrigger } from '../../layout';
 import Link from 'next/link';
 import { formatDateHuman } from '@/lib/date';
@@ -410,9 +410,8 @@ export default function DocumentDetailPage({
             <MobileNavTrigger />
             <Link
               href={`/${resolvedParams.orgSlug}/documents`}
-              className='text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors'
+              className='text-muted-foreground hover:text-foreground text-xs transition-colors'
             >
-              <ArrowLeft className='size-3' />
               <span className='hidden sm:inline'>Documents</span>
             </Link>
             <span className='text-muted-foreground/50 hidden text-xs sm:inline'>

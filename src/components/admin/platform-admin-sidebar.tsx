@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, ArrowLeft, Palette } from 'lucide-react';
+import { Shield, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { useQuery } from '@/lib/convex';
 import { api } from '@/lib/convex';
 
@@ -13,32 +12,16 @@ export function PlatformAdminSidebar() {
   const organizationsQuery = useQuery(api.users.getOrganizations);
   const firstOrganization = organizationsQuery.data?.[0];
 
-  const handleBackClick = () => {
-    if (firstOrganization?.slug) {
-      window.location.href = `/${firstOrganization.slug}/issues`;
-      return;
-    }
-
-    window.location.href = '/settings';
-  };
-
   return (
     <nav className='space-y-1 p-2 pt-0'>
-      <div className='mb-4'>
-        <Button
-          variant='ghost'
-          size='sm'
-          className='text-muted-foreground hover:text-foreground w-full justify-start gap-2 px-3 py-1.5 text-sm font-medium'
-          onClick={handleBackClick}
+      {firstOrganization && (
+        <Link
+          href={`/${firstOrganization.slug}/issues`}
+          className='text-muted-foreground hover:text-foreground hover:bg-foreground/5 mb-2 flex h-8 items-center gap-2 rounded-md px-2 text-sm font-medium transition-colors'
         >
-          <ArrowLeft className='size-4' />
-          <span>
-            {firstOrganization
-              ? `Back to ${firstOrganization.name}`
-              : 'Back to settings'}
-          </span>
-        </Button>
-      </div>
+          <span className='truncate'>{firstOrganization.name}</span>
+        </Link>
+      )}
 
       <div className='pb-2'>
         <h2 className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>

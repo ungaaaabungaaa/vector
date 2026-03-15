@@ -9,7 +9,6 @@ import { RichEditor } from '@/components/ui/rich-editor';
 import {
   Save,
   X,
-  ArrowLeft,
   Users,
   Plus,
   MoreHorizontal,
@@ -30,7 +29,7 @@ import { notFound, useParams, useRouter } from 'next/navigation';
 import { formatDateHuman } from '@/lib/date';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { IssuesTable } from '@/components/issues/issues-table';
 import { IssuesKanban } from '@/components/issues/issues-kanban';
@@ -76,6 +75,7 @@ import { PERMISSIONS } from '@/convex/_shared/permissions';
 import {
   usePermissionCheck,
   PermissionAware,
+  PermissionGate,
 } from '@/components/ui/permission-aware';
 import { toast } from 'sonner';
 import { CreateIssueDialog } from '@/components/issues/create-issue-dialog';
@@ -171,13 +171,13 @@ function AddMemberDialog({
                   disabled={addingUserId !== null}
                   className='flex items-center gap-2 px-3 py-2'
                 >
-                  <Avatar className='size-6'>
-                    <AvatarFallback className='text-xs'>
-                      {(member.user?.name ?? member.user?.email ?? '?')
-                        .charAt(0)
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={member.user?.name}
+                    email={member.user?.email}
+                    image={member.user?.image}
+                    userId={member.userId}
+                    size='sm'
+                  />
                   <div className='min-w-0 flex-1'>
                     <div className='truncate text-sm font-medium'>
                       {member.user?.name ?? 'Unknown'}
@@ -214,16 +214,6 @@ function MembersList({
   canEdit: boolean;
 }) {
   const [confirmRemove, ConfirmRemoveDialog] = useConfirm();
-  const getInitials = (name?: string, email?: string): string => {
-    const displayName = name || email;
-    if (!displayName) return '?';
-    return displayName
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   if (members.length === 0) {
     return (
@@ -255,11 +245,12 @@ function MembersList({
             className='hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors'
           >
             {/* Avatar */}
-            <Avatar className='size-8'>
-              <AvatarFallback className='text-xs'>
-                {getInitials(member.user?.name, member.user?.email)}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={member.user?.name}
+              email={member.user?.email}
+              image={member.user?.image}
+              userId={member.userId}
+            />
 
             {/* Member info */}
             <div className='min-w-0 flex-1'>
@@ -343,7 +334,7 @@ export default function TeamViewPage() {
   const [descriptionValue, setDescriptionValue] = useState('');
   const [keyValue, setKeyValue] = useState('');
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState('members');
+  const [activeTab, setActiveTab] = useState('issues');
   const [issueViewMode, setIssueViewMode] = useState<'table' | 'kanban'>(
     'kanban',
   );
@@ -786,8 +777,9 @@ export default function TeamViewPage() {
 
           {/* Main Content Skeleton */}
           <div className='py-3 sm:py-4'>
-            <div className='px-3 sm:px-4'>
-              <div className='mb-2 max-w-4xl space-y-2'>
+            {/* Header area — constrained */}
+            <div className='mx-auto w-full max-w-5xl px-3 sm:px-4'>
+              <div className='mb-2 space-y-2'>
                 {/* Icon + Title */}
                 <div className='flex items-center gap-2'>
                   <Skeleton className='size-6 rounded' />
@@ -798,32 +790,34 @@ export default function TeamViewPage() {
               </div>
 
               {/* Properties row */}
-              <div className='mt-4 mb-2 flex max-w-4xl flex-wrap items-center gap-2'>
+              <div className='mt-4 mb-2 flex flex-wrap items-center gap-2'>
                 <Skeleton className='h-8 w-16 rounded-md' />
                 <Skeleton className='h-8 w-12 rounded-md' />
                 <Skeleton className='h-8 w-28 rounded-md' />
               </div>
+            </div>
 
-              {/* Tabs Skeleton */}
-              <div className='mt-6'>
+            {/* Tabs — header constrained, content full-width */}
+            <div className='mt-6'>
+              <div className='mx-auto w-full max-w-5xl px-3 sm:px-4'>
                 <div className='flex gap-2 border-b pb-2'>
                   <Skeleton className='h-7 w-20' />
                   <Skeleton className='h-7 w-20' />
                   <Skeleton className='h-7 w-20' />
                 </div>
-                {/* Members list skeleton */}
-                <div className='mt-4 divide-y'>
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className='flex items-center gap-3 px-3 py-2'>
-                      <Skeleton className='size-8 rounded-full' />
-                      <div className='flex-1 space-y-1'>
-                        <Skeleton className='h-4 w-28' />
-                        <Skeleton className='h-3 w-40' />
-                      </div>
-                      <Skeleton className='h-4 w-14' />
+              </div>
+              {/* Content area — full width like kanban/table */}
+              <div className='mt-4 divide-y px-3 sm:px-4'>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className='flex items-center gap-3 px-3 py-2'>
+                    <Skeleton className='size-8 rounded-full' />
+                    <div className='flex-1 space-y-1'>
+                      <Skeleton className='h-4 w-28' />
+                      <Skeleton className='h-3 w-40' />
                     </div>
-                  ))}
-                </div>
+                    <Skeleton className='h-4 w-14' />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1081,9 +1075,8 @@ export default function TeamViewPage() {
               <MobileNavTrigger />
               <Link
                 href={`/${orgSlug}/teams`}
-                className='text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors'
+                className='text-muted-foreground hover:text-foreground text-sm transition-colors'
               >
-                <ArrowLeft className='size-3' />
                 <span className='hidden sm:inline'>Teams</span>
               </Link>
               <span className='text-muted-foreground text-sm'>/</span>
@@ -1153,11 +1146,10 @@ export default function TeamViewPage() {
                 </Badge>
               )}
               <div className='bg-muted-foreground/20 h-4 w-px' />
-              <PermissionAware
+              <PermissionGate
                 orgSlug={orgSlug}
                 permission={PERMISSIONS.TEAM_DELETE}
                 scope={permissionScope}
-                fallbackMessage="You don't have permission to delete this team"
               >
                 <Button
                   variant='ghost'
@@ -1169,15 +1161,15 @@ export default function TeamViewPage() {
                   <Trash2 className='size-3.5' />
                   <span className='hidden sm:inline'>Delete</span>
                 </Button>
-              </PermissionAware>
+              </PermissionGate>
             </div>
           </div>
 
           {/* Main Content */}
           <div className='py-3 sm:py-4'>
             {/* Team Header */}
-            <div className='px-3 sm:px-4'>
-              <div className='mb-2 max-w-4xl space-y-2'>
+            <div className='mx-auto w-full max-w-5xl px-3 sm:px-4'>
+              <div className='mb-2 space-y-2'>
                 {/* Name */}
                 {editingName ? (
                   <div className='flex items-center gap-2'>
@@ -1458,7 +1450,7 @@ export default function TeamViewPage() {
 
               {/* Properties */}
               <TooltipProvider>
-                <div className='mt-4 mb-2 flex max-w-4xl flex-wrap items-center gap-2'>
+                <div className='mt-4 mb-2 flex flex-wrap items-center gap-2'>
                   {/* Identifier */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1499,114 +1491,116 @@ export default function TeamViewPage() {
 
             {/* Team Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className='mx-auto w-full max-w-5xl space-y-2 px-3 sm:px-4'>
-                <div className='overflow-x-auto overflow-y-hidden'>
-                  <TabsList>
-                    <TabsTrigger value='members'>
-                      Members
-                      <span className='text-muted-foreground text-xs'>
-                        {teamMembers?.length ?? 0}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value='issues'>
-                      Issues
-                      <span className='text-muted-foreground text-xs'>
-                        {teamIssuesData?.total || 0}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value='projects'>
-                      Projects
-                      <span className='text-muted-foreground text-xs'>
-                        {teamProjects.length}
-                      </span>
-                    </TabsTrigger>
-                    <TabsTrigger value='documents'>Documents</TabsTrigger>
-                    <TabsTrigger value='activity'>Activity</TabsTrigger>
-                  </TabsList>
-                </div>
+              <div className='mx-auto w-full max-w-5xl px-3 sm:px-4'>
+                <div className='flex flex-wrap items-center justify-between gap-2'>
+                  <div className='overflow-x-auto overflow-y-hidden'>
+                    <TabsList>
+                      <TabsTrigger value='issues'>
+                        Issues
+                        <span className='text-muted-foreground text-xs'>
+                          {teamIssuesData?.total || 0}
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger value='members'>
+                        Members
+                        <span className='text-muted-foreground text-xs'>
+                          {teamMembers?.length ?? 0}
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger value='projects'>
+                        Projects
+                        <span className='text-muted-foreground text-xs'>
+                          {teamProjects.length}
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger value='documents'>Documents</TabsTrigger>
+                      <TabsTrigger value='activity'>Activity</TabsTrigger>
+                    </TabsList>
+                  </div>
 
-                {/* Tab-specific controls */}
-                {activeTab === 'members' && (
-                  <div className='flex items-center gap-2'>
-                    <div className='relative'>
-                      {deferredMemberSearch !== memberSearchText ? (
-                        <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
-                      ) : (
-                        <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                  {/* Tab-specific controls — same row on desktop */}
+                  {activeTab === 'members' && (
+                    <div className='flex items-center gap-2'>
+                      <div className='relative'>
+                        {deferredMemberSearch !== memberSearchText ? (
+                          <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                        ) : (
+                          <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                        )}
+                        <Input
+                          placeholder='Search members...'
+                          value={memberSearchText}
+                          onChange={e => setMemberSearchText(e.target.value)}
+                          className='h-6 w-40 pl-7 text-xs'
+                        />
+                      </div>
+                      {canEdit && (
+                        <Button
+                          onClick={() => setShowAddMemberDialog(true)}
+                          className='h-6 gap-1 text-xs'
+                          variant='outline'
+                          size='sm'
+                        >
+                          <Plus className='size-3' />
+                          Add
+                        </Button>
                       )}
-                      <Input
-                        placeholder='Search members...'
-                        value={memberSearchText}
-                        onChange={e => setMemberSearchText(e.target.value)}
-                        className='h-6 w-40 pl-7 text-xs'
-                      />
                     </div>
-                    {canEdit && (
-                      <Button
-                        onClick={() => setShowAddMemberDialog(true)}
-                        className='h-6 gap-1 text-xs'
-                        variant='outline'
-                        size='sm'
-                      >
-                        <Plus className='size-3' />
-                        Add
-                      </Button>
-                    )}
-                  </div>
-                )}
-                {activeTab === 'projects' && canEdit && (
-                  <CreateProjectDialog
-                    orgSlug={orgSlug}
-                    defaultStates={{ teamId: team?._id }}
-                    className='h-6 text-xs'
-                  />
-                )}
-                {activeTab === 'issues' && (
-                  <div className='flex items-center gap-2'>
-                    <div className='relative'>
-                      {deferredIssueSearch !== issueSearchText ? (
-                        <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
-                      ) : (
-                        <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                  )}
+                  {activeTab === 'projects' && canEdit && (
+                    <CreateProjectDialog
+                      orgSlug={orgSlug}
+                      defaultStates={{ teamId: team?._id }}
+                      className='h-6 text-xs'
+                    />
+                  )}
+                  {activeTab === 'issues' && (
+                    <div className='flex items-center gap-2'>
+                      <div className='relative'>
+                        {deferredIssueSearch !== issueSearchText ? (
+                          <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                        ) : (
+                          <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                        )}
+                        <Input
+                          placeholder='Search issues...'
+                          value={issueSearchText}
+                          onChange={e => setIssueSearchText(e.target.value)}
+                          className='h-6 w-40 pl-7 text-xs'
+                        />
+                      </div>
+                      <div className='border-border flex items-center rounded-md border'>
+                        <Button
+                          variant={
+                            issueViewMode === 'kanban' ? 'secondary' : 'ghost'
+                          }
+                          size='sm'
+                          className='h-6 rounded-r-none px-2'
+                          onClick={() => setIssueViewMode('kanban')}
+                        >
+                          <Columns3 className='size-3.5' />
+                        </Button>
+                        <Button
+                          variant={
+                            issueViewMode === 'table' ? 'secondary' : 'ghost'
+                          }
+                          size='sm'
+                          className='h-6 rounded-l-none px-2'
+                          onClick={() => setIssueViewMode('table')}
+                        >
+                          <LayoutList className='size-3.5' />
+                        </Button>
+                      </div>
+                      {canEdit && (
+                        <CreateIssueDialog
+                          orgSlug={orgSlug}
+                          defaultStates={{ teamId: team?._id }}
+                          className='h-6 text-xs'
+                        />
                       )}
-                      <Input
-                        placeholder='Search issues...'
-                        value={issueSearchText}
-                        onChange={e => setIssueSearchText(e.target.value)}
-                        className='h-6 w-40 pl-7 text-xs'
-                      />
                     </div>
-                    <div className='border-border flex items-center rounded-md border'>
-                      <Button
-                        variant={
-                          issueViewMode === 'kanban' ? 'secondary' : 'ghost'
-                        }
-                        size='sm'
-                        className='h-6 rounded-r-none px-2'
-                        onClick={() => setIssueViewMode('kanban')}
-                      >
-                        <Columns3 className='size-3.5' />
-                      </Button>
-                      <Button
-                        variant={
-                          issueViewMode === 'table' ? 'secondary' : 'ghost'
-                        }
-                        size='sm'
-                        className='h-6 rounded-l-none px-2'
-                        onClick={() => setIssueViewMode('table')}
-                      >
-                        <LayoutList className='size-3.5' />
-                      </Button>
-                    </div>
-                    {canEdit && (
-                      <CreateIssueDialog
-                        orgSlug={orgSlug}
-                        defaultStates={{ teamId: team?._id }}
-                        className='h-6 text-xs'
-                      />
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Members Tab */}

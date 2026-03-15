@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { analyzeError, type ErrorInfo } from '@/lib/error-handling';
 import { useMutation } from 'convex/react';
 import type { FunctionReference } from 'convex/server';
+import { toast } from 'sonner';
 
 /**
  * Hook for handling Convex mutations with consistent error handling
@@ -84,6 +85,10 @@ export function useFormSubmission<
 
         if (options?.onSuccess) {
           options.onSuccess(result);
+        }
+
+        if (options?.successMessage) {
+          toast.success(options.successMessage);
         }
 
         return result;

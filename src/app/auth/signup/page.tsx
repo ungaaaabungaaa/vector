@@ -83,15 +83,6 @@ function SignupForm() {
         throw result.error;
       }
 
-      const signInResult = await authClient.signIn.email({
-        email: normalizedEmail,
-        password: values.password,
-      });
-
-      if (signInResult.error) {
-        throw signInResult.error;
-      }
-
       toast.success('Account created!');
       router.push(
         `/auth/signing-in?redirectTo=${encodeURIComponent(redirectTo)}`,

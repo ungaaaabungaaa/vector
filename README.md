@@ -87,7 +87,6 @@ Vector is under active development. The top-level docs in this repository reflec
 
    Minimum app setup usually includes:
    - `NEXT_PUBLIC_APP_URL=http://localhost:3000`
-   - `NEXT_PUBLIC_SITE_URL=http://localhost:3000`
    - `BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000`
    - `BETTER_AUTH_SECRET=<your-secret>`
    - `NEXT_PUBLIC_CONVEX_URL=<your-local-convex-url>`
@@ -135,7 +134,6 @@ If you only want the app running locally, start with these:
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=<your-secret>
 NEXT_PUBLIC_CONVEX_URL=<your-local-convex-url>
@@ -145,7 +143,6 @@ NEXT_PUBLIC_CONVEX_SITE_URL=http://127.0.0.1:3211
 
 Optional for local development:
 
-- `AUTH_SECRET` as a fallback for older auth paths
 - SMTP variables if you want real email delivery instead of local logging
 - VAPID variables if you want browser push notifications
 - `OPENROUTER_API_KEY` if you want the Convex assistant enabled
@@ -166,9 +163,7 @@ Optional for local development:
 | Variable                      | Why it belongs here                                                                                                                                               |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `BETTER_AUTH_SECRET`          | Read in `convex/auth.ts` to sign Better Auth tokens and encrypt JWKS private keys.                                                                                |
-| `AUTH_SECRET`                 | Optional fallback for `BETTER_AUTH_SECRET` in `convex/auth.ts`.                                                                                                   |
 | `NEXT_PUBLIC_APP_URL`         | Read in `convex/auth.ts` as the Better Auth base URL.                                                                                                             |
-| `NEXT_PUBLIC_SITE_URL`        | Optional fallback for `NEXT_PUBLIC_APP_URL` in `convex/auth.ts`.                                                                                                  |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Read in `convex/auth.ts` for the auth callback allowlist.                                                                                                         |
 | `SMTP_HOST`                   | SMTP server hostname for sending emails (OTP codes and notifications).                                                                                            |
 | `SMTP_PORT`                   | SMTP port (default `587`, use `465` for SSL).                                                                                                                     |
@@ -181,7 +176,7 @@ Optional for local development:
 | `OPENROUTER_API_KEY`          | Required by `convex/ai/provider.ts` for the organization assistant and all agent responses.                                                                       |
 | `OPENROUTER_MODEL`            | Optional model override for `convex/ai/provider.ts`. Defaults to `moonshotai/kimi-k2.5:nitro`.                                                                    |
 
-`NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_SITE_URL` have a public-looking prefix, but the current code reads them from Convex auth code rather than browser code.
+`NEXT_PUBLIC_APP_URL` has a public-looking prefix, but the current code reads it from Convex auth code rather than browser code.
 
 SMTP and VAPID settings are optional. If you leave them unset locally, the core app still runs. `OPENROUTER_API_KEY` is only required if you want the assistant feature to work.
 

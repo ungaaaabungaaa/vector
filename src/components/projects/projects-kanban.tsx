@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DynamicIcon } from '@/lib/dynamic-icons';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { formatDateHuman } from '@/lib/date';
 import {
   DndContext,
@@ -351,16 +351,13 @@ function ProjectCardContent({
             />
           </div>
         ) : project.leadName ? (
-          <Avatar className='size-5'>
-            <AvatarFallback className='text-[9px]'>
-              {(project.leadName || project.leadEmail || '?')
-                .split(' ')
-                .map(p => p.charAt(0))
-                .join('')
-                .toUpperCase()
-                .slice(0, 2)}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            name={project.leadName}
+            email={project.leadEmail}
+            image={project.leadImage}
+            size='sm'
+            className='size-5'
+          />
         ) : (
           <div />
         )}

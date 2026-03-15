@@ -209,6 +209,7 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
             assigneeId: a.assignee?._id ? String(a.assignee._id) : null,
             assigneeName: a.assignee?.name ?? null,
             assigneeEmail: a.assignee?.email ?? null,
+            assigneeImage: a.assignee?.image ?? null,
             stateId: a.state?._id ? String(a.state._id) : null,
             stateIcon: a.state?.icon ?? null,
             stateColor: a.state?.color ?? null,

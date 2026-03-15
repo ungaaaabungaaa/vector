@@ -15,24 +15,11 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/convex';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-function getInitials(name?: string) {
-  if (!name) {
-    return '?';
-  }
-
-  return name
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 function getNotificationIcon(category: string) {
   switch (category) {
@@ -158,11 +145,11 @@ export function NotificationsSheet({
                     onClick={() => void handleOpen(recipient)}
                   >
                     <div className='relative flex-shrink-0'>
-                      <Avatar className='size-8 border'>
-                        <AvatarFallback className='text-[11px]'>
-                          {getInitials(recipient.actorName)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        name={recipient.actorName}
+                        image={recipient.actorImage}
+                        size='default'
+                      />
                       <div className='bg-background absolute -right-1 -bottom-1 rounded-full border p-0.5'>
                         <Icon className='text-muted-foreground size-3' />
                       </div>

@@ -112,18 +112,30 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
     },
   );
 
-  const messages = (uiMessages.results ?? []) as UIMessage[];
+  const messages = useMemo(
+    () => (uiMessages.results ?? []) as UIMessage[],
+    [uiMessages.results],
+  );
   const pendingAction = (threadRow?.pendingAction ??
     null) as PendingAction | null;
   const hasMessages = messages.length > 0;
+  const isAssistantActive =
+    isSending ||
+    threadRow?.threadStatus === 'pending' ||
+    messages.some(message => message.status === 'streaming');
 
   // --- Scroll management ---
   const contentRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const programmaticScrollTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const prevMessageCountRef = useRef(0);
   const needsInitialScrollRef = useRef(true);
+  const shouldAutoFollowRef = useRef(true);
+  const isProgrammaticScrollRef = useRef(false);
 
   const getViewport = useCallback((): HTMLElement | null => {
     if (viewportRef.current) {
@@ -132,6 +144,24 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
     const base = contentRef.current ?? endRef.current;
     if (!base) return null;
     return base.closest<HTMLElement>('[data-slot="scroll-area-viewport"]');
+  }, []);
+
+  const isNearBottom = useCallback((element: HTMLElement, threshold = 40) => {
+    return (
+      element.scrollHeight - element.scrollTop - element.clientHeight <=
+      threshold
+    );
+  }, []);
+
+  const markProgrammaticScroll = useCallback(() => {
+    isProgrammaticScrollRef.current = true;
+    if (programmaticScrollTimeoutRef.current) {
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    }
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+      programmaticScrollTimeoutRef.current = null;
+    }, 140);
   }, []);
 
   const scrollToBottom = useCallback(
@@ -150,6 +180,7 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
         userMessages.length > 0 ? userMessages[userMessages.length - 1] : null;
 
       if (latestUserMessage) {
+        markProgrammaticScroll();
         const viewportRect = viewport.getBoundingClientRect();
         const messageRect = latestUserMessage.getBoundingClientRect();
         const messageTopInScroll =
@@ -167,25 +198,52 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
           viewport.scrollTo({ top: targetTop, behavior });
         }
       } else if (behavior === 'auto') {
+        markProgrammaticScroll();
         viewport.scrollTop = viewport.scrollHeight;
       } else {
         endRef.current?.scrollIntoView({ behavior, block: 'end' });
       }
     },
-    [getViewport],
+    [getViewport, markProgrammaticScroll],
   );
 
-  const debouncedScrollToBottom = useCallback(
-    (behavior: ScrollBehavior = 'auto', delayMs = 150) => {
+  const scrollToTail = useCallback(
+    (behavior: ScrollBehavior = 'auto') => {
+      const viewport = getViewport();
+      if (!viewport) {
+        endRef.current?.scrollIntoView({ behavior, block: 'end' });
+        return;
+      }
+
+      markProgrammaticScroll();
+      if (behavior === 'auto') {
+        viewport.scrollTop = viewport.scrollHeight;
+      } else {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior });
+      }
+    },
+    [getViewport, markProgrammaticScroll],
+  );
+
+  const debouncedScroll = useCallback(
+    (
+      scrollTarget: 'context' | 'tail' = 'context',
+      behavior: ScrollBehavior = 'auto',
+      delayMs = 150,
+    ) => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
       scrollTimeoutRef.current = setTimeout(() => {
-        scrollToBottom(behavior);
+        if (scrollTarget === 'tail') {
+          scrollToTail(behavior);
+        } else {
+          scrollToBottom(behavior);
+        }
         scrollTimeoutRef.current = null;
       }, delayMs);
     },
-    [scrollToBottom],
+    [scrollToBottom, scrollToTail],
   );
 
   useLayoutEffect(() => {
@@ -195,26 +253,55 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
     if (needsInitialScrollRef.current && currentCount > 0) {
       needsInitialScrollRef.current = false;
       prevMessageCountRef.current = currentCount;
+      shouldAutoFollowRef.current = true;
       scrollToBottom('auto');
       return;
     }
 
     if (
+      shouldAutoFollowRef.current &&
       currentCount > prevMessageCountRef.current &&
       prevMessageCountRef.current > 0
     ) {
-      debouncedScrollToBottom('smooth', 150);
+      debouncedScroll('context', 'smooth', 150);
     }
 
     prevMessageCountRef.current = currentCount;
-  }, [isExpanded, messages.length, scrollToBottom, debouncedScrollToBottom]);
+  }, [isExpanded, messages.length, scrollToBottom, debouncedScroll]);
 
   useEffect(() => {
     if (isExpanded) {
       needsInitialScrollRef.current = true;
       prevMessageCountRef.current = 0;
+      shouldAutoFollowRef.current = true;
     }
   }, [isExpanded]);
+
+  useEffect(() => {
+    if (!isExpanded || !hasMessages) return;
+
+    const viewport = getViewport();
+    if (!viewport) return;
+
+    const syncAutoFollow = () => {
+      if (isProgrammaticScrollRef.current) return;
+
+      const atBottom = isNearBottom(viewport);
+      shouldAutoFollowRef.current = atBottom;
+
+      if (!atBottom && scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = null;
+      }
+    };
+
+    syncAutoFollow();
+    viewport.addEventListener('scroll', syncAutoFollow, { passive: true });
+
+    return () => {
+      viewport.removeEventListener('scroll', syncAutoFollow);
+    };
+  }, [getViewport, hasMessages, isExpanded, isNearBottom]);
 
   useEffect(() => {
     if (!isExpanded || !hasMessages) return;
@@ -239,10 +326,22 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
   }, [hasMessages, isExpanded, scrollToBottom]);
 
   useEffect(() => {
+    if (!isExpanded || !isAssistantActive || !shouldAutoFollowRef.current) {
+      return;
+    }
+
+    debouncedScroll('tail', 'auto', 120);
+  }, [isAssistantActive, isExpanded, messages, debouncedScroll]);
+
+  useEffect(() => {
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
         scrollTimeoutRef.current = null;
+      }
+      if (programmaticScrollTimeoutRef.current) {
+        clearTimeout(programmaticScrollTimeoutRef.current);
+        programmaticScrollTimeoutRef.current = null;
       }
     };
   }, []);
@@ -273,6 +372,7 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
 
     setIsExpanded(true);
     setIsSending(true);
+    shouldAutoFollowRef.current = true;
 
     try {
       let ensuredThreadId = threadRow?.threadId ?? null;
@@ -345,8 +445,8 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
         >
           <span>{branding.name}</span>
           <span className='flex items-center gap-1'>
-            {hasMessages && (
-              <span className='bg-foreground/10 size-1.5 rounded-full' />
+            {isAssistantActive && (
+              <span className='bg-foreground/40 size-1.5 animate-pulse rounded-full' />
             )}
             {isExpanded ? (
               <ChevronsDown className='size-3' />

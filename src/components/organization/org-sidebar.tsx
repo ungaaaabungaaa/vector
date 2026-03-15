@@ -19,7 +19,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@/lib/convex';
 import { withIds } from '@/lib/convex-helpers';
 import type { ReactNode } from 'react';
-import { DynamicIcon, getDynamicIcon } from '@/lib/dynamic-icons';
+import { DynamicIcon } from '@/lib/dynamic-icons';
 import { CreateDocumentDialog } from '@/components/documents/create-document-dialog';
 
 interface NavItem {
@@ -164,22 +164,12 @@ export function OrgSidebar({ orgSlug, onNavigate }: OrgSidebarProps) {
                       },
                     )}
                   >
-                    {(() => {
-                      const TeamIcon = team.icon
-                        ? getDynamicIcon(team.icon)
-                        : null;
-                      return TeamIcon ? (
-                        <TeamIcon
-                          className='size-3 flex-shrink-0'
-                          style={{ color: team.color || '#6b7280' }}
-                        />
-                      ) : (
-                        <Circle
-                          className='size-3 flex-shrink-0'
-                          style={{ color: team.color || '#6b7280' }}
-                        />
-                      );
-                    })()}
+                    <DynamicIcon
+                      name={team.icon}
+                      fallback={Circle}
+                      className='size-3 flex-shrink-0'
+                      style={{ color: team.color || '#6b7280' }}
+                    />
                     <span className='truncate'>{team.name}</span>
                   </Link>
                 );
@@ -240,52 +230,24 @@ export function OrgSidebar({ orgSlug, onNavigate }: OrgSidebarProps) {
                       },
                     )}
                   >
-                    {(() => {
-                      // Priority: project custom icon > status icon > default folder
-                      const CustomIcon = project.icon
-                        ? getDynamicIcon(project.icon)
-                        : null;
-                      const CustomColor =
-                        project.color || project.statusColor || '#6b7280';
-                      const StatusIcon = project.statusIcon
-                        ? getDynamicIcon(project.statusIcon)
-                        : null;
-
-                      if (CustomIcon) {
-                        return (
-                          <CustomIcon
-                            className='size-3 flex-shrink-0'
-                            style={{ color: CustomColor }}
-                          />
-                        );
-                      } else if (StatusIcon) {
-                        return (
-                          <StatusIcon
-                            className='size-3 flex-shrink-0'
-                            style={{ color: project.statusColor || '#6b7280' }}
-                          />
-                        );
-                      } else {
-                        return (
-                          <FolderOpen
-                            className='size-3 flex-shrink-0'
-                            style={{ color: project.statusColor || '#6b7280' }}
-                          />
-                        );
-                      }
-                    })()}
+                    <DynamicIcon
+                      name={project.icon || project.statusIcon}
+                      fallback={FolderOpen}
+                      className='size-3 flex-shrink-0'
+                      style={{
+                        color:
+                          project.color || project.statusColor || '#6b7280',
+                      }}
+                    />
                     <span className='flex-1 truncate'>{project.name}</span>
                     {/* Status icon on the right */}
-                    {project.statusIcon &&
-                      (() => {
-                        const StatusIcon = getDynamicIcon(project.statusIcon);
-                        return StatusIcon ? (
-                          <StatusIcon
-                            className='ml-auto size-3 flex-shrink-0'
-                            style={{ color: project.statusColor || '#6b7280' }}
-                          />
-                        ) : null;
-                      })()}
+                    {project.statusIcon && (
+                      <DynamicIcon
+                        name={project.statusIcon}
+                        className='ml-auto size-3 flex-shrink-0'
+                        style={{ color: project.statusColor || '#6b7280' }}
+                      />
+                    )}
                   </Link>
                 );
               })

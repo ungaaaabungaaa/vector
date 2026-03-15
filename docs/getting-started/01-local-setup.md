@@ -26,7 +26,6 @@ This guide walks through the current local development workflow for Vector.
 
    Minimum local app setup usually includes:
    - `NEXT_PUBLIC_APP_URL=http://localhost:3000`
-   - `NEXT_PUBLIC_SITE_URL=http://localhost:3000`
    - `BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000`
    - `BETTER_AUTH_SECRET=<your-secret>`
    - `NEXT_PUBLIC_CONVEX_URL=<your-local-convex-url>`

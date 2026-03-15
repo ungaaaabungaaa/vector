@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Users, User, Circle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getDynamicIcon, DynamicIcon } from '@/lib/dynamic-icons';
@@ -50,6 +50,7 @@ export type Member = {
   userId: string;
   name: string;
   email: string;
+  image?: string | null;
 };
 
 // Display mode matching issue selectors
@@ -74,17 +75,6 @@ function resolveVisibility(
     default:
       return { showIcon: true, showLabel: true };
   }
-}
-
-function getInitials(name?: string | null, email?: string | null): string {
-  const displayName = name || email;
-  if (!displayName) return '?';
-  return displayName
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 }
 
 // Status Selector Component - Updated to use Popover + Command
@@ -305,11 +295,14 @@ export function LeadSelector({
       size='sm'
       className={cn('bg-muted/30 hover:bg-muted/50 h-8 gap-2', className)}
     >
-      <Avatar className='size-5'>
-        <AvatarFallback className='text-xs'>
-          {getInitials(selectedLeadObj?.name, selectedLeadObj?.email)}
-        </AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        name={selectedLeadObj?.name}
+        email={selectedLeadObj?.email}
+        image={selectedLeadObj?.image}
+        userId={selectedLeadObj?.userId}
+        size='sm'
+        className='size-5'
+      />
       <span className='text-sm'>{selectedLeadObj?.name}</span>
     </Button>
   ) : displayMode === 'iconWhenUnselected' ? (
@@ -356,11 +349,14 @@ export function LeadSelector({
             }}
             className='flex items-center gap-2'
           >
-            <Avatar className='size-5'>
-              <AvatarFallback className='text-xs'>
-                {getInitials(member.name, member.email)}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={member.name}
+              email={member.email}
+              image={member.image}
+              userId={member.userId}
+              size='sm'
+              className='size-5'
+            />
             {member.name}
           </DropdownMenuItem>
         ))}

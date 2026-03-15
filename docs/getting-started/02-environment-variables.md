@@ -24,9 +24,7 @@ cp sample.env .env.local
 | Variable                      | Confirmed usage                                              | Example                             |
 | ----------------------------- | ------------------------------------------------------------ | ----------------------------------- |
 | `BETTER_AUTH_SECRET`          | Read by `convex/auth.ts`                                     | `replace-with-a-long-random-secret` |
-| `AUTH_SECRET`                 | Fallback read by `convex/auth.ts`                            | `replace-with-a-long-random-secret` |
 | `NEXT_PUBLIC_APP_URL`         | Read by `convex/auth.ts` as Better Auth base URL             | `http://localhost:3000`             |
-| `NEXT_PUBLIC_SITE_URL`        | Fallback read by `convex/auth.ts`                            | `http://localhost:3000`             |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Read by `convex/auth.ts` for trusted callback origins        | `http://localhost:3000`             |
 | `SMTP_HOST`                   | Read by `convex/notifications/actions.ts` for email delivery | `smtp.resend.com`                   |
 | `SMTP_PORT`                   | Read by `convex/notifications/actions.ts` for email delivery | `465`                               |
@@ -37,7 +35,7 @@ cp sample.env .env.local
 | `VAPID_PRIVATE_KEY`           | Read by `convex/notifications/actions.ts` for push delivery  | `your_vapid_private_key`            |
 | `VAPID_SUBJECT`               | Read by `convex/notifications/actions.ts` for push delivery  | `mailto:notifications@example.com`  |
 
-`NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_SITE_URL` look like frontend variables, but the current code only reads them inside `convex/auth.ts`.
+`NEXT_PUBLIC_APP_URL` looks like a frontend variable, but the current code reads it inside `convex/auth.ts`.
 
 ### Minimum Local Setup
 
@@ -45,7 +43,6 @@ If you only want the app running locally, start with:
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 BETTER_AUTH_SECRET=<your-secret>
 NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
@@ -57,7 +54,6 @@ Optional locally:
 
 - SMTP variables for real email delivery
 - VAPID variables for browser push notifications
-- `AUTH_SECRET` as a fallback for older auth paths
 - `CONVEX_URL` and `CONVEX_ADMIN_KEY` for migration scripts and CLI-only workflows
 
 ### Local CLI / Convex Tooling Only

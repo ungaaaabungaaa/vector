@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DynamicIcon, getDynamicIcon } from '@/lib/dynamic-icons';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { formatDateHuman } from '@/lib/date';
 import {
   DndContext,
@@ -95,6 +95,7 @@ interface GroupedIssue {
     assigneeId: string | null;
     assigneeName: string | null;
     assigneeEmail: string | null;
+    assigneeImage: string | null;
     stateId: string | null;
     stateIcon: string | null;
     stateColor: string | null;
@@ -110,22 +111,12 @@ interface KanbanIssueCard extends GroupedIssue {
   assigneeId: string | null;
   assigneeName: string | null;
   assigneeEmail: string | null;
+  assigneeImage: string | null;
   stateId: string | null;
   stateIcon: string | null;
   stateColor: string | null;
   stateName: string | null;
   stateType: string | null;
-}
-
-function getInitials(name?: string | null, email?: string | null) {
-  const display = name || email;
-  if (!display) return '?';
-  return display
-    .split(' ')
-    .map(p => p.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 }
 
 export function IssuesKanban({
@@ -165,6 +156,7 @@ export function IssuesKanban({
         assigneeId: row.assigneeId ?? null,
         assigneeName: row.assigneeName ?? null,
         assigneeEmail: row.assigneeEmail ?? null,
+        assigneeImage: row.assigneeImage ?? null,
         stateId: row.stateId ?? null,
         stateIcon: row.stateIcon ?? null,
         stateColor: row.stateColor ?? null,
@@ -215,12 +207,40 @@ export function IssuesKanban({
     return [...map.values()];
   }, [issues]);
 
+  // Sort states by position (must be before issueCards which uses it)
+  const sortedStates = React.useMemo(
+    () => [...states].sort((a, b) => a.position - b.position),
+    [states],
+  );
+
   const issueCards = React.useMemo(() => {
     return groupedIssues
       .flatMap(issue => {
         const visibleAssignments = issue.assignments.filter(
           assignment => assignment.assigneeId && assignment.stateType,
         );
+
+        // If no visible assignments, show as unassigned in the first state column
+        if (visibleAssignments.length === 0) {
+          const firstState = sortedStates[0];
+          if (!firstState) return [];
+          return [
+            {
+              ...issue,
+              cardId: `${issue.id}:unassigned`,
+              assignmentId: null,
+              assigneeId: null,
+              assigneeName: null,
+              assigneeEmail: null,
+              assigneeImage: null,
+              stateId: null,
+              stateIcon: firstState.icon ?? null,
+              stateColor: firstState.color ?? null,
+              stateName: firstState.name ?? null,
+              stateType: firstState.type ?? null,
+            },
+          ] satisfies KanbanIssueCard[];
+        }
 
         return visibleAssignments.map<KanbanIssueCard>(assignment => ({
           ...issue,
@@ -229,6 +249,7 @@ export function IssuesKanban({
           assigneeId: assignment.assigneeId,
           assigneeName: assignment.assigneeName,
           assigneeEmail: assignment.assigneeEmail,
+          assigneeImage: assignment.assigneeImage,
           stateId: assignment.stateId,
           stateIcon: assignment.stateIcon,
           stateColor: assignment.stateColor,
@@ -237,7 +258,7 @@ export function IssuesKanban({
         }));
       })
       .sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [groupedIssues]);
+  }, [groupedIssues, sortedStates]);
 
   const canMoveCard = React.useCallback(
     (issue: KanbanIssueCard) =>
@@ -247,12 +268,6 @@ export function IssuesKanban({
           (canChangeAll || issue.assigneeId === currentUserId),
       ),
     [canChangeAll, currentUserId, onStateChange],
-  );
-
-  // Sort states by position
-  const sortedStates = React.useMemo(
-    () => [...states].sort((a, b) => a.position - b.position),
-    [states],
   );
 
   const columns = React.useMemo(() => {
@@ -774,11 +789,13 @@ function KanbanCardContent({
     issue.assigneeName || issue.assigneeEmail || 'Unassigned';
   const assigneeStateCluster = (
     <div className='flex min-w-0 items-center gap-1.5'>
-      <Avatar className='size-5 shrink-0'>
-        <AvatarFallback className='text-[9px]'>
-          {getInitials(issue.assigneeName, issue.assigneeEmail)}
-        </AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        name={issue.assigneeName}
+        email={issue.assigneeEmail}
+        image={issue.assigneeImage}
+        size='sm'
+        className='size-5 shrink-0'
+      />
       <div className='flex min-w-0 items-center gap-1.5 text-[11px]'>
         <span className='truncate font-medium text-current'>
           {assigneeLabel}

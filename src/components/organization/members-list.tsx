@@ -5,7 +5,7 @@ import { api } from '@/lib/convex';
 import { useMemo } from 'react';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Plus,
@@ -44,17 +44,6 @@ type InviteRow = FunctionReturnType<
   typeof api.organizations.queries.listInvites
 >[number];
 
-function getInitials(name?: string, email?: string): string {
-  const displayName = name || email;
-  if (!displayName) return '?';
-  return displayName
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 function useMemberColumns(
   orgSlug: string,
   isAdmin: boolean,
@@ -80,11 +69,14 @@ function useMemberColumns(
           const member = row.original;
           return (
             <div className='flex items-center gap-2'>
-              <Avatar className='size-6 shrink-0'>
-                <AvatarFallback className='text-xs'>
-                  {getInitials(member.name, member.email)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                name={member.name}
+                email={member.email}
+                image={member.image}
+                userId={member.userId}
+                size='sm'
+                className='size-6 shrink-0'
+              />
               <div className='min-w-0'>
                 <div className='flex items-center gap-1.5'>
                   <span className='truncate text-sm font-medium'>
@@ -259,11 +251,11 @@ function useInviteColumns(
           const invite = row.original;
           return (
             <div className='flex items-center gap-2'>
-              <Avatar className='size-6 shrink-0'>
-                <AvatarFallback className='text-xs opacity-60'>
-                  {getInitials('', invite.email)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                email={invite.email}
+                size='sm'
+                className='size-6 shrink-0 opacity-60'
+              />
               <div className='min-w-0'>
                 <span className='truncate text-sm font-medium'>
                   {invite.email}

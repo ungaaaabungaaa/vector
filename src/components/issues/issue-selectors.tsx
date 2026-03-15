@@ -17,7 +17,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -1009,23 +1009,26 @@ export function MultiAssigneeSelector({
         m => m.userId === selectedAssigneeIds[0],
       );
       return (
-        <Avatar
-          className={cn(
-            'size-6',
-            isLoading && 'pointer-events-none opacity-50',
-            highlightAssigneeId === selectedAssigneeIds[0] &&
-              'ring-primary ring-offset-background ring-2',
-          )}
-        >
+        <div className='relative'>
+          <UserAvatar
+            name={assignee?.user?.name}
+            email={assignee?.user?.email}
+            image={assignee?.user?.image}
+            userId={assignee?.userId}
+            size='sm'
+            className={cn(
+              'size-6',
+              isLoading && 'pointer-events-none opacity-50',
+              highlightAssigneeId === selectedAssigneeIds[0] &&
+                'ring-primary ring-offset-background ring-2',
+            )}
+          />
           {isLoading && (
             <div className='absolute inset-0 flex items-center justify-center'>
               <div className='size-3 animate-spin rounded-full border border-gray-300 border-t-transparent' />
             </div>
           )}
-          <AvatarFallback className='text-xs'>
-            {getAssigneeInitials(assignee?.user?.name, assignee?.user?.email)}
-          </AvatarFallback>
-        </Avatar>
+        </div>
       );
     }
 
@@ -1040,27 +1043,26 @@ export function MultiAssigneeSelector({
         {selectedAssigneeIds.slice(0, 3).map((assigneeId, idx) => {
           const assignee = allMembers?.find(m => m.userId === assigneeId);
           return (
-            <Avatar
-              key={assigneeId}
-              className={cn(
-                'size-6',
-                idx > 0 && '-ml-2', // Overlap subsequent avatars
-                highlightAssigneeId === assigneeId &&
-                  'ring-primary ring-offset-background z-10 ring-2',
-              )}
-            >
+            <div key={assigneeId} className='relative'>
+              <UserAvatar
+                name={assignee?.user?.name}
+                email={assignee?.user?.email}
+                image={assignee?.user?.image}
+                userId={assignee?.userId}
+                size='sm'
+                className={cn(
+                  'size-6',
+                  idx > 0 && '-ml-2',
+                  highlightAssigneeId === assigneeId &&
+                    'ring-primary ring-offset-background z-10 ring-2',
+                )}
+              />
               {isLoading && idx === 0 && (
                 <div className='absolute inset-0 flex items-center justify-center'>
                   <div className='size-3 animate-spin rounded-full border border-gray-300 border-t-transparent' />
                 </div>
               )}
-              <AvatarFallback className='text-xs'>
-                {getAssigneeInitials(
-                  assignee?.user?.name,
-                  assignee?.user?.email,
-                )}
-              </AvatarFallback>
-            </Avatar>
+            </div>
           );
         })}
         {selectedAssigneeIds.length > 3 && (
@@ -1076,21 +1078,6 @@ export function MultiAssigneeSelector({
         )}
       </div>
     );
-  };
-
-  // Helper function for initials (moved to top of file)
-  const getAssigneeInitials = (
-    name?: string | null,
-    email?: string | null,
-  ): string => {
-    const displayName = name || email;
-    if (!displayName) return '?';
-    return displayName
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (
@@ -1168,21 +1155,19 @@ export function MultiAssigneeSelector({
                       }
                       disabled={isLoading}
                     />
-                    <Avatar
+                    <UserAvatar
+                      name={member.user?.name}
+                      email={member.user?.email}
+                      image={member.user?.image}
+                      userId={member.userId}
+                      size='sm'
                       className={cn(
                         'size-6',
                         isLoading && 'opacity-50',
                         highlightAssigneeId === member.userId &&
                           'ring-primary ring-offset-background ring-2',
                       )}
-                    >
-                      <AvatarFallback className='text-xs'>
-                        {getAssigneeInitials(
-                          member.user?.name,
-                          member.user?.email,
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
+                    />
                     <div className={cn('flex-1', isLoading && 'opacity-50')}>
                       <div className='font-medium'>{member.user?.name}</div>
                       <div className='text-muted-foreground text-xs'>
@@ -1212,6 +1197,7 @@ interface AssignmentInfo {
   assigneeId: string | null;
   assigneeName: string | null;
   assigneeEmail: string | null;
+  assigneeImage?: string | null;
   stateId: string | null;
   stateIcon: string | null;
   stateColor: string | null;
@@ -1360,20 +1346,6 @@ export function MultiAssignmentStateSelector({
     );
   };
 
-  const getAssigneeInitials = (
-    name?: string | null,
-    email?: string | null,
-  ): string => {
-    const displayName = name || email;
-    if (!displayName) return '?';
-    return displayName
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   const handleStateSelect = (assignmentId: string, stateId: string) => {
     onStateChange(assignmentId, stateId);
     setOpen(false);
@@ -1486,12 +1458,14 @@ export function MultiAssignmentStateSelector({
                                 className='cursor-pointer py-2'
                               >
                                 {/* User Avatar */}
-                                <div className='bg-muted mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-medium'>
-                                  {getAssigneeInitials(
-                                    assignment.assigneeName,
-                                    assignment.assigneeEmail,
-                                  )}
-                                </div>
+                                <UserAvatar
+                                  name={assignment.assigneeName}
+                                  email={assignment.assigneeEmail}
+                                  image={assignment.assigneeImage}
+                                  userId={assignment.assigneeId}
+                                  size='sm'
+                                  className='mr-2 size-6 flex-shrink-0'
+                                />
 
                                 {/* User Name */}
                                 <span className='flex-1 truncate text-sm font-medium'>
@@ -1562,12 +1536,14 @@ export function MultiAssignmentStateSelector({
                             className='cursor-default py-2 opacity-60'
                           >
                             {/* User Avatar */}
-                            <div className='bg-muted mr-2 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-medium'>
-                              {getAssigneeInitials(
-                                assignment.assigneeName,
-                                assignment.assigneeEmail,
-                              )}
-                            </div>
+                            <UserAvatar
+                              name={assignment.assigneeName}
+                              email={assignment.assigneeEmail}
+                              image={assignment.assigneeImage}
+                              userId={assignment.assigneeId}
+                              size='sm'
+                              className='mr-2 size-6 flex-shrink-0'
+                            />
 
                             <span className='flex-1 truncate text-sm font-medium'>
                               {displayName}

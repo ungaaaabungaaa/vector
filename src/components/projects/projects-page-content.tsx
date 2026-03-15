@@ -115,6 +115,7 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
     leadId: project.lead?._id,
     leadName: project.lead?.name,
     leadEmail: project.lead?.email,
+    leadImage: project.lead?.image,
   }));
 
   const statuses = (statusesData ?? []).map(status => ({

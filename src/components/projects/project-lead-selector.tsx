@@ -15,7 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-avatar';
 import { cn } from '@/lib/utils';
 import { Check, User } from 'lucide-react';
 import { useQuery } from 'convex/react';
@@ -30,6 +30,7 @@ type OrgMember = {
   userId: string;
   name?: string;
   email?: string;
+  image?: string;
 };
 
 interface ProjectLeadSelectorProps {
@@ -41,17 +42,6 @@ interface ProjectLeadSelectorProps {
   trigger?: React.ReactNode;
   className?: string;
   align?: 'start' | 'center' | 'end';
-}
-
-function getInitials(name: string | null, email: string | undefined): string {
-  const displayName = name || email;
-  if (!displayName) return '?';
-  return displayName
-    .split(' ')
-    .map(part => part.charAt(0))
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
 }
 
 // Type guard to check if member is a project member (has .user)
@@ -143,21 +133,26 @@ export function ProjectLeadSelector({
         size='sm'
         className={cn('bg-muted/30 hover:bg-muted/50 h-8 gap-2', className)}
       >
-        <Avatar className='size-5'>
-          <AvatarFallback className='text-xs'>
-            {selectedLeadObj
-              ? isProjectMember(selectedLeadObj)
-                ? getInitials(
-                    selectedLeadObj.user?.name ?? null,
-                    selectedLeadObj.user?.email,
-                  )
-                : getInitials(
-                    selectedLeadObj.name ?? null,
-                    selectedLeadObj.email,
-                  )
-              : '?'}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          name={
+            isProjectMember(selectedLeadObj)
+              ? selectedLeadObj.user?.name
+              : selectedLeadObj.name
+          }
+          email={
+            isProjectMember(selectedLeadObj)
+              ? selectedLeadObj.user?.email
+              : selectedLeadObj.email
+          }
+          image={
+            isProjectMember(selectedLeadObj)
+              ? selectedLeadObj.user?.image
+              : selectedLeadObj.image
+          }
+          userId={selectedLeadObj.userId}
+          size='sm'
+          className='size-5'
+        />
         {showLabel && selectedLeadObj && (
           <span className='text-sm'>
             {isProjectMember(selectedLeadObj)
@@ -248,16 +243,24 @@ export function ProjectLeadSelector({
                         : 'opacity-0',
                     )}
                   />
-                  <Avatar className='mr-2 size-5'>
-                    <AvatarFallback className='text-xs'>
-                      {isProjectMember(member)
-                        ? getInitials(
-                            member.user?.name ?? null,
-                            member.user?.email,
-                          )
-                        : getInitials(member.name ?? null, member.email)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={
+                      isProjectMember(member) ? member.user?.name : member.name
+                    }
+                    email={
+                      isProjectMember(member)
+                        ? member.user?.email
+                        : member.email
+                    }
+                    image={
+                      isProjectMember(member)
+                        ? member.user?.image
+                        : member.image
+                    }
+                    userId={member.userId}
+                    size='sm'
+                    className='mr-2 size-5'
+                  />
                   <div className='flex flex-col'>
                     <span className='text-sm'>
                       {isProjectMember(member)

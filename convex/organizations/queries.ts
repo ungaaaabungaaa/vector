@@ -446,6 +446,7 @@ export const listMembers = query({
               _id: user._id,
               name: user.name,
               email: user.email,
+              image: user.image,
               username: user.username,
               role: user.role,
             }
@@ -517,6 +518,7 @@ export const searchMembers = query({
               _id: user._id,
               name: user.name,
               email: user.email,
+              image: user.image,
               username: user.username,
               role: user.role,
             }

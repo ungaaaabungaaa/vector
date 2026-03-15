@@ -293,6 +293,8 @@ async function ensureOrganizationSystemRoles(
       PERMISSIONS.ISSUE_VIEW,
       PERMISSIONS.ISSUE_CREATE,
       PERMISSIONS.ISSUE_EDIT,
+      PERMISSIONS.ISSUE_ASSIGN,
+      PERMISSIONS.ISSUE_STATE_UPDATE,
     ],
   });
 

@@ -7,8 +7,12 @@ import { assistantAgent } from './agent';
 import { assistantPageContextValidator } from './lib';
 import { assertAssistantModelConfigured } from './provider';
 
-function buildSystemPrompt(pageContextSummary: string) {
+function buildSystemPrompt(
+  pageContextSummary: string,
+  currentUserContextSummary: string,
+) {
   return [
+    currentUserContextSummary,
     `The user is currently viewing: ${pageContextSummary}.`,
     'Use this as the default target whenever the user does not provide explicit identifiers.',
   ].join('\n');
@@ -109,6 +113,13 @@ export const generateResponse = internalAction({
           pageContext: args.pageContext,
         },
       );
+      const currentUserContextSummary = await ctx.runQuery(
+        internal.ai.internal.getCurrentUserContextSummary,
+        {
+          orgSlug: args.orgSlug,
+          userId: args.userId,
+        },
+      );
 
       const assistantCtx = Object.assign({}, ctx, {
         organizationId: organization._id as Id<'organizations'>,
@@ -125,7 +136,10 @@ export const generateResponse = internalAction({
         },
         {
           promptMessageId: args.promptMessageId,
-          system: buildSystemPrompt(pageContextSummary),
+          system: buildSystemPrompt(
+            pageContextSummary,
+            currentUserContextSummary,
+          ),
           onError(error: unknown) {
             console.error('[ai.generateResponse] stream error', error);
           },

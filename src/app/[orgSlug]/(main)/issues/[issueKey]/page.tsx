@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RichEditor } from '@/components/ui/rich-editor';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Circle, Save, X, Pencil, Trash2 } from 'lucide-react';
+import { Circle, Save, X, Pencil, Trash2 } from 'lucide-react';
 import { MobileNavTrigger } from '../../layout';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -530,11 +530,13 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
               <MobileNavTrigger />
               <Link
                 href={`/${resolvedParams.orgSlug}/issues`}
-                className='text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors'
+                className='text-muted-foreground hover:text-foreground text-sm transition-colors'
               >
-                <ArrowLeft className='size-3' />
                 <span className='hidden sm:inline'>Issues</span>
               </Link>
+              <span className='text-muted-foreground hidden text-sm sm:inline'>
+                /
+              </span>
               <div className='flex items-center'>
                 {/* Team & Project selectors */}
                 <PermissionAwareSelector

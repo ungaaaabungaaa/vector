@@ -122,9 +122,7 @@ export const deliverRecipient = internalAction({
       try {
         // Resolve relative hrefs to absolute URLs for emails
         const baseUrl = (
-          process.env.NEXT_PUBLIC_APP_URL ||
-          process.env.NEXT_PUBLIC_SITE_URL ||
-          'http://localhost:3000'
+          process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         ).replace(/\/$/, '');
         const absoluteHref =
           recipient.href && !recipient.href.startsWith('http')

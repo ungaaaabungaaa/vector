@@ -256,6 +256,17 @@ export async function canViewIssue(
   if (!userId) return false;
   if (issue.createdBy === userId) return true;
 
+  // Private issues: only assignees can view (besides creator checked above)
+  if (vis === 'private') {
+    const assignee = await ctx.db
+      .query('issueAssignees')
+      .withIndex('by_issue_assignee', q =>
+        q.eq('issueId', issue._id).eq('assigneeId', userId),
+      )
+      .first();
+    return !!assignee;
+  }
+
   if (issue.teamId) {
     if (
       await hasTeamScopedVisibilityAccess(
@@ -280,16 +291,6 @@ export async function canViewIssue(
     ) {
       return true;
     }
-  }
-
-  if (vis === 'private') {
-    const assignee = await ctx.db
-      .query('issueAssignees')
-      .withIndex('by_issue_assignee', q =>
-        q.eq('issueId', issue._id).eq('assigneeId', userId),
-      )
-      .first();
-    return !!assignee;
   }
 
   if (vis === 'organization') {

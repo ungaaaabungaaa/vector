@@ -84,6 +84,48 @@ export const getAssistantOrganization = internalQuery({
   },
 });
 
+export const getCurrentUserContextSummary = internalQuery({
+  args: {
+    orgSlug: v.string(),
+    userId: v.id('users'),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const organization = await requireOrgForAssistant(
+      ctx,
+      args.orgSlug,
+      args.userId,
+    );
+    const membership = await ctx.db
+      .query('members')
+      .withIndex('by_org_user', q =>
+        q.eq('organizationId', organization._id).eq('userId', args.userId),
+      )
+      .first();
+    const user = await ctx.db.get('users', args.userId);
+
+    const displayName =
+      user?.name?.trim() ||
+      user?.email?.trim() ||
+      user?.username?.trim() ||
+      'Unknown user';
+    const identityParts = [`name "${displayName}"`];
+
+    if (user?.email?.trim()) {
+      identityParts.push(`email "${user.email.trim()}"`);
+    }
+    if (user?.username?.trim()) {
+      identityParts.push(`username "${user.username.trim()}"`);
+    }
+
+    return [
+      `The authenticated user you are speaking to is ${identityParts.join(', ')}.`,
+      `They are a ${membership?.role ?? 'member'} in organization "${organization.name}" (${organization.slug}).`,
+      'Treat references like "me", "my", "myself", "current user", and "my email" as referring to this person unless the user clearly says otherwise.',
+    ].join('\n');
+  },
+});
+
 export const getAssistantThreadForAuthUser = internalQuery({
   args: {
     orgSlug: v.string(),

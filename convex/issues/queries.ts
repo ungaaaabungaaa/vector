@@ -429,6 +429,12 @@ function canUserViewIssueFromAccess(
 
   if (visibility === 'public') return true;
   if (issue.createdBy === access.userId) return true;
+
+  // Private issues: only creator (above) and assignees — team/project membership doesn't help
+  if (visibility === 'private') {
+    return access.assignedIssueIds.has(issue._id);
+  }
+
   if (
     options?.scopedProjectVisible &&
     options.scopedProjectId &&
@@ -455,9 +461,6 @@ function canUserViewIssueFromAccess(
       access.scopedProjectIds.has(issue.projectId))
   ) {
     return true;
-  }
-  if (visibility === 'private') {
-    return access.assignedIssueIds.has(issue._id);
   }
 
   if (visibility === 'organization') {
@@ -695,11 +698,13 @@ async function flattenIssueRows(
               assigneeId: assignee?._id,
               assigneeName: assignee?.name,
               assigneeEmail: assignee?.email,
+              assigneeImage: assignee?.image,
               stateId: state?._id,
               stateName: state?.name,
               stateIcon: state?.icon,
               stateColor: state?.color,
               stateType: state?.type,
+              note: assignment.note ?? null,
             };
           })
         : [
@@ -708,11 +713,13 @@ async function flattenIssueRows(
               assigneeId: undefined,
               assigneeName: null,
               assigneeEmail: null,
+              assigneeImage: null,
               stateId: undefined,
               stateName: null,
               stateIcon: null,
               stateColor: null,
               stateType: null,
+              note: null,
             },
           ];
 

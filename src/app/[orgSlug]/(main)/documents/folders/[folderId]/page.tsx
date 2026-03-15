@@ -11,14 +11,7 @@ import { ScopedPermissionGate } from '@/hooks/use-permissions';
 import { PERMISSIONS } from '@/convex/_shared/permissions';
 import { formatDateHuman } from '@/lib/date';
 import Link from 'next/link';
-import {
-  FileText,
-  Trash2,
-  ArrowLeft,
-  Pencil,
-  MoreHorizontal,
-  Smile,
-} from 'lucide-react';
+import { FileText, Trash2, Pencil, MoreHorizontal, Smile } from 'lucide-react';
 import { DynamicIcon } from '@/lib/dynamic-icons';
 import { IconPicker } from '@/components/ui/icon-picker';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -387,15 +380,11 @@ function FolderContent({
         <div className='flex items-center justify-between p-1'>
           <div className='flex items-center gap-1'>
             <MobileNavTrigger />
-            <Link href={`/${orgSlug}/documents`}>
-              <Button
-                variant='ghost'
-                size='sm'
-                className='h-6 gap-1 px-2 text-xs'
-              >
-                <ArrowLeft className='size-3' />
-                Documents
-              </Button>
+            <Link
+              href={`/${orgSlug}/documents`}
+              className='text-muted-foreground hover:text-foreground text-xs transition-colors'
+            >
+              Documents
             </Link>
             {folder.icon ? (
               <DynamicIcon

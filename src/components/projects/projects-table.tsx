@@ -49,6 +49,7 @@ export interface ProjectRowData {
   leadId?: string | null;
   leadName?: string | null;
   leadEmail?: string | null;
+  leadImage?: string | null;
 }
 
 export interface ProjectsTableProps {
@@ -61,6 +62,7 @@ export interface ProjectsTableProps {
   onLeadChange: (projectId: string, leadId: string) => void;
   onDelete: (projectId: string) => void;
   deletePending?: boolean;
+  canCreate?: boolean;
 }
 
 export function ProjectsTable({
@@ -73,11 +75,21 @@ export function ProjectsTable({
   onLeadChange,
   onDelete,
   deletePending = false,
+  canCreate,
 }: ProjectsTableProps) {
   if (projects.length === 0) {
     return (
-      <div className='text-muted-foreground flex items-center justify-center py-12 text-sm'>
-        No projects found
+      <div className='text-muted-foreground flex flex-col items-center justify-center gap-1 py-12 text-sm'>
+        <span>
+          {canCreate === false
+            ? "You haven't been added to any projects yet."
+            : 'No projects found'}
+        </span>
+        {canCreate === false && (
+          <span className='text-xs'>
+            Ask an admin to add you to a project to get started.
+          </span>
+        )}
       </div>
     );
   }

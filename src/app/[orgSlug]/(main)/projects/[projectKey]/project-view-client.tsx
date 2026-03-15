@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  ArrowLeft,
   Save,
   X,
   Plus,
@@ -684,6 +683,7 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
 
           {/* Main Content Skeleton */}
           <div className='py-3 sm:py-4'>
+            {/* Header area — constrained */}
             <div className='mx-auto max-w-5xl px-3 sm:px-4'>
               <div className='mb-2 max-w-4xl space-y-2'>
                 {/* Key + date */}
@@ -707,17 +707,20 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                 <Skeleton className='h-8 w-28 rounded-md' />
                 <Skeleton className='h-8 w-40 rounded-md' />
               </div>
+            </div>
 
-              {/* Tabs skeleton */}
-              <div className='mt-6'>
+            {/* Tabs — header constrained, content full-width */}
+            <div className='mt-6'>
+              <div className='mx-auto max-w-5xl px-3 sm:px-4'>
                 <div className='flex gap-2 border-b pb-2'>
                   <Skeleton className='h-7 w-16' />
                   <Skeleton className='h-7 w-20' />
                   <Skeleton className='h-7 w-20' />
                 </div>
-                <div className='mt-4'>
-                  <KanbanSkeleton />
-                </div>
+              </div>
+              {/* Kanban content — full width */}
+              <div className='mt-4 px-3 sm:px-4'>
+                <KanbanSkeleton />
               </div>
             </div>
           </div>
@@ -735,11 +738,13 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
             <MobileNavTrigger />
             <Link
               href={`/${params.orgSlug}/projects`}
-              className='text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm transition-colors'
+              className='text-muted-foreground hover:text-foreground text-sm transition-colors'
             >
-              <ArrowLeft className='size-3' />
               <span className='hidden sm:inline'>Projects</span>
             </Link>
+            <span className='text-muted-foreground hidden text-sm sm:inline'>
+              /
+            </span>
             <div className='flex items-center'>
               {/* Team & Status selectors */}
               <PermissionAware

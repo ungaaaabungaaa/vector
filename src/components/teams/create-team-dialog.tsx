@@ -93,16 +93,23 @@ export function CreateTeamDialogContent({
       });
   };
 
-  // Auto-generate key from name (alphanumeric, max 10 chars)
+  // Auto-generate key from name with smart abbreviation
   const handleNameChange = (value: string) => {
     setName(value);
-    setKey(
-      value
-        .replace(/\s+/g, '-') // replace spaces with hyphens
-        .replace(/[^A-Z0-9-]/gi, '') // allow only alphanumeric and hyphens
-        .slice(0, 10)
-        .toUpperCase(),
-    );
+    const stripped = value.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    const words = stripped.split(/\s+/).filter(Boolean);
+    let generated: string;
+    if (words.length > 1) {
+      // Multi-word: take first letter of each word (e.g. "Engineering Team" → "ET")
+      generated = words
+        .map(w => w[0])
+        .join('')
+        .slice(0, 10);
+    } else {
+      // Single word: take first 4 chars (e.g. "Engineering" → "ENGI")
+      generated = (words[0] || '').slice(0, 4);
+    }
+    setKey(generated.toUpperCase());
   };
 
   return (

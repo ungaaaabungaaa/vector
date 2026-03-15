@@ -1,5 +1,7 @@
+'use client';
+
 import Link from 'next/link';
-import { ShieldX, ArrowLeft } from 'lucide-react';
+import { ShieldX } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,15 +34,14 @@ export default function ForbiddenPage() {
         <div className='flex flex-col gap-3 pt-2'>
           <Link
             href='/'
-            className='bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none'
+            className='bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none'
           >
-            <ArrowLeft className='size-4' />
             Go to Dashboard
           </Link>
 
           <button
             onClick={() => window.history.back()}
-            className='border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-ring inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none'
+            className='border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground focus:ring-ring inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none'
           >
             Go Back
           </button>

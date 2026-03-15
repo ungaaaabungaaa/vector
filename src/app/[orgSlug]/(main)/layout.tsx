@@ -41,6 +41,28 @@ const SIDEBAR_MAX_WIDTH = 480;
 const SIDEBAR_DEFAULT_WIDTH = 224; // w-56
 const SIDEBAR_STORAGE_KEY = 'vector-sidebar-width';
 
+function getInitialSidebarWidth() {
+  if (typeof window === 'undefined') {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+
+  const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+  if (!stored) {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+
+  const parsed = parseInt(stored, 10);
+  if (
+    Number.isNaN(parsed) ||
+    parsed < SIDEBAR_MIN_WIDTH ||
+    parsed > SIDEBAR_MAX_WIDTH
+  ) {
+    return SIDEBAR_DEFAULT_WIDTH;
+  }
+
+  return parsed;
+}
+
 // ---------------------------------------------------------------------------
 // Contexts
 // ---------------------------------------------------------------------------
@@ -69,26 +91,14 @@ export function BottomBarSlot({ children }: { children: ReactNode }) {
 // ---------------------------------------------------------------------------
 
 function useResizableSidebar() {
-  const [width, setWidth] = useState(() => {
-    if (typeof window === 'undefined') return SIDEBAR_DEFAULT_WIDTH;
-    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    if (stored) {
-      const parsed = parseInt(stored, 10);
-      if (
-        !isNaN(parsed) &&
-        parsed >= SIDEBAR_MIN_WIDTH &&
-        parsed <= SIDEBAR_MAX_WIDTH
-      ) {
-        return parsed;
-      }
-    }
-    return SIDEBAR_DEFAULT_WIDTH;
-  });
+  const [width, setWidth] = useState(getInitialSidebarWidth);
+  const [isDragging, setIsDragging] = useState(false);
   const isResizing = useRef(false);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isResizing.current = true;
+    setIsDragging(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
@@ -103,6 +113,7 @@ function useResizableSidebar() {
 
     const handleMouseUp = () => {
       isResizing.current = false;
+      setIsDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', handleMouseMove);
@@ -118,7 +129,7 @@ function useResizableSidebar() {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, String(width));
   }, [width]);
 
-  return { width, handleMouseDown };
+  return { width, isDragging, handleMouseDown };
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +175,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const orgSlug = params.orgSlug as string;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
-  const { width: sidebarWidth, handleMouseDown } = useResizableSidebar();
+  const {
+    width: sidebarWidth,
+    isDragging,
+    handleMouseDown,
+  } = useResizableSidebar();
 
   // Fetch current user and organization data
   const user = useQuery(api.users.currentUser);
@@ -278,7 +293,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
               onMouseDown={handleMouseDown}
               className='group absolute top-0 -right-0.5 bottom-0 z-30 flex w-1.5 cursor-col-resize items-center justify-center'
             >
-              <div className='bg-border group-hover:bg-foreground/20 group-active:bg-foreground/30 h-full w-px transition-colors' />
+              <div
+                className={cn(
+                  'h-full w-px transition-colors',
+                  isDragging
+                    ? 'bg-foreground/30'
+                    : 'group-hover:bg-foreground/15 bg-transparent',
+                )}
+              />
             </div>
           </aside>
 

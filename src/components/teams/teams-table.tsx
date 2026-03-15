@@ -46,6 +46,7 @@ interface TeamsTableProps {
   teams: Team[];
   onDelete?: (teamId: string) => void;
   deletePending?: boolean;
+  canCreate?: boolean;
 }
 
 export function TeamsTable({
@@ -53,6 +54,7 @@ export function TeamsTable({
   teams,
   onDelete,
   deletePending = false,
+  canCreate,
 }: TeamsTableProps) {
   const updateIconMutation = useMutation(api.teams.mutations.update);
   const [confirm, ConfirmDialog] = useConfirm();
@@ -66,8 +68,17 @@ export function TeamsTable({
 
   if (teams.length === 0) {
     return (
-      <div className='text-muted-foreground flex items-center justify-center py-12 text-sm'>
-        No teams found
+      <div className='text-muted-foreground flex flex-col items-center justify-center gap-1 py-12 text-sm'>
+        <span>
+          {canCreate === false
+            ? "You haven't been added to any teams yet."
+            : 'No teams found'}
+        </span>
+        {canCreate === false && (
+          <span className='text-xs'>
+            Ask an admin to add you to a team to get started.
+          </span>
+        )}
       </div>
     );
   }

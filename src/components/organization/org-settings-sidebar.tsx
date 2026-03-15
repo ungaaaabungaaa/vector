@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ArrowLeft,
   Building,
   Users,
   Settings2,
@@ -75,16 +74,6 @@ export function OrgSettingsSidebar({
 
   return (
     <nav className='space-y-1 p-2 pt-0'>
-      {/* Back to workspace */}
-      <Link
-        href={`/${orgSlug}/issues`}
-        onClick={onNavigate}
-        className='text-muted-foreground hover:text-foreground hover:bg-foreground/10 mb-1 flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors'
-      >
-        <ArrowLeft className='size-3.5 shrink-0' />
-        <span className='truncate'>Back to {orgSlug}</span>
-      </Link>
-
       <div className='pb-2'>
         <h2 className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
           Organization Settings

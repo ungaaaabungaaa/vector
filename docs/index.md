@@ -22,6 +22,10 @@ This section gives a high-level view of the stack, project structure, permission
 
 This section contains developer conventions for coding style, routing, type safety, component usage, and error handling.
 
+Useful debug guide:
+
+- [GitHub development tracking test guide](./development/09-github-development-tracking.md)
+
 ### 5. [Design](./design/01-design-system.md)
 
 This section outlines the UI patterns and design principles used across the app.

@@ -207,6 +207,7 @@ Start with:
 - Local setup: [docs/getting-started/01-local-setup.md](docs/getting-started/01-local-setup.md)
 - Environment variables: [docs/getting-started/02-environment-variables.md](docs/getting-started/02-environment-variables.md)
 - Common commands: [docs/getting-started/04-common-commands.md](docs/getting-started/04-common-commands.md)
+- GitHub development tracking test guide: [docs/development/09-github-development-tracking.md](docs/development/09-github-development-tracking.md)
 
 ## Contributing
 

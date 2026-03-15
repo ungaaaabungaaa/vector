@@ -419,6 +419,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     searchText: v.optional(v.string()),
     priorityId: v.optional(v.id('issuePriorities')),
+    workflowStateId: v.optional(v.id('issueStates')),
     teamId: v.optional(v.id('teams')),
     projectId: v.optional(v.id('projects')),
     reporterId: v.optional(v.id('users')),
@@ -442,9 +443,11 @@ export default defineSchema({
     .index('by_team', ['teamId'])
     .index('by_project', ['projectId'])
     .index('by_priority', ['priorityId'])
+    .index('by_workflow_state', ['workflowStateId'])
     .index('by_reporter', ['reporterId'])
     .index('by_team_sequence', ['teamId', 'sequenceNumber'])
     .index('by_org_team', ['organizationId', 'teamId'])
+    .index('by_org_workflow_state', ['organizationId', 'workflowStateId'])
     .index('by_closed', ['closedAt'])
     .index('by_visibility', ['visibility'])
     .index('by_org_visibility', ['organizationId', 'visibility'])
@@ -518,6 +521,196 @@ export default defineSchema({
     type: v.string(),
     payload: v.optional(v.any()),
   }).index('by_issue', ['issueId']),
+
+  githubIntegrations: defineTable({
+    organizationId: v.id('organizations'),
+    provider: v.literal('github'),
+    connectionMode: v.union(
+      v.literal('app'),
+      v.literal('token'),
+      v.literal('hybrid'),
+    ),
+    installationId: v.optional(v.number()),
+    installationAccountLogin: v.optional(v.string()),
+    installationAccountType: v.optional(v.string()),
+    appWebhookStatus: v.optional(
+      v.union(
+        v.literal('pending'),
+        v.literal('active'),
+        v.literal('failing'),
+        v.literal('disabled'),
+      ),
+    ),
+    encryptedToken: v.optional(v.string()),
+    tokenFingerprint: v.optional(v.string()),
+    tokenLastUpdatedAt: v.optional(v.number()),
+    lastWebhookAt: v.optional(v.number()),
+    lastWebhookEvent: v.optional(v.string()),
+    lastReconciledAt: v.optional(v.number()),
+    lastSyncFailureAt: v.optional(v.number()),
+    lastSyncFailureMessage: v.optional(v.string()),
+    connectedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index('by_organization', ['organizationId'])
+    .index('by_org_provider', ['organizationId', 'provider'])
+    .index('by_installation', ['installationId']),
+
+  githubRepositories: defineTable({
+    organizationId: v.id('organizations'),
+    integrationId: v.id('githubIntegrations'),
+    githubRepoId: v.number(),
+    nodeId: v.optional(v.string()),
+    owner: v.string(),
+    name: v.string(),
+    fullName: v.string(),
+    defaultBranch: v.optional(v.string()),
+    private: v.boolean(),
+    installationAccessible: v.boolean(),
+    selected: v.boolean(),
+    lastPushedAt: v.optional(v.number()),
+    lastSyncedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index('by_organization', ['organizationId'])
+    .index('by_integration', ['integrationId'])
+    .index('by_org_repo', ['organizationId', 'githubRepoId'])
+    .index('by_org_selected', ['organizationId', 'selected'])
+    .index('by_full_name', ['fullName']),
+
+  githubPullRequests: defineTable({
+    organizationId: v.id('organizations'),
+    repositoryId: v.id('githubRepositories'),
+    githubPullRequestId: v.number(),
+    nodeId: v.optional(v.string()),
+    number: v.number(),
+    title: v.string(),
+    body: v.optional(v.string()),
+    url: v.string(),
+    state: v.union(
+      v.literal('draft'),
+      v.literal('open'),
+      v.literal('closed'),
+      v.literal('merged'),
+    ),
+    isDraft: v.boolean(),
+    headRefName: v.optional(v.string()),
+    baseRefName: v.optional(v.string()),
+    authorLogin: v.optional(v.string()),
+    authorAvatarUrl: v.optional(v.string()),
+    mergedAt: v.optional(v.number()),
+    closedAt: v.optional(v.number()),
+    lastActivityAt: v.number(),
+    lastSyncedAt: v.number(),
+  })
+    .index('by_organization', ['organizationId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_org_external', ['organizationId', 'githubPullRequestId'])
+    .index('by_repo_number', ['repositoryId', 'number'])
+    .index('by_state', ['state']),
+
+  githubIssues: defineTable({
+    organizationId: v.id('organizations'),
+    repositoryId: v.id('githubRepositories'),
+    githubIssueId: v.number(),
+    nodeId: v.optional(v.string()),
+    number: v.number(),
+    title: v.string(),
+    body: v.optional(v.string()),
+    url: v.string(),
+    state: v.union(v.literal('open'), v.literal('closed')),
+    authorLogin: v.optional(v.string()),
+    authorAvatarUrl: v.optional(v.string()),
+    closedAt: v.optional(v.number()),
+    lastActivityAt: v.number(),
+    lastSyncedAt: v.number(),
+  })
+    .index('by_organization', ['organizationId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_org_external', ['organizationId', 'githubIssueId'])
+    .index('by_repo_number', ['repositoryId', 'number'])
+    .index('by_state', ['state']),
+
+  githubCommits: defineTable({
+    organizationId: v.id('organizations'),
+    repositoryId: v.id('githubRepositories'),
+    sha: v.string(),
+    shortSha: v.string(),
+    messageHeadline: v.string(),
+    messageBody: v.optional(v.string()),
+    url: v.string(),
+    authorName: v.optional(v.string()),
+    authorEmail: v.optional(v.string()),
+    committedAt: v.optional(v.number()),
+    authoredAt: v.optional(v.number()),
+    lastSyncedAt: v.number(),
+  })
+    .index('by_organization', ['organizationId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_org_sha', ['organizationId', 'sha'])
+    .index('by_committed_at', ['committedAt']),
+
+  githubArtifactLinks: defineTable({
+    organizationId: v.id('organizations'),
+    issueId: v.id('issues'),
+    artifactType: v.union(
+      v.literal('pull_request'),
+      v.literal('issue'),
+      v.literal('commit'),
+    ),
+    pullRequestId: v.optional(v.id('githubPullRequests')),
+    githubIssueId: v.optional(v.id('githubIssues')),
+    commitId: v.optional(v.id('githubCommits')),
+    source: v.union(
+      v.literal('auto'),
+      v.literal('manual'),
+      v.literal('rollup'),
+    ),
+    active: v.boolean(),
+    matchReason: v.optional(v.string()),
+    createdBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_organization', ['organizationId'])
+    .index('by_issue', ['issueId'])
+    .index('by_issue_active', ['issueId', 'active'])
+    .index('by_pr', ['pullRequestId'])
+    .index('by_gh_issue', ['githubIssueId'])
+    .index('by_commit', ['commitId']),
+
+  githubArtifactSuppressions: defineTable({
+    organizationId: v.id('organizations'),
+    issueId: v.id('issues'),
+    artifactType: v.union(
+      v.literal('pull_request'),
+      v.literal('issue'),
+      v.literal('commit'),
+    ),
+    externalKey: v.string(),
+    reason: v.union(v.literal('manual_unlink'), v.literal('manual_suppress')),
+    createdBy: v.optional(v.id('users')),
+    createdAt: v.number(),
+  })
+    .index('by_issue', ['issueId'])
+    .index('by_issue_external', ['issueId', 'artifactType', 'externalKey'])
+    .index('by_organization', ['organizationId']),
+
+  githubSyncCursors: defineTable({
+    organizationId: v.id('organizations'),
+    repositoryId: v.id('githubRepositories'),
+    cursorType: v.union(
+      v.literal('pull_requests_recent'),
+      v.literal('issues_recent'),
+      v.literal('commits_recent'),
+    ),
+    cursorValue: v.optional(v.string()),
+    syncedAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_repository', ['repositoryId'])
+    .index('by_repo_type', ['repositoryId', 'cursorType'])
+    .index('by_organization', ['organizationId']),
 
   documentFolders: defineTable({
     organizationId: v.id('organizations'),

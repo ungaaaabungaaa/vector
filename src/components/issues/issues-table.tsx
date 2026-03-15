@@ -15,10 +15,10 @@ import React from 'react';
 
 import {
   PrioritySelector,
+  StateSelector,
   TeamSelector,
   ProjectSelector,
   MultiAssigneeSelector,
-  MultiAssignmentStateSelector,
 } from '@/components/issues/issue-selectors';
 import { getDynamicIcon } from '@/lib/dynamic-icons';
 import { formatDateHuman } from '@/lib/date';
@@ -85,10 +85,6 @@ export function IssuesTable({
   canChangeAll = false,
   activeFilter,
 }: IssuesTableProps) {
-  // ------------------------------------------------------------------
-  // Improved deduplication logic that preserves all assignee information
-  // and handles filtering context properly
-  // ------------------------------------------------------------------
   const groupedIssues = React.useMemo(() => {
     const map = new Map<
       string,
@@ -107,18 +103,13 @@ export function IssuesTable({
           stateName: string | null;
           stateType: string | null;
         }>;
-        // Add metadata for sorting and highlighting
-        hasCurrentUserWithActiveFilter: boolean;
-        currentUserStateType: string | null;
       }
     >();
 
     issues.forEach(row => {
-      if (row.id === 'unassigned') return; // Skip empty assignments
       const existing = map.get(row.id);
 
       if (existing) {
-        // Merge assignee ids (if any)
         if (row.assigneeId && !existing.assigneeIds.includes(row.assigneeId)) {
           existing.assigneeIds.push(row.assigneeId);
         }
@@ -135,27 +126,12 @@ export function IssuesTable({
           stateName: row.stateName ?? null,
           stateType: row.stateType ?? null,
         });
-
-        // Update user-specific metadata
-        if (row.assigneeId === currentUserId) {
-          existing.currentUserStateType = row.stateType ?? null;
-          if (activeFilter !== 'all' && row.stateType === activeFilter) {
-            existing.hasCurrentUserWithActiveFilter = true;
-          }
-        }
-
-        // Prefer a row that has an assignee, and prefer current user's assignment if available
         if (!existing.row.assigneeId && row.assigneeId) {
           existing.row = row;
         } else if (row.assigneeId === currentUserId) {
           existing.row = row;
         }
       } else {
-        const hasCurrentUserWithActiveFilter =
-          activeFilter !== 'all' &&
-          row.assigneeId === currentUserId &&
-          row.stateType === activeFilter;
-
         map.set(row.id, {
           row,
           assigneeIds: row.assigneeId ? [row.assigneeId] : [],
@@ -173,59 +149,23 @@ export function IssuesTable({
               stateType: row.stateType ?? null,
             },
           ],
-          hasCurrentUserWithActiveFilter,
-          currentUserStateType:
-            row.assigneeId === currentUserId ? (row.stateType ?? null) : null,
         });
       }
     });
-
-    return Array.from(map.values()).map(
-      ({
-        row,
-        assigneeIds,
-        assignments,
-        hasCurrentUserWithActiveFilter,
-        currentUserStateType,
-      }) => ({
-        row,
-        assigneeIds,
-        assignments,
-        hasCurrentUserWithActiveFilter,
-        currentUserStateType,
-      }),
-    );
+    return Array.from(map.values());
   }, [issues, currentUserId, activeFilter]);
 
-  // Improved sorting that prioritizes user's assignments for the active filter
-  const sortedGrouped = React.useMemo(() => {
-    return [...groupedIssues].sort((a, b) => {
-      // When filtering by state, prioritize issues where current user has that state
-      if (activeFilter !== 'all') {
-        if (
-          a.hasCurrentUserWithActiveFilter !== b.hasCurrentUserWithActiveFilter
-        ) {
-          return a.hasCurrentUserWithActiveFilter ? -1 : 1;
-        }
-
-        // If both/neither have current user with active filter,
-        // check if either has ANY assignment with the active filter
-        const aHasFilterState = a.assignments.some(
-          assignment => assignment.stateType === activeFilter,
-        );
-        const bHasFilterState = b.assignments.some(
-          assignment => assignment.stateType === activeFilter,
-        );
-
-        if (aHasFilterState !== bHasFilterState) {
-          return aHasFilterState ? -1 : 1;
-        }
-      }
-
-      // Default sort by update time
-      return b.row.updatedAt - a.row.updatedAt;
-    });
-  }, [groupedIssues, activeFilter]);
+  const sortedGrouped = React.useMemo(
+    () =>
+      [...groupedIssues]
+        .filter(item =>
+          activeFilter === 'all'
+            ? true
+            : item.row.workflowStateType === activeFilter,
+        )
+        .sort((a, b) => b.row.updatedAt - a.row.updatedAt),
+    [groupedIssues, activeFilter],
+  );
 
   if (issues.length === 0) {
     return (
@@ -238,193 +178,171 @@ export function IssuesTable({
   return (
     <div className='divide-y'>
       <AnimatePresence initial={false}>
-        {sortedGrouped.map(
-          ({
-            row: issue,
-            assigneeIds,
-            assignments,
-            hasCurrentUserWithActiveFilter,
-            currentUserStateType,
-          }) => {
-            // Priority icon / color
-            const PriorityIcon = issue.priorityIcon
-              ? getDynamicIcon(issue.priorityIcon) || Circle
-              : Circle;
-            const priorityColor = issue.priorityColor || '#94a3b8';
+        {sortedGrouped.map(({ row: issue, assigneeIds, assignments }) => {
+          // Priority icon / color
+          const PriorityIcon = issue.priorityIcon
+            ? getDynamicIcon(issue.priorityIcon) || Circle
+            : Circle;
+          const priorityColor = issue.priorityColor || '#94a3b8';
 
-            // Determine which assignee to highlight based on filter
-            let highlightAssigneeId: string | null = null;
-            if (activeFilter !== 'all') {
-              // First priority: current user if they have the active filter state
-              if (currentUserStateType === activeFilter) {
-                highlightAssigneeId = currentUserId;
-              } else {
-                // Otherwise, highlight the first assignee that has the active filter state
-                const matchingAssignment = assignments.find(
-                  a => a.stateType === activeFilter,
-                );
-                if (matchingAssignment?.assigneeId) {
-                  highlightAssigneeId = matchingAssignment.assigneeId;
-                }
-              }
-            }
-
-            return (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                transition={{ duration: 0.2 }}
-                key={issue.id}
-                className={`hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors ${
-                  hasCurrentUserWithActiveFilter ? 'bg-accent/30' : ''
-                }`}
+          return (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              key={issue.id}
+              className='hover:bg-muted/50 flex items-center gap-3 px-3 py-2 transition-colors'
+            >
+              {/* Priority Selector */}
+              <PermissionAware
+                orgSlug={orgSlug}
+                permission={PERMISSIONS.ISSUE_PRIORITY_UPDATE}
+                fallbackMessage="You don't have permission to change issue priority"
               >
-                {/* Priority Selector */}
-                <PermissionAware
-                  orgSlug={orgSlug}
-                  permission={PERMISSIONS.ISSUE_PRIORITY_UPDATE}
-                  fallbackMessage="You don't have permission to change issue priority"
-                >
-                  <PrioritySelector
-                    priorities={priorities as Priority[]}
-                    selectedPriority={issue.priorityId || ''}
-                    onPrioritySelect={pid => onPriorityChange(issue.id, pid)}
-                    displayMode='labelOnly'
-                    trigger={
-                      <div className='flex-shrink-0 cursor-pointer'>
-                        <PriorityIcon
-                          className='size-4'
-                          style={{ color: priorityColor }}
-                        />
-                      </div>
-                    }
-                    className='border-none bg-transparent p-0 shadow-none'
-                  />
-                </PermissionAware>
-
-                {/* Issue Key */}
-                <div className='hidden flex-shrink-0 items-center gap-2 sm:flex'>
-                  <span className='text-muted-foreground font-mono text-xs'>
-                    {issue.key}
-                  </span>
-                  {issue.parentIssueKey && (
-                    <div className='hidden items-center gap-1 md:flex'>
-                      <ArrowUp className='text-muted-foreground/60 h-3 w-3' />
-                      <span className='text-muted-foreground/60 font-mono text-xs'>
-                        {issue.parentIssueKey}
-                      </span>
+                <PrioritySelector
+                  priorities={priorities as Priority[]}
+                  selectedPriority={issue.priorityId || ''}
+                  onPrioritySelect={pid => onPriorityChange(issue.id, pid)}
+                  displayMode='labelOnly'
+                  trigger={
+                    <div className='flex-shrink-0 cursor-pointer'>
+                      <PriorityIcon
+                        className='size-4'
+                        style={{ color: priorityColor }}
+                      />
                     </div>
-                  )}
-                </div>
+                  }
+                  className='border-none bg-transparent p-0 shadow-none'
+                />
+              </PermissionAware>
 
-                {/* State / Assignment Selector */}
-                <MultiAssignmentStateSelector
-                  assignments={assignments}
+              {/* Issue Key */}
+              <div className='hidden flex-shrink-0 items-center gap-2 sm:flex'>
+                <span className='text-muted-foreground font-mono text-xs'>
+                  {issue.key}
+                </span>
+                {issue.parentIssueKey && (
+                  <div className='hidden items-center gap-1 md:flex'>
+                    <ArrowUp className='text-muted-foreground/60 h-3 w-3' />
+                    <span className='text-muted-foreground/60 font-mono text-xs'>
+                      {issue.parentIssueKey}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <PermissionAware
+                orgSlug={orgSlug}
+                permission={PERMISSIONS.ISSUE_STATE_UPDATE}
+                fallbackMessage="You don't have permission to change issue state"
+              >
+                <StateSelector
                   states={states}
-                  onStateChange={onAssignmentStateChange}
-                  isLoading={isUpdatingAssignmentStates}
-                  currentUserId={currentUserId}
-                  canChangeAll={canChangeAll}
-                  activeFilter={activeFilter}
+                  selectedState={issue.workflowStateId || ''}
+                  onStateSelect={stateId =>
+                    onAssignmentStateChange(issue.id, stateId)
+                  }
+                  displayMode='labelOnly'
+                  className='border-none bg-transparent p-0 shadow-none'
                 />
+              </PermissionAware>
 
-                {/* Title */}
-                <div className='min-w-0 flex-1'>
-                  <Link
-                    href={`/${orgSlug}/issues/${issue.key}`}
-                    className='hover:text-primary block truncate text-sm font-medium transition-colors'
+              {/* Title */}
+              <div className='min-w-0 flex-1'>
+                <Link
+                  href={`/${orgSlug}/issues/${issue.key}`}
+                  className='hover:text-primary block truncate text-sm font-medium transition-colors'
+                >
+                  {issue.title}
+                </Link>
+              </div>
+
+              {/* Team / Project selectors - hidden on mobile */}
+              <div className='hidden md:contents'>
+                {issue.teamKey && (
+                  <PermissionAware
+                    orgSlug={orgSlug}
+                    permission={PERMISSIONS.ISSUE_EDIT}
+                    fallbackMessage="You don't have permission to change issue team"
                   >
-                    {issue.title}
-                  </Link>
-                </div>
+                    <TeamSelector
+                      teams={teams}
+                      selectedTeam={
+                        teams.find(t => t.key === issue.teamKey)?._id || ''
+                      }
+                      onTeamSelect={tid => onTeamChange(issue.id, tid)}
+                    />
+                  </PermissionAware>
+                )}
 
-                {/* Team / Project selectors - hidden on mobile */}
-                <div className='hidden md:contents'>
-                  {issue.teamKey && (
-                    <PermissionAware
-                      orgSlug={orgSlug}
-                      permission={PERMISSIONS.ISSUE_EDIT}
-                      fallbackMessage="You don't have permission to change issue team"
+                {issue.projectKey && (
+                  <PermissionAware
+                    orgSlug={orgSlug}
+                    permission={PERMISSIONS.ISSUE_EDIT}
+                    fallbackMessage="You don't have permission to change issue project"
+                  >
+                    <ProjectSelector
+                      projects={projects}
+                      selectedProject={
+                        projects.find(p => p.key === issue.projectKey)?._id ||
+                        ''
+                      }
+                      onProjectSelect={pid => onProjectChange(issue.id, pid)}
+                    />
+                  </PermissionAware>
+                )}
+              </div>
+
+              {/* Last Updated - hidden on mobile */}
+              <div className='hidden flex-shrink-0 sm:block'>
+                <span className='text-muted-foreground text-xs'>
+                  {formatDateHuman(new Date(issue.updatedAt))}
+                </span>
+              </div>
+
+              {/* Assignees */}
+              <MultiAssigneeSelector
+                orgSlug={orgSlug}
+                selectedAssigneeIds={assigneeIds}
+                onAssigneesChange={ids => onAssigneesChange(issue.id!, ids)}
+                isLoading={isUpdatingAssignees}
+                highlightAssigneeId={null}
+                assignments={assignments}
+                activeFilter={activeFilter}
+                currentUserId={currentUserId}
+                canManageAll={canChangeAll}
+              />
+
+              {/* Actions */}
+              <div className='flex-shrink-0'>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-6 w-6 p-0'
+                      aria-label='Open issue actions'
                     >
-                      <TeamSelector
-                        teams={teams}
-                        selectedTeam={
-                          teams.find(t => t.key === issue.teamKey)?._id || ''
-                        }
-                        onTeamSelect={tid => onTeamChange(issue.id, tid)}
-                      />
-                    </PermissionAware>
-                  )}
-
-                  {issue.projectKey && (
-                    <PermissionAware
-                      orgSlug={orgSlug}
-                      permission={PERMISSIONS.ISSUE_EDIT}
-                      fallbackMessage="You don't have permission to change issue project"
+                      <MoreHorizontal className='size-4' />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end'>
+                    <DropdownMenuItem
+                      variant='destructive'
+                      disabled={deletePending}
+                      onClick={() => onDelete(issue.id!)}
                     >
-                      <ProjectSelector
-                        projects={projects}
-                        selectedProject={
-                          projects.find(p => p.key === issue.projectKey)?._id ||
-                          ''
-                        }
-                        onProjectSelect={pid => onProjectChange(issue.id, pid)}
-                      />
-                    </PermissionAware>
-                  )}
-                </div>
-
-                {/* Last Updated - hidden on mobile */}
-                <div className='hidden flex-shrink-0 sm:block'>
-                  <span className='text-muted-foreground text-xs'>
-                    {formatDateHuman(new Date(issue.updatedAt))}
-                  </span>
-                </div>
-
-                {/* Assignees */}
-                <MultiAssigneeSelector
-                  orgSlug={orgSlug}
-                  selectedAssigneeIds={assigneeIds}
-                  onAssigneesChange={ids => onAssigneesChange(issue.id!, ids)}
-                  isLoading={isUpdatingAssignees}
-                  highlightAssigneeId={highlightAssigneeId}
-                  assignments={assignments}
-                  activeFilter={activeFilter}
-                  currentUserId={currentUserId}
-                  canManageAll={canChangeAll}
-                />
-
-                {/* Actions */}
-                <div className='flex-shrink-0'>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-6 w-6 p-0'
-                        aria-label='Open issue actions'
-                      >
-                        <MoreHorizontal className='size-4' />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end'>
-                      <DropdownMenuItem
-                        variant='destructive'
-                        disabled={deletePending}
-                        onClick={() => onDelete(issue.id!)}
-                      >
-                        <Trash2 className='size-4' />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </motion.div>
-            );
-          },
-        )}
+                      <Trash2 className='size-4' />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

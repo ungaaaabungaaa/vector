@@ -9,6 +9,7 @@ import {
   canDeleteIssue,
   canAssignIssue,
   canUpdateAssignmentState,
+  canUpdateIssueState,
   canUpdateIssueRelations,
 } from '../access';
 import {
@@ -53,6 +54,29 @@ async function getUserNames(ctx: MutationCtx, userIds: readonly Id<'users'>[]) {
     userIds.map(userId => ctx.db.get('users', userId)),
   );
   return users.map(user => getUserDisplayName(user, 'Unknown user'));
+}
+
+async function resolveDefaultWorkflowStateId(
+  ctx: MutationCtx,
+  organizationId: Id<'organizations'>,
+) {
+  const todoState = await ctx.db
+    .query('issueStates')
+    .withIndex('by_org_type', q =>
+      q.eq('organizationId', organizationId).eq('type', 'todo'),
+    )
+    .first();
+
+  if (todoState?._id) {
+    return todoState._id;
+  }
+
+  return await ctx.db
+    .query('issueStates')
+    .withIndex('by_organization', q => q.eq('organizationId', organizationId))
+    .order('asc')
+    .first()
+    .then(state => state?._id);
 }
 
 export const create = mutation({
@@ -145,6 +169,9 @@ export const create = mutation({
       throw new ConvexError('INVALID_INPUT');
     }
 
+    const workflowStateId =
+      args.data.stateId ?? (await resolveDefaultWorkflowStateId(ctx, org._id));
+
     const issueId = await ctx.db.insert('issues', {
       organizationId: org._id,
       projectId: projectId,
@@ -158,6 +185,7 @@ export const create = mutation({
         description: args.data.description?.trim(),
       }),
       priorityId: args.data.priorityId,
+      workflowStateId,
       reporterId: userId,
       teamId: project?.teamId ?? parentIssue?.teamId,
       visibility:
@@ -166,15 +194,7 @@ export const create = mutation({
       parentIssueId: args.data.parentIssueId,
     });
 
-    const assigneeStateId =
-      args.data.stateId ||
-      (
-        await ctx.db
-          .query('issueStates')
-          .withIndex('by_organization', q => q.eq('organizationId', org._id))
-          .filter(q => q.eq(q.field('type'), 'todo'))
-          .first()
-      )?._id;
+    const assigneeStateId = workflowStateId;
 
     if (assigneeStateId) {
       if (args.data.assigneeIds && args.data.assigneeIds.length > 0) {
@@ -372,6 +392,64 @@ export const update = mutation({
           toLabel: priorityLabel(nextPriority),
         },
         snapshot,
+      });
+    }
+
+    return { success: true } as const;
+  },
+});
+
+export const changeWorkflowState = mutation({
+  args: {
+    issueId: v.id('issues'),
+    stateId: v.id('issueStates'),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError('UNAUTHORIZED');
+    }
+
+    const issue = await ctx.db.get('issues', args.issueId);
+    if (!issue) {
+      throw new ConvexError('ISSUE_NOT_FOUND');
+    }
+
+    if (!(await canUpdateIssueState(ctx, issue))) {
+      throw new ConvexError('FORBIDDEN');
+    }
+
+    const previousState = issue.workflowStateId
+      ? await ctx.db.get('issueStates', issue.workflowStateId)
+      : null;
+    const nextState = await ctx.db.get('issueStates', args.stateId);
+
+    if (!nextState || nextState.organizationId !== issue.organizationId) {
+      throw new ConvexError('INVALID_STATE');
+    }
+
+    await ctx.db.patch('issues', args.issueId, {
+      workflowStateId: args.stateId,
+      closedAt:
+        nextState.type === 'done' || nextState.type === 'canceled'
+          ? Date.now()
+          : undefined,
+    });
+
+    if (issue.workflowStateId !== args.stateId) {
+      await recordActivity(ctx, {
+        scope: resolveIssueScope(issue),
+        actorId: userId,
+        entityType: 'issue',
+        eventType: 'issue_workflow_state_changed',
+        details: {
+          field: 'workflow_state',
+          fromId: issue.workflowStateId,
+          fromLabel: stateLabel(previousState),
+          toId: args.stateId,
+          toLabel: stateLabel(nextState),
+        },
+        snapshot: snapshotForIssue(issue),
       });
     }
 

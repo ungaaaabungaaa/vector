@@ -30,6 +30,15 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
 };
 
+async function getInitialToken() {
+  try {
+    return await getToken();
+  } catch (error) {
+    console.error('Failed to load auth token during app bootstrap.', error);
+    return null;
+  }
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -49,7 +58,7 @@ export default async function RootLayout({
         >
           <TopLoaderProvider />
           <ErrorBoundary>
-            <ConvexAuthProvider initialToken={await getToken()}>
+            <ConvexAuthProvider initialToken={await getInitialToken()}>
               <NotificationClientBootstrap />
               <BrandingHead />
               {children}

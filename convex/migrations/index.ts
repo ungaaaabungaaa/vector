@@ -441,3 +441,55 @@ export const backfillIssueSearchText = internalMutation({
     };
   },
 });
+
+export const backfillIssueWorkflowState = internalMutation({
+  args: {},
+  handler: async ctx => {
+    const issues = await ctx.db.query('issues').collect();
+    let updated = 0;
+
+    for (const issue of issues) {
+      if (issue.workflowStateId) {
+        continue;
+      }
+
+      const firstAssignment = await ctx.db
+        .query('issueAssignees')
+        .withIndex('by_issue', q => q.eq('issueId', issue._id))
+        .first();
+
+      const fallbackState =
+        firstAssignment?.stateId ??
+        (await ctx.db
+          .query('issueStates')
+          .withIndex('by_org_type', q =>
+            q.eq('organizationId', issue.organizationId).eq('type', 'todo'),
+          )
+          .first()
+          .then(state => state?._id)) ??
+        (await ctx.db
+          .query('issueStates')
+          .withIndex('by_organization', q =>
+            q.eq('organizationId', issue.organizationId),
+          )
+          .order('asc')
+          .first()
+          .then(state => state?._id));
+
+      if (!fallbackState) {
+        continue;
+      }
+
+      await ctx.db.patch('issues', issue._id, {
+        workflowStateId: fallbackState,
+      });
+      updated += 1;
+    }
+
+    return {
+      success: true,
+      scanned: issues.length,
+      updated,
+    };
+  },
+});

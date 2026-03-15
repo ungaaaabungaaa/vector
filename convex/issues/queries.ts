@@ -45,6 +45,9 @@ export const getByKey = query({
       .query('issueAssignees')
       .withIndex('by_issue', q => q.eq('issueId', issue._id))
       .collect();
+    const assigneeStateIds = assignees
+      .map(assignment => assignment.stateId)
+      .filter((id): id is Id<'issueStates'> => Boolean(id));
 
     const assigneeUsers = await Promise.all(
       assignees.map(async assignee => {
@@ -52,6 +55,10 @@ export const getByKey = query({
         return await ctx.db.get('users', assignee.assigneeId);
       }),
     ).then(users => users.filter(isDefined));
+    const assigneeStateMap =
+      assigneeStateIds.length > 0
+        ? await loadDocMap(ctx, 'issueStates', assigneeStateIds)
+        : new Map<Id<'issueStates'>, Doc<'issueStates'>>();
 
     const createdByUser = issue.reporterId
       ? await ctx.db.get('users', issue.reporterId)
@@ -59,26 +66,42 @@ export const getByKey = query({
     const priority = issue.priorityId
       ? await ctx.db.get('issuePriorities', issue.priorityId)
       : null;
+    const workflowState = issue.workflowStateId
+      ? await ctx.db.get('issueStates', issue.workflowStateId)
+      : resolveWorkflowStateFromAssignments(assignees, assigneeStateMap);
 
     const childIssues = await ctx.db
       .query('issues')
       .withIndex('by_parent', q => q.eq('parentIssueId', issue._id))
       .collect();
+    const childAssignmentsByIssue = await loadAssignmentsByIssue(
+      ctx,
+      childIssues.map(child => child._id),
+    );
+    const childAssignmentStateIds = Array.from(
+      new Set(
+        Array.from(childAssignmentsByIssue.values())
+          .flat()
+          .map(assignment => assignment.stateId)
+          .filter((id): id is Id<'issueStates'> => Boolean(id)),
+      ),
+    );
+    const childAssignmentStateMap =
+      childAssignmentStateIds.length > 0
+        ? await loadDocMap(ctx, 'issueStates', childAssignmentStateIds)
+        : new Map<Id<'issueStates'>, Doc<'issueStates'>>();
 
     const children = await Promise.all(
       childIssues.map(async child => {
         const childPriority = child.priorityId
           ? await ctx.db.get('issuePriorities', child.priorityId)
           : null;
-
-        const firstAssignment = await ctx.db
-          .query('issueAssignees')
-          .withIndex('by_issue', q => q.eq('issueId', child._id))
-          .first();
-
-        const state = firstAssignment?.stateId
-          ? await ctx.db.get('issueStates', firstAssignment.stateId)
-          : null;
+        const state = child.workflowStateId
+          ? await ctx.db.get('issueStates', child.workflowStateId)
+          : resolveWorkflowStateFromAssignments(
+              childAssignmentsByIssue.get(child._id) ?? [],
+              childAssignmentStateMap,
+            );
 
         return {
           ...child,
@@ -94,6 +117,7 @@ export const getByKey = query({
       assignees: assigneeUsers,
       createdBy: createdByUser,
       priority,
+      workflowState,
       children,
     };
   },
@@ -620,6 +644,16 @@ async function loadAssignmentsByIssue(
   );
 }
 
+function resolveWorkflowStateFromAssignments(
+  assignments: readonly Doc<'issueAssignees'>[],
+  stateMap: ReadonlyMap<Id<'issueStates'>, Doc<'issueStates'>>,
+) {
+  const fallbackStateId = assignments.find(
+    assignment => assignment.stateId,
+  )?.stateId;
+  return fallbackStateId ? (stateMap.get(fallbackStateId) ?? null) : null;
+}
+
 async function flattenIssueRows(
   ctx: QueryCtx,
   issues: readonly Doc<'issues'>[],
@@ -637,6 +671,9 @@ async function flattenIssueRows(
   const reporterIds = issues
     .map(issue => issue.reporterId)
     .filter((id): id is Id<'users'> => Boolean(id));
+  const workflowStateIds = issues
+    .map(issue => issue.workflowStateId)
+    .filter((id): id is Id<'issueStates'> => Boolean(id));
   const parentIssueIds = issues
     .map(issue => issue.parentIssueId)
     .filter((id): id is Id<'issues'> => Boolean(id));
@@ -656,6 +693,7 @@ async function flattenIssueRows(
     teamMap,
     priorityMap,
     reporterMap,
+    workflowStateMap,
     parentIssueMap,
     assigneeMap,
     stateMap,
@@ -664,6 +702,7 @@ async function flattenIssueRows(
     loadDocMap(ctx, 'teams', teamIds),
     loadDocMap(ctx, 'issuePriorities', priorityIds),
     loadDocMap(ctx, 'users', reporterIds),
+    loadDocMap(ctx, 'issueStates', workflowStateIds),
     loadDocMap(ctx, 'issues', parentIssueIds),
     loadDocMap(ctx, 'users', assigneeIds),
     loadDocMap(ctx, 'issueStates', stateIds),
@@ -678,6 +717,12 @@ async function flattenIssueRows(
     const reporter = issue.reporterId
       ? reporterMap.get(issue.reporterId)
       : null;
+    const workflowState = issue.workflowStateId
+      ? workflowStateMap.get(issue.workflowStateId)
+      : resolveWorkflowStateFromAssignments(
+          assignmentsByIssue.get(issue._id) ?? [],
+          stateMap,
+        );
     const parentIssue = issue.parentIssueId
       ? parentIssueMap.get(issue.parentIssueId)
       : null;
@@ -731,6 +776,11 @@ async function flattenIssueRows(
       priorityName: priority?.name,
       priorityIcon: priority?.icon,
       priorityColor: priority?.color,
+      workflowStateId: workflowState?._id,
+      workflowStateName: workflowState?.name,
+      workflowStateIcon: workflowState?.icon,
+      workflowStateColor: workflowState?.color,
+      workflowStateType: workflowState?.type,
       projectKey: project?.key,
       teamKey: team?.key,
       reporterName: reporter?.name,
@@ -759,11 +809,15 @@ async function buildIssueCounts(
     return counts;
   }
 
-  const assignmentsByIssue = await loadAssignmentsByIssue(
-    ctx,
-    issues.map(issue => issue._id),
-  );
-  const stateIds = Array.from(
+  const issueStateMap = new Map(allStates.map(state => [state._id, state]));
+  const unresolvedIssueIds = issues
+    .filter(issue => !issue.workflowStateId)
+    .map(issue => issue._id);
+  const assignmentsByIssue =
+    unresolvedIssueIds.length > 0
+      ? await loadAssignmentsByIssue(ctx, unresolvedIssueIds)
+      : new Map<Id<'issues'>, Doc<'issueAssignees'>[]>();
+  const fallbackStateIds = Array.from(
     new Set(
       Array.from(assignmentsByIssue.values())
         .flat()
@@ -771,20 +825,22 @@ async function buildIssueCounts(
         .filter((id): id is Id<'issueStates'> => Boolean(id)),
     ),
   );
-  const stateMap = await loadDocMap(ctx, 'issueStates', stateIds);
+  const fallbackStateMap =
+    fallbackStateIds.length > 0
+      ? await loadDocMap(ctx, 'issueStates', fallbackStateIds)
+      : new Map<Id<'issueStates'>, Doc<'issueStates'>>();
 
   issues.forEach(issue => {
-    const uniqueStateTypes = new Set(
-      (assignmentsByIssue.get(issue._id) ?? [])
-        .map(assignment =>
-          assignment.stateId ? stateMap.get(assignment.stateId)?.type : null,
-        )
-        .filter((stateType): stateType is IssueStateType => stateType !== null),
-    );
-
-    uniqueStateTypes.forEach(stateType => {
+    const state = issue.workflowStateId
+      ? (issueStateMap.get(issue.workflowStateId) ?? null)
+      : resolveWorkflowStateFromAssignments(
+          assignmentsByIssue.get(issue._id) ?? [],
+          fallbackStateMap,
+        );
+    const stateType = state?.type ?? null;
+    if (stateType) {
       counts[stateType] = (counts[stateType] ?? 0) + 1;
-    });
+    }
   });
 
   return counts;
@@ -1056,6 +1112,9 @@ export const list = query({
     const projectIds = visibleIssues.map(i => i.projectId).filter(isDefined);
     const priorityIds = visibleIssues.map(i => i.priorityId).filter(isDefined);
     const reporterIds = visibleIssues.map(i => i.reporterId).filter(isDefined);
+    const workflowStateIds = visibleIssues
+      .map(i => i.workflowStateId)
+      .filter(isDefined);
 
     const projects = await Promise.all(
       projectIds.map(id => ctx.db.get('projects', id)),
@@ -1065,6 +1124,9 @@ export const list = query({
     );
     const reporters = await Promise.all(
       reporterIds.map(id => ctx.db.get('users', id)),
+    );
+    const workflowStates = await Promise.all(
+      workflowStateIds.map(id => ctx.db.get('issueStates', id)),
     );
 
     const projectMap = new Map();
@@ -1081,6 +1143,10 @@ export const list = query({
     reporterIds.forEach((id, i) => {
       if (reporters[i]) reporterMap.set(id, reporters[i]);
     });
+    const stateMap = new Map();
+    workflowStateIds.forEach((id, i) => {
+      if (workflowStates[i]) stateMap.set(id, workflowStates[i]);
+    });
 
     const allAssignments = await Promise.all(
       visibleIssues.map(issue =>
@@ -1092,12 +1158,22 @@ export const list = query({
     ).then(results => results.flat());
 
     const assigneeIds = allAssignments.map(a => a.assigneeId).filter(isDefined);
+    const assignmentStateIds = allAssignments
+      .map(assignment => assignment.stateId)
+      .filter(isDefined);
     const assigneeUsers = await Promise.all(
       assigneeIds.map(id => ctx.db.get('users', id)),
+    );
+    const assignmentStates = await Promise.all(
+      assignmentStateIds.map(id => ctx.db.get('issueStates', id)),
     );
     const assigneeMap = new Map();
     assigneeIds.forEach((id, i) => {
       if (assigneeUsers[i]) assigneeMap.set(id, assigneeUsers[i]);
+    });
+    const assignmentStateMap = new Map();
+    assignmentStateIds.forEach((id, i) => {
+      if (assignmentStates[i]) assignmentStateMap.set(id, assignmentStates[i]);
     });
 
     const assignmentsByIssue = new Map<Id<'issues'>, typeof allAssignments>();
@@ -1118,6 +1194,12 @@ export const list = query({
         : null;
 
       const issueAssignments = assignmentsByIssue.get(issue._id) ?? [];
+      const workflowState = issue.workflowStateId
+        ? stateMap.get(issue.workflowStateId)
+        : resolveWorkflowStateFromAssignments(
+            issueAssignments,
+            assignmentStateMap,
+          );
       const assigneeUsersList = issueAssignments
         .map(assignment => {
           if (!assignment.assigneeId) return null;
@@ -1130,7 +1212,7 @@ export const list = query({
         project,
         priority,
         createdBy,
-        state: null,
+        workflowState,
         assignees: assigneeUsersList,
       };
     });

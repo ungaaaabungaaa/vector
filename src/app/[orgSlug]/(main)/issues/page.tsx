@@ -104,7 +104,7 @@ export default function IssuesPage() {
   const changeTeamMutation = useMutation(api.issues.mutations.changeTeam);
   const changeProjectMutation = useMutation(api.issues.mutations.changeProject);
   const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState,
+    api.issues.mutations.changeWorkflowState,
   );
   const { isAllowed: canChangeAll } = usePermissionCheck(
     orgSlug,
@@ -184,14 +184,14 @@ export default function IssuesPage() {
   };
 
   const handleAssignmentStateChange = async (
-    assignmentId: string,
+    issueId: string,
     stateId: string,
   ) => {
-    if (!user || !assignmentId || !stateId) return;
+    if (!user || !issueId || !stateId) return;
     setIsUpdatingAssignmentStates(true);
     try {
       await changeAssignmentStateMutation({
-        assignmentId: assignmentId as Id<'issueAssignees'>,
+        issueId: issueId as Id<'issues'>,
         stateId: stateId as Id<'issueStates'>,
       });
     } finally {

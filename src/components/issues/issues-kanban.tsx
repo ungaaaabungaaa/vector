@@ -84,6 +84,11 @@ interface GroupedIssue {
   priorityName: string | null;
   teamId: string | null;
   projectId: string | null;
+  workflowStateId: string | null;
+  workflowStateName: string | null;
+  workflowStateIcon: string | null;
+  workflowStateColor: string | null;
+  workflowStateType: string | null;
   assignees: Array<{
     id: string;
     name: string | null;
@@ -188,6 +193,11 @@ export function IssuesKanban({
           priorityName: row.priorityName ?? null,
           teamId: row.teamId ?? null,
           projectId: row.projectId ?? null,
+          workflowStateId: row.workflowStateId ?? null,
+          workflowStateName: row.workflowStateName ?? null,
+          workflowStateIcon: row.workflowStateIcon ?? null,
+          workflowStateColor: row.workflowStateColor ?? null,
+          workflowStateType: row.workflowStateType ?? null,
           assignees: row.assigneeId
             ? [
                 {
@@ -215,59 +225,25 @@ export function IssuesKanban({
 
   const issueCards = React.useMemo(() => {
     return groupedIssues
-      .flatMap(issue => {
-        const visibleAssignments = issue.assignments.filter(
-          assignment => assignment.assigneeId && assignment.stateType,
-        );
-
-        // If no visible assignments, show as unassigned in the first state column
-        if (visibleAssignments.length === 0) {
-          const firstState = sortedStates[0];
-          if (!firstState) return [];
-          return [
-            {
-              ...issue,
-              cardId: `${issue.id}:unassigned`,
-              assignmentId: null,
-              assigneeId: null,
-              assigneeName: null,
-              assigneeEmail: null,
-              assigneeImage: null,
-              stateId: null,
-              stateIcon: firstState.icon ?? null,
-              stateColor: firstState.color ?? null,
-              stateName: firstState.name ?? null,
-              stateType: firstState.type ?? null,
-            },
-          ] satisfies KanbanIssueCard[];
-        }
-
-        return visibleAssignments.map<KanbanIssueCard>(assignment => ({
-          ...issue,
-          cardId: `${issue.id}:${assignment.assignmentId}`,
-          assignmentId: assignment.assignmentId,
-          assigneeId: assignment.assigneeId,
-          assigneeName: assignment.assigneeName,
-          assigneeEmail: assignment.assigneeEmail,
-          assigneeImage: assignment.assigneeImage,
-          stateId: assignment.stateId,
-          stateIcon: assignment.stateIcon,
-          stateColor: assignment.stateColor,
-          stateName: assignment.stateName,
-          stateType: assignment.stateType,
-        }));
-      })
+      .map<KanbanIssueCard>(issue => ({
+        ...issue,
+        cardId: issue.id,
+        assignmentId: issue.id,
+        assigneeId: issue.assignees[0]?.id ?? null,
+        assigneeName: issue.assignees[0]?.name ?? null,
+        assigneeEmail: issue.assignees[0]?.email ?? null,
+        stateId: issue.workflowStateId,
+        stateIcon: issue.workflowStateIcon,
+        stateColor: issue.workflowStateColor,
+        stateName: issue.workflowStateName,
+        stateType: issue.workflowStateType,
+      }))
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }, [groupedIssues, sortedStates]);
 
   const canMoveCard = React.useCallback(
-    (issue: KanbanIssueCard) =>
-      Boolean(
-        onStateChange &&
-          issue.assignmentId &&
-          (canChangeAll || issue.assigneeId === currentUserId),
-      ),
-    [canChangeAll, currentUserId, onStateChange],
+    (_issue: KanbanIssueCard) => Boolean(onStateChange),
+    [onStateChange],
   );
 
   const columns = React.useMemo(() => {
@@ -293,13 +269,13 @@ export function IssuesKanban({
     const issueId = active.id as string;
     const targetStateId = over.id as string;
     const issue = issueCards.find(i => i.cardId === issueId);
-    if (!issue || !issue.assignmentId || !canMoveCard(issue)) return;
+    if (!issue || !canMoveCard(issue)) return;
 
     // Find the target state and check if it's different
     const targetState = sortedStates.find(s => s._id === targetStateId);
     if (!targetState || targetState.type === issue.stateType) return;
 
-    onStateChange(issue.id, issue.assignmentId, targetStateId);
+    onStateChange(issue.id, issue.id, targetStateId);
   }
 
   return (

@@ -300,6 +300,60 @@ function renderActivityDescription(
           </span>
         </>
       );
+    case 'issue_workflow_state_changed':
+      return (
+        <>
+          changed state on{' '}
+          <ActivityTarget orgSlug={orgSlug} target={item.target} /> from{' '}
+          <span className='text-foreground/75'>
+            {details.fromLabel ?? 'Unset'}
+          </span>{' '}
+          to{' '}
+          <span className='text-foreground/75'>
+            {details.toLabel ?? 'Unset'}
+          </span>
+        </>
+      );
+    case 'issue_github_artifact_linked':
+      return (
+        <>
+          linked{' '}
+          <span className='text-foreground/75'>
+            {details.toLabel ?? 'a GitHub artifact'}
+          </span>{' '}
+          to <ActivityTarget orgSlug={orgSlug} target={item.target} />
+        </>
+      );
+    case 'issue_github_artifact_unlinked':
+      return (
+        <>
+          unlinked{' '}
+          <span className='text-foreground/75'>
+            {details.toLabel ?? 'a GitHub artifact'}
+          </span>{' '}
+          from <ActivityTarget orgSlug={orgSlug} target={item.target} />
+        </>
+      );
+    case 'issue_github_artifact_suppressed':
+      return (
+        <>
+          suppressed auto-linking for{' '}
+          <span className='text-foreground/75'>
+            {details.toLabel ?? 'a GitHub artifact'}
+          </span>{' '}
+          on <ActivityTarget orgSlug={orgSlug} target={item.target} />
+        </>
+      );
+    case 'issue_github_artifact_status_changed':
+      return (
+        <>
+          updated GitHub status on{' '}
+          <ActivityTarget orgSlug={orgSlug} target={item.target} /> to{' '}
+          <span className='text-foreground/75'>
+            {details.toLabel ?? 'a new status'}
+          </span>
+        </>
+      );
     case 'issue_assignees_changed': {
       const added = renderUsers(details.addedUserNames);
       const removed = renderUsers(details.removedUserNames);

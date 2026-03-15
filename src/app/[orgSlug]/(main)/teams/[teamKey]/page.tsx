@@ -619,8 +619,8 @@ export default function TeamViewPage() {
         })),
     );
   });
-  const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState,
+  const changeWorkflowStateMutation = useMutation(
+    api.issues.mutations.changeWorkflowState,
   ).withOptimisticUpdate((store, args) => {
     if (!teamIssuesQueryArgs) return;
     const nextState = states.find(
@@ -630,21 +630,15 @@ export default function TeamViewPage() {
       store,
       api.issues.queries.listIssues,
       teamIssuesQueryArgs,
-      current => ({
-        ...current,
-        issues: current.issues.map(row =>
-          String(row.assignmentId) === String(args.assignmentId)
-            ? {
-                ...row,
-                stateId: nextState?._id,
-                stateName: nextState?.name ?? undefined,
-                stateIcon: nextState?.icon ?? undefined,
-                stateColor: nextState?.color ?? undefined,
-                stateType: nextState?.type ?? undefined,
-              }
-            : row,
-        ) as typeof current.issues,
-      }),
+      current =>
+        updateIssueRows(current, String(args.issueId), row => ({
+          ...row,
+          workflowStateId: nextState?._id,
+          workflowStateName: nextState?.name ?? undefined,
+          workflowStateIcon: nextState?.icon ?? undefined,
+          workflowStateColor: nextState?.color ?? undefined,
+          workflowStateType: nextState?.type ?? undefined,
+        })),
     );
   });
   const changeStatusMutation = useMutation(
@@ -992,13 +986,13 @@ export default function TeamViewPage() {
   };
 
   const handleAssignmentStateChange = async (
-    assignmentId: string,
+    issueId: string,
     stateId: string,
   ) => {
-    if (!user?._id || !assignmentId || !stateId) return;
+    if (!user?._id || !issueId || !stateId) return;
     setIsUpdatingIssues(true);
-    await changeAssignmentStateMutation({
-      assignmentId: assignmentId as Id<'issueAssignees'>,
+    await changeWorkflowStateMutation({
+      issueId: issueId as Id<'issues'>,
       stateId: stateId as Id<'issueStates'>,
     });
     setIsUpdatingIssues(false);
@@ -1656,11 +1650,8 @@ export default function TeamViewPage() {
                           projects={projects}
                           currentUserId={user?._id || ''}
                           canChangeAll={canUpdateAssignmentStates}
-                          onStateChange={(_issueId, assignmentId, stateId) => {
-                            void handleAssignmentStateChange(
-                              assignmentId,
-                              stateId,
-                            );
+                          onStateChange={(issueId, _assignmentId, stateId) => {
+                            void handleAssignmentStateChange(issueId, stateId);
                           }}
                           onPriorityChange={handlePriorityChange}
                           onAssigneesChange={(issueId, ids) => {

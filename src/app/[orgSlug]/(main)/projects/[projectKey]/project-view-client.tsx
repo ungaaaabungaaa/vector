@@ -439,8 +439,8 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       }),
     );
   });
-  const changeAssignmentStateMutation = useMutation(
-    api.issues.mutations.changeAssignmentState,
+  const changeWorkflowStateMutation = useMutation(
+    api.issues.mutations.changeWorkflowState,
   ).withOptimisticUpdate((store, args) => {
     if (!projectIssuesQueryArgs) return;
     const nextState = issueStates?.find(
@@ -450,21 +450,15 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
       store,
       api.issues.queries.listIssues,
       projectIssuesQueryArgs,
-      current => ({
-        ...current,
-        issues: current.issues.map(row =>
-          String(row.assignmentId) === String(args.assignmentId)
-            ? {
-                ...row,
-                stateId: nextState?._id,
-                stateName: nextState?.name ?? undefined,
-                stateIcon: nextState?.icon ?? undefined,
-                stateColor: nextState?.color ?? undefined,
-                stateType: nextState?.type ?? undefined,
-              }
-            : row,
-        ) as typeof current.issues,
-      }),
+      current =>
+        updateIssueRows(current, String(args.issueId), row => ({
+          ...row,
+          workflowStateId: nextState?._id,
+          workflowStateName: nextState?.name ?? undefined,
+          workflowStateIcon: nextState?.icon ?? undefined,
+          workflowStateColor: nextState?.color ?? undefined,
+          workflowStateType: nextState?.type ?? undefined,
+        })),
     );
   });
   const changePriorityMutation = useMutation(
@@ -1348,9 +1342,9 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                       teams={teams ?? []}
                       currentUserId={user?._id || ''}
                       canChangeAll={canUpdateAssignmentStates}
-                      onStateChange={(_issueId, assignmentId, stateId) => {
-                        void changeAssignmentStateMutation({
-                          assignmentId: assignmentId as Id<'issueAssignees'>,
+                      onStateChange={(issueId, _assignmentId, stateId) => {
+                        void changeWorkflowStateMutation({
+                          issueId: issueId as Id<'issues'>,
                           stateId: stateId as Id<'issueStates'>,
                         });
                       }}
@@ -1403,9 +1397,9 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
                         onTeamChange={() => {}}
                         onProjectChange={() => {}}
                         onDelete={canDeleteIssue ? handleDeleteIssue : () => {}}
-                        onAssignmentStateChange={(assignmentId, stateId) => {
-                          void changeAssignmentStateMutation({
-                            assignmentId: assignmentId as Id<'issueAssignees'>,
+                        onAssignmentStateChange={(issueId, stateId) => {
+                          void changeWorkflowStateMutation({
+                            issueId: issueId as Id<'issues'>,
                             stateId: stateId as Id<'issueStates'>,
                           });
                         }}

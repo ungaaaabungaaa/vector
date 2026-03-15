@@ -10,4 +10,11 @@ crons.cron(
   {},
 );
 
+crons.interval(
+  'reconcile github artifacts',
+  { minutes: 10 },
+  internal.github.actions.reconcileRecentArtifacts,
+  {},
+);
+
 export default crons;

@@ -36,17 +36,16 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
 
   const changePriority = useMutation(api.issues.mutations.changePriority);
   const changeAssignmentState = useMutation(
-    api.issues.mutations.changeAssignmentState,
+    api.issues.mutations.changeWorkflowState,
   );
   const updateAssignees = useMutation(api.issues.mutations.updateAssignees);
-  const firstAssignment = assignments?.[0];
-  const firstState = firstAssignment?.state;
   const assigneeIds = (assignments ?? [])
     .map(a => a.assignee?._id)
     .filter((id): id is Id<'users'> => Boolean(id));
   const serverPriorityId =
     issue && issue !== null ? (issue.priorityId ?? '') : '';
-  const serverStateId = firstAssignment?.stateId ?? '';
+  const serverStateId =
+    issue && issue !== null ? (issue.workflowStateId ?? '') : '';
   const serverAssigneeIds = assigneeIds.map(String);
   const [displayPriorityId, setDisplayPriorityId] =
     useOptimisticValue(serverPriorityId);
@@ -134,7 +133,7 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
       </span>
 
       {/* State selector */}
-      {firstAssignment && states ? (
+      {states ? (
         <PermissionAware
           orgSlug={orgSlug}
           permission={PERMISSIONS.ISSUE_EDIT}
@@ -146,7 +145,7 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
             onStateSelect={stateId => {
               setDisplayStateId(stateId);
               void changeAssignmentState({
-                assignmentId: firstAssignment._id,
+                issueId: issue._id,
                 stateId: stateId as Id<'issueStates'>,
               });
             }}
@@ -159,11 +158,13 @@ export function AssistantIssueCard({ issueKey }: { issueKey: string }) {
                 aria-label='Change issue state'
               >
                 <DynamicIcon
-                  name={displayState?.icon ?? firstState?.icon}
+                  name={displayState?.icon ?? issue.workflowState?.icon}
                   className='size-3.5'
                   style={{
                     color:
-                      displayState?.color ?? firstState?.color ?? '#94a3b8',
+                      displayState?.color ??
+                      issue.workflowState?.color ??
+                      '#94a3b8',
                   }}
                 />
               </Button>

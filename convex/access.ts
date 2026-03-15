@@ -374,6 +374,20 @@ export async function canUpdateAssignmentState(
 }
 
 /**
+ * Check if the current user can update an issue's workflow state.
+ */
+export async function canUpdateIssueState(
+  ctx: QueryCtx | MutationCtx,
+  issue: Doc<'issues'>,
+): Promise<boolean> {
+  return hasPermission(
+    ctx,
+    scopeFromEntity(issue),
+    PERMISSIONS.ISSUE_STATE_UPDATE,
+  );
+}
+
+/**
  * Check if the current user can update an issue's team/project relations.
  */
 export async function canUpdateIssueRelations(

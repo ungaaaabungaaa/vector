@@ -182,9 +182,13 @@ export function OrgSidebar({ orgSlug, onNavigate }: OrgSidebarProps) {
             )}
 
             {userTeams.length > 3 && (
-              <div className='text-muted-foreground px-2 py-1.5 text-xs'>
+              <Link
+                href={`/${orgSlug}/teams`}
+                onClick={onNavigate}
+                className='text-muted-foreground hover:text-foreground block px-2 py-1.5 text-xs transition-colors'
+              >
                 +{userTeams.length - 3} more teams
-              </div>
+              </Link>
             )}
           </div>
         </div>
@@ -260,9 +264,13 @@ export function OrgSidebar({ orgSlug, onNavigate }: OrgSidebarProps) {
             )}
 
             {userProjects.length > 3 && (
-              <div className='text-muted-foreground px-2 py-1.5 text-xs'>
+              <Link
+                href={`/${orgSlug}/projects`}
+                onClick={onNavigate}
+                className='text-muted-foreground hover:text-foreground block px-2 py-1.5 text-xs transition-colors'
+              >
                 +{userProjects.length - 3} more projects
-              </div>
+              </Link>
             )}
           </div>
         </div>
@@ -329,9 +337,13 @@ export function OrgSidebar({ orgSlug, onNavigate }: OrgSidebarProps) {
             )}
 
             {userDocuments.length > 3 && (
-              <div className='text-muted-foreground px-2 py-1.5 text-xs'>
+              <Link
+                href={`/${orgSlug}/documents`}
+                onClick={onNavigate}
+                className='text-muted-foreground hover:text-foreground block px-2 py-1.5 text-xs transition-colors'
+              >
                 +{userDocuments.length - 3} more documents
-              </div>
+              </Link>
             )}
           </div>
         </div>

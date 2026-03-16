@@ -26,11 +26,9 @@ function getEffectiveGitHubAuthState(
   const installationId = integration?.installationId ?? null;
   const hasInstallation = Boolean(installationId);
   const hasTokenFallback = Boolean(integration?.encryptedToken);
+  const hasWebhookSecret = Boolean(integration?.encryptedWebhookSecret);
   const hasPlatformAppCredentials = Boolean(
     siteSettings?.githubAppId && siteSettings?.githubAppEncryptedPrivateKey,
-  );
-  const hasWebhookSecret = Boolean(
-    siteSettings?.githubAppEncryptedWebhookSecret,
   );
 
   return {
@@ -39,13 +37,14 @@ function getEffectiveGitHubAuthState(
     hasTokenFallback,
     hasPlatformAppCredentials,
     hasWebhookSecret,
+    hasWebhookIngestion: hasWebhookSecret,
     hasUsableAuth:
       hasTokenFallback || (hasInstallation && hasPlatformAppCredentials),
     hasAnyConfiguration:
+      hasWebhookSecret ||
       hasInstallation ||
       hasTokenFallback ||
-      hasPlatformAppCredentials ||
-      hasWebhookSecret,
+      hasPlatformAppCredentials,
   };
 }
 
@@ -266,6 +265,25 @@ export const getIntegrationByInstallationId = internalQuery({
   },
 });
 
+export const getIntegrationByOrgSlug = internalQuery({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db
+      .query('organizations')
+      .withIndex('by_slug', q => q.eq('slug', args.orgSlug))
+      .first();
+    if (!org) {
+      return null;
+    }
+    return {
+      organizationId: org._id,
+      integration: await loadActiveIntegration(ctx, org._id),
+    } as const;
+  },
+});
+
 export const isGitHubEnabled = query({
   args: {
     orgSlug: v.string(),
@@ -274,7 +292,26 @@ export const isGitHubEnabled = query({
     const org = await getOrganizationBySlug(ctx, args.orgSlug);
     const settings = await getSiteSettings(ctx.db);
     const integration = await loadActiveIntegration(ctx, org._id);
-    return getEffectiveGitHubAuthState(integration, settings).hasUsableAuth;
+    const effectiveAuth = getEffectiveGitHubAuthState(integration, settings);
+    return effectiveAuth.hasWebhookIngestion || effectiveAuth.hasUsableAuth;
+  },
+});
+
+export const getGitHubCapabilities = query({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const org = await getOrganizationBySlug(ctx, args.orgSlug);
+    const settings = await getSiteSettings(ctx.db);
+    const integration = await loadActiveIntegration(ctx, org._id);
+    const effectiveAuth = getEffectiveGitHubAuthState(integration, settings);
+
+    return {
+      hasWebhookIngestion: effectiveAuth.hasWebhookIngestion,
+      hasApiAccess: effectiveAuth.hasUsableAuth,
+      hasAnyConfiguration: effectiveAuth.hasAnyConfiguration,
+    };
   },
 });
 
@@ -341,6 +378,7 @@ export const getOrgSettings = query({
         ? {
             ...integration,
             hasTokenFallback: Boolean(integration.encryptedToken),
+            hasWebhookSecret: Boolean(integration.encryptedWebhookSecret),
           }
         : null,
       effectiveAuth,

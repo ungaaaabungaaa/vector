@@ -415,6 +415,12 @@ export function IssueDevelopmentSection({
   const development = useQuery(api.github.queries.getIssueDevelopment, {
     issueId,
   });
+  const githubCapabilities = useQuery(
+    api.github.queries.getGitHubCapabilities,
+    {
+      orgSlug,
+    },
+  );
   const refreshDevelopment = useAction(
     api.github.actions.refreshIssueDevelopment,
   );
@@ -430,6 +436,7 @@ export function IssueDevelopmentSection({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [busyLinkId, setBusyLinkId] = useState<string | null>(null);
   const autoRefreshRef = useRef<string | null>(null);
+  const hasApiAccess = Boolean(githubCapabilities?.hasApiAccess);
 
   const hasArtifacts = useMemo(() => {
     if (!development) return false;
@@ -451,7 +458,13 @@ export function IssueDevelopmentSection({
   }, [development]);
 
   useEffect(() => {
-    if (!development || !hasArtifacts || !hasStaleArtifacts || isRefreshing) {
+    if (
+      !hasApiAccess ||
+      !development ||
+      !hasArtifacts ||
+      !hasStaleArtifacts ||
+      isRefreshing
+    ) {
       return;
     }
     if (autoRefreshRef.current === String(issueId)) {
@@ -470,6 +483,7 @@ export function IssueDevelopmentSection({
   }, [
     development,
     hasArtifacts,
+    hasApiAccess,
     hasStaleArtifacts,
     isRefreshing,
     issueId,
@@ -536,9 +550,17 @@ export function IssueDevelopmentSection({
         <div className='flex items-center gap-2'>
           <Github className='size-4' />
           <h2 className='text-sm font-semibold'>Development</h2>
+          {!hasApiAccess ? (
+            <Badge
+              variant='outline'
+              className='h-5 rounded-md px-1.5 text-[10px]'
+            >
+              Webhook-driven
+            </Badge>
+          ) : null}
         </div>
         <div className='flex items-center gap-1'>
-          {canEdit ? (
+          {canEdit && hasApiAccess ? (
             <LinkArtifactInput
               url={url}
               setUrl={setUrl}
@@ -546,20 +568,22 @@ export function IssueDevelopmentSection({
               onLink={() => void handleLink()}
             />
           ) : null}
-          <Button
-            variant='ghost'
-            size='xs'
-            className='h-6 gap-1 px-2'
-            disabled={!canEdit || isRefreshing}
-            onClick={() => void handleRefresh()}
-          >
-            {isRefreshing ? (
-              <BarsSpinner size={10} />
-            ) : (
-              <RefreshCw className='size-3.5' />
-            )}
-            Refresh
-          </Button>
+          {hasApiAccess ? (
+            <Button
+              variant='ghost'
+              size='xs'
+              className='h-6 gap-1 px-2'
+              disabled={!canEdit || isRefreshing}
+              onClick={() => void handleRefresh()}
+            >
+              {isRefreshing ? (
+                <BarsSpinner size={10} />
+              ) : (
+                <RefreshCw className='size-3.5' />
+              )}
+              Refresh
+            </Button>
+          ) : null}
         </div>
       </div>
 

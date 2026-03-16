@@ -41,7 +41,7 @@ async function getOrCreateIntegration(
   const id = await ctx.db.insert('githubIntegrations', {
     organizationId,
     provider: 'github',
-    connectionMode: 'app',
+    connectionMode: 'webhook',
     updatedAt: Date.now(),
   });
   return await ctx.db.get('githubIntegrations', id);
@@ -428,6 +428,30 @@ export const upsertInstallationConnection = internalMutation({
   },
 });
 
+export const setWebhookSecret = internalMutation({
+  args: {
+    organizationId: v.id('organizations'),
+    encryptedWebhookSecret: v.optional(v.string()),
+    webhookSecretFingerprint: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const integration = await getOrCreateIntegration(ctx, args.organizationId);
+    await ctx.db.patch('githubIntegrations', integration!._id, {
+      connectionMode:
+        integration!.installationId || integration!.encryptedToken
+          ? integration!.connectionMode
+          : 'webhook',
+      encryptedWebhookSecret: args.encryptedWebhookSecret,
+      webhookSecretFingerprint: args.webhookSecretFingerprint,
+      webhookSecretLastUpdatedAt: args.encryptedWebhookSecret
+        ? Date.now()
+        : undefined,
+      updatedAt: Date.now(),
+    });
+    return integration!._id;
+  },
+});
+
 export const setEncryptedToken = internalMutation({
   args: {
     organizationId: v.id('organizations'),
@@ -444,6 +468,57 @@ export const setEncryptedToken = internalMutation({
       updatedAt: Date.now(),
     });
     return integration!._id;
+  },
+});
+
+export const upsertWebhookRepository = internalMutation({
+  args: {
+    organizationId: v.id('organizations'),
+    githubRepoId: v.number(),
+    nodeId: v.optional(v.string()),
+    owner: v.string(),
+    name: v.string(),
+    fullName: v.string(),
+    defaultBranch: v.optional(v.string()),
+    private: v.boolean(),
+    lastPushedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const integration = await getOrCreateIntegration(ctx, args.organizationId);
+    const existing = await ctx.db
+      .query('githubRepositories')
+      .withIndex('by_org_repo', q =>
+        q
+          .eq('organizationId', args.organizationId)
+          .eq('githubRepoId', args.githubRepoId),
+      )
+      .first();
+
+    const patch = {
+      integrationId: integration!._id,
+      nodeId: args.nodeId,
+      owner: args.owner,
+      name: args.name,
+      fullName: args.fullName,
+      defaultBranch: args.defaultBranch,
+      private: args.private,
+      installationAccessible: true,
+      selected: true,
+      lastPushedAt: args.lastPushedAt,
+      lastSyncedAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    if (existing) {
+      await ctx.db.patch('githubRepositories', existing._id, patch);
+      return existing._id;
+    }
+
+    return await ctx.db.insert('githubRepositories', {
+      organizationId: args.organizationId,
+      githubRepoId: args.githubRepoId,
+      ...patch,
+    });
   },
 });
 

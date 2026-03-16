@@ -12,6 +12,7 @@ import {
   fetchIssue,
   fetchPullRequest,
   fingerprintSecret,
+  generateGitHubWebhookSecret,
   listInstallationRepositories,
   listRecentCommits,
   listRecentIssues,
@@ -164,22 +165,20 @@ async function ensureRepository(
     owner: { login: string };
   },
 ) {
-  await ctx.runMutation(internal.github.mutations.replaceRepositories, {
-    organizationId,
-    repositories: [
-      {
-        githubRepoId: repo.id,
-        nodeId: repo.node_id ?? undefined,
-        owner: repo.owner.login,
-        name: repo.name,
-        fullName: repo.full_name,
-        defaultBranch: repo.default_branch ?? undefined,
-        private: repo.private,
-        installationAccessible: true,
-        lastPushedAt: repo.pushed_at ? Date.parse(repo.pushed_at) : undefined,
-      },
-    ],
-  });
+  const repositoryId = await ctx.runMutation(
+    internal.github.mutations.upsertWebhookRepository,
+    {
+      organizationId,
+      githubRepoId: repo.id,
+      nodeId: repo.node_id ?? undefined,
+      owner: repo.owner.login,
+      name: repo.name,
+      fullName: repo.full_name,
+      defaultBranch: repo.default_branch ?? undefined,
+      private: repo.private,
+      lastPushedAt: repo.pushed_at ? Date.parse(repo.pushed_at) : undefined,
+    },
+  );
 
   const repository = await ctx.runQuery(
     internal.github.queries.getRepositoryByFullName,
@@ -191,6 +190,19 @@ async function ensureRepository(
 
   if (!repository) {
     throw new Error(`Failed to persist repository ${repo.full_name}`);
+  }
+
+  if (String(repository._id) !== String(repositoryId)) {
+    const ensuredRepository = await ctx.runQuery(
+      internal.github.queries.getRepositoryByFullName,
+      {
+        organizationId,
+        fullName: repo.full_name,
+      },
+    );
+    if (ensuredRepository) {
+      return ensuredRepository;
+    }
   }
 
   return repository;
@@ -416,6 +428,28 @@ export const removeTokenFallback = action({
       tokenFingerprint: undefined,
     });
     return { success: true } as const;
+  },
+});
+
+export const rotateWebhookSecret = action({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const org = await requireOrgSettingsAccess(ctx, args.orgSlug);
+    const webhookSecret = generateGitHubWebhookSecret();
+
+    await ctx.runMutation(internal.github.mutations.setWebhookSecret, {
+      organizationId: org._id,
+      encryptedWebhookSecret: encryptSecret(webhookSecret),
+      webhookSecretFingerprint: fingerprintSecret(webhookSecret),
+    });
+
+    return {
+      success: true,
+      webhookSecret,
+      webhookSecretFingerprint: fingerprintSecret(webhookSecret),
+    } as const;
   },
 });
 
@@ -667,9 +701,109 @@ export const processWebhook = internalAction({
     body: v.string(),
     event: v.string(),
     deliveryId: v.optional(v.string()),
+    orgSlug: v.optional(v.string()),
     signature: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const payload = JSON.parse(args.body);
+    const repoPayload = payload.repository;
+
+    if (args.orgSlug) {
+      const integration = await ctx.runQuery(
+        internal.github.queries.getIntegrationByOrgSlug,
+        { orgSlug: args.orgSlug },
+      );
+
+      if (!integration) {
+        return { ignored: true } as const;
+      }
+
+      const encryptedWebhookSecret =
+        integration.integration?.encryptedWebhookSecret ?? null;
+      const webhookSecret = encryptedWebhookSecret
+        ? decryptSecret(encryptedWebhookSecret)
+        : undefined;
+
+      if (
+        !integration.integration ||
+        !verifyGitHubWebhookSignature(
+          args.body,
+          args.signature ?? null,
+          webhookSecret,
+        )
+      ) {
+        return { ignored: true } as const;
+      }
+
+      await ctx.runMutation(internal.github.mutations.upsertSyncHealth, {
+        organizationId: integration.organizationId,
+        lastWebhookAt: Date.now(),
+        lastWebhookEvent: args.event,
+      });
+
+      const ensuredRepository = repoPayload
+        ? await ensureRepository(ctx, integration.organizationId, {
+            id: repoPayload.id,
+            node_id: repoPayload.node_id,
+            name: repoPayload.name,
+            full_name: repoPayload.full_name,
+            private: repoPayload.private,
+            default_branch: repoPayload.default_branch,
+            pushed_at: repoPayload.pushed_at,
+            owner: { login: repoPayload.owner?.login ?? '' },
+          })
+        : null;
+
+      if (
+        args.event === 'pull_request' &&
+        payload.pull_request &&
+        ensuredRepository
+      ) {
+        await persistPullRequestPayload(ctx, {
+          organizationId: integration.organizationId,
+          repository: ensuredRepository,
+          payload: payload.pull_request,
+        });
+        return { success: true } as const;
+      }
+
+      if (args.event === 'issues' && payload.issue && ensuredRepository) {
+        await persistGitHubIssuePayload(ctx, {
+          organizationId: integration.organizationId,
+          repository: ensuredRepository,
+          payload: payload.issue,
+        });
+        return { success: true } as const;
+      }
+
+      if (
+        args.event === 'push' &&
+        Array.isArray(payload.commits) &&
+        ensuredRepository
+      ) {
+        for (const commit of payload.commits) {
+          await persistCommitPayload(ctx, {
+            organizationId: integration.organizationId,
+            repository: ensuredRepository,
+            payload: {
+              ...commit,
+              repository: repoPayload,
+            },
+          });
+        }
+        return { success: true } as const;
+      }
+
+      if (
+        args.event === 'installation' ||
+        args.event === 'installation_repositories'
+      ) {
+        return { success: true } as const;
+      }
+
+      return { ignored: true } as const;
+    }
+
     const platformCreds = await ctx.runQuery(
       internal.platformAdmin.queries.getGitHubAppCredentials,
       {},
@@ -688,7 +822,6 @@ export const processWebhook = internalAction({
       throw new Error('Invalid GitHub webhook signature');
     }
 
-    const payload = JSON.parse(args.body);
     const installationId =
       typeof payload.installation?.id === 'number'
         ? payload.installation.id
@@ -742,7 +875,6 @@ export const processWebhook = internalAction({
       return { success: true } as const;
     }
 
-    const repoPayload = payload.repository;
     const repoFullName: string | undefined = repoPayload?.full_name;
 
     let repository = null;

@@ -10,10 +10,12 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     const body = await request.text();
+    const url = new URL(request.url);
     await ctx.runAction(internal.github.actions.processWebhook, {
       body,
       event: request.headers.get('x-github-event') ?? 'unknown',
       deliveryId: request.headers.get('x-github-delivery') ?? undefined,
+      orgSlug: url.searchParams.get('org') ?? undefined,
       signature: request.headers.get('x-hub-signature-256') ?? undefined,
     });
 

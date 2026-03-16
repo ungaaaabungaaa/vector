@@ -172,8 +172,8 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
   }, [params]);
 
   const user = useQuery(api.users.currentUser);
-  const isGithubEnabled = useQuery(
-    api.github.queries.isGitHubEnabled,
+  const githubCapabilities = useQuery(
+    api.github.queries.getGitHubCapabilities,
     resolvedParams ? { orgSlug: resolvedParams.orgSlug } : 'skip',
   );
 
@@ -402,6 +402,13 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
 
   const estimateStates =
     states?.filter(state => ['done'].includes(state.type)) || [];
+  const hasGitHubApiAccess = Boolean(githubCapabilities?.hasApiAccess);
+  const hasGitHubIntegration = Boolean(
+    githubCapabilities?.hasWebhookIngestion || githubCapabilities?.hasApiAccess,
+  );
+  const hasAnyGitHubConfiguration = Boolean(
+    githubCapabilities?.hasAnyConfiguration,
+  );
 
   if (!resolvedParams || issue === undefined || states === undefined) {
     return <IssueLoadingSkeleton />;
@@ -682,7 +689,7 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                     <CommandList>
                       <CommandEmpty>No action found.</CommandEmpty>
                       <CommandGroup>
-                        {isGithubEnabled ? (
+                        {hasGitHubApiAccess ? (
                           <PermissionAwareSelector
                             orgSlug={resolvedParams.orgSlug}
                             permission={PERMISSIONS.ISSUE_EDIT}
@@ -705,7 +712,20 @@ export default function IssueViewPage({ params }: IssueViewPageProps) {
                               </div>
                             </CommandItem>
                           </PermissionAwareSelector>
-                        ) : isGithubEnabled === false ? (
+                        ) : hasGitHubIntegration ? (
+                          <CommandItem value='GitHub webhooks active' disabled>
+                            <GitPullRequest className='text-muted-foreground mr-2 h-4 w-4' />
+                            <div className='flex-1'>
+                              <div className='text-muted-foreground font-medium'>
+                                GitHub webhooks active
+                              </div>
+                              <div className='text-muted-foreground text-xs'>
+                                Development links appear automatically from
+                                incoming webhook deliveries.
+                              </div>
+                            </div>
+                          </CommandItem>
+                        ) : hasAnyGitHubConfiguration === false ? (
                           <CommandItem
                             value='Link GitHub'
                             className='cursor-pointer'

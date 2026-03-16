@@ -176,8 +176,8 @@ export function PlatformIntegrationsPage() {
               Integrations
             </h1>
             <p className='text-muted-foreground text-sm'>
-              Configure platform-wide GitHub App credentials. Workspace
-              installation and token setup now live inside each workspace.
+              Platform-level GitHub auth is optional and currently separate from
+              the workspace webhook integration flow.
             </p>
           </div>
 
@@ -189,9 +189,7 @@ export function PlatformIntegrationsPage() {
             <div className='flex items-center justify-between border-b px-3 py-2'>
               <div className='flex items-center gap-2'>
                 <Github className='size-4' />
-                <span className='text-sm font-medium'>
-                  GitHub App Credentials
-                </span>
+                <span className='text-sm font-medium'>GitHub App / OAuth</span>
               </div>
               {config?.hasAppId && config?.hasPrivateKey ? (
                 <Badge
@@ -212,21 +210,23 @@ export function PlatformIntegrationsPage() {
 
             <div className='space-y-3 p-3'>
               <p className='text-muted-foreground text-xs'>
-                Create a GitHub App under{' '}
+                Optional legacy app credentials. Workspace GitHub delivery now
+                lives in each workspace&apos;s webhook settings. Create a GitHub
+                App under{' '}
                 <span className='text-foreground font-medium'>
                   GitHub &rarr; Settings &rarr; Developer settings &rarr; GitHub
                   Apps
-                </span>
-                . Falls back to environment variables if not configured here.
+                </span>{' '}
+                only if you need platform-level app auth later.
               </p>
               <div className='rounded-md border px-3 py-2 text-xs'>
                 <p className='font-medium'>
-                  Workspace installs are configured per workspace
+                  Not required for workspace webhooks
                 </p>
                 <p className='text-muted-foreground mt-1'>
-                  Save the app credentials and webhook secret here, then set the
-                  installation or fallback token from each workspace&apos;s
-                  GitHub settings page.
+                  Workspace GitHub setup now uses per-workspace webhook URLs and
+                  secrets. This admin surface is reserved for future app/OAuth
+                  flows.
                 </p>
               </div>
 

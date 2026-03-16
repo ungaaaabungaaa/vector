@@ -63,6 +63,10 @@ export function fingerprintSecret(secret: string) {
   return createHash('sha256').update(secret).digest('hex').slice(0, 12);
 }
 
+export function generateGitHubWebhookSecret() {
+  return randomBytes(32).toString('base64url');
+}
+
 export function verifyGitHubWebhookSignature(
   body: string,
   signature: string | null,

@@ -123,6 +123,12 @@ export const createAuthOptions = (
   trustedOrigins: getTrustedOrigins(),
   secret: betterAuthSecret,
   database: authComponent.adapter(ctx),
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID ?? '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 6,

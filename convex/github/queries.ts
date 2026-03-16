@@ -5,6 +5,7 @@ import { getOrganizationBySlug, hasScopedPermission } from '../authz';
 import { getAuthUserId } from '../authUtils';
 import { canViewIssue } from '../access';
 import { PERMISSIONS } from '../_shared/permissions';
+import { getSiteSettings } from '../platformAdmin/lib';
 
 async function loadActiveIntegration(
   ctx: QueryCtx,
@@ -232,6 +233,50 @@ export const getIntegrationByInstallationId = internalQuery({
         q.eq('installationId', args.installationId),
       )
       .first();
+  },
+});
+
+export const isGitHubEnabled = query({
+  args: {
+    orgSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+
+    const org = await getOrganizationBySlug(ctx, args.orgSlug);
+    const member = await ctx.db
+      .query('members')
+      .withIndex('by_org_user', q =>
+        q.eq('organizationId', org._id).eq('userId', userId),
+      )
+      .first();
+    if (!member) return false;
+
+    // Check platform-level config
+    const settings = await getSiteSettings(ctx.db);
+    const hasPlatformConfig = Boolean(
+      settings?.githubAppInstallationId || settings?.githubAppEncryptedToken,
+    );
+
+    const integration = await loadActiveIntegration(ctx, org._id);
+
+    // Enabled if platform has config AND org has an integration row,
+    // or if per-org row has its own credentials (backward compat)
+    if (hasPlatformConfig && integration) return true;
+    return Boolean(integration?.installationId || integration?.encryptedToken);
+  },
+});
+
+export const isGitHubAppConfigured = query({
+  args: {},
+  handler: async ctx => {
+    const settings = await getSiteSettings(ctx.db);
+    return Boolean(
+      settings?.githubAppId ||
+        settings?.githubAppInstallationId ||
+        settings?.githubAppEncryptedToken,
+    );
   },
 });
 

@@ -19,13 +19,10 @@ import {
 import { PERMISSIONS } from '../_shared/permissions';
 import {
   buildArtifactExternalKey,
-  mapGitHubIssueStateToWorkflowType,
   normalizeIssueKey,
   selectWorkflowTypeFromGitHubIssues,
   selectWorkflowTypeFromPullRequests,
   type GitHubArtifactType,
-  type GitHubIssueState,
-  type GitHubPullRequestState,
 } from './shared';
 
 async function getOrCreateIntegration(
@@ -169,6 +166,92 @@ async function applyWorkflowAutomationForIssue(
   }
 }
 
+/**
+ * Auto-assign Vector users to an issue based on the linked PR's author and assignees.
+ * Only assigns users who have linked their GitHub account and are org members.
+ */
+async function autoAssignFromPullRequest(
+  ctx: MutationCtx,
+  organizationId: Id<'organizations'>,
+  issueId: Id<'issues'>,
+  pullRequestId: Id<'githubPullRequests'>,
+) {
+  const pr = await ctx.db.get('githubPullRequests', pullRequestId);
+  if (!pr) return;
+
+  // Collect GitHub usernames: PR author + PR assignees
+  const githubUsernames: string[] = [];
+  if (pr.authorLogin) githubUsernames.push(pr.authorLogin);
+  if (pr.assigneeLogins) {
+    for (const login of pr.assigneeLogins) {
+      if (!githubUsernames.includes(login)) githubUsernames.push(login);
+    }
+  }
+  if (githubUsernames.length === 0) return;
+
+  const issue = await ctx.db.get('issues', issueId);
+  if (!issue) return;
+
+  // Get a default issue state for new assignments
+  const defaultState = await ctx.db
+    .query('issueStates')
+    .withIndex('by_org_type', q =>
+      q.eq('organizationId', organizationId).eq('type', 'in_progress'),
+    )
+    .first();
+  if (!defaultState) return;
+
+  for (const ghUsername of githubUsernames) {
+    // Find Vector user by linked GitHub username
+    const vectorUser = await ctx.db
+      .query('users')
+      .withIndex('by_github_username', q => q.eq('githubUsername', ghUsername))
+      .first();
+    if (!vectorUser) continue;
+
+    // Verify user is an org member
+    const membership = await ctx.db
+      .query('members')
+      .withIndex('by_org_user', q =>
+        q.eq('organizationId', organizationId).eq('userId', vectorUser._id),
+      )
+      .first();
+    if (!membership) continue;
+
+    // Check not already assigned
+    const existingAssignment = await ctx.db
+      .query('issueAssignees')
+      .withIndex('by_issue_assignee', q =>
+        q.eq('issueId', issueId).eq('assigneeId', vectorUser._id),
+      )
+      .first();
+    if (existingAssignment) continue;
+
+    // Create the assignment
+    await ctx.db.insert('issueAssignees', {
+      issueId,
+      assigneeId: vectorUser._id,
+      stateId: defaultState._id,
+    });
+
+    // Record activity
+    const actorId = issue.createdBy ?? issue.reporterId ?? undefined;
+    if (actorId) {
+      await recordActivity(ctx, {
+        scope: resolveIssueScope(issue),
+        actorId,
+        entityType: 'issue',
+        eventType: 'issue_assignees_changed',
+        details: {
+          addedUserNames: [vectorUser.name ?? ghUsername],
+          removedUserNames: [],
+        },
+        snapshot: snapshotForIssue(issue),
+      });
+    }
+  }
+}
+
 async function syncArtifactLinksForIssues(args: {
   ctx: MutationCtx;
   organizationId: Id<'organizations'>;
@@ -304,6 +387,18 @@ async function syncArtifactLinksForIssues(args: {
 
   for (const issueId of affectedIssueIds) {
     await applyWorkflowAutomationForIssue(ctx, issueId);
+  }
+
+  // Auto-assign users from PR author/assignees when linking pull requests
+  if (artifactType === 'pull_request') {
+    for (const issueId of targetIssueIds) {
+      await autoAssignFromPullRequest(
+        ctx,
+        organizationId,
+        issueId,
+        artifactId as Id<'githubPullRequests'>,
+      );
+    }
   }
 }
 
@@ -461,6 +556,7 @@ export const upsertPullRequest = internalMutation({
     baseRefName: v.optional(v.string()),
     authorLogin: v.optional(v.string()),
     authorAvatarUrl: v.optional(v.string()),
+    assigneeLogins: v.optional(v.array(v.string())),
     mergedAt: v.optional(v.number()),
     closedAt: v.optional(v.number()),
     lastActivityAt: v.number(),

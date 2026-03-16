@@ -41,11 +41,16 @@ export default defineSchema({
     // Our custom fields
     username: v.optional(v.string()),
     role: v.optional(v.string()),
+    // GitHub identity (linked via OAuth)
+    githubUserId: v.optional(v.number()),
+    githubUsername: v.optional(v.string()),
   })
     .index('email', ['email'])
     .index('phone', ['phone'])
     .index('by_role', ['role'])
     .index('by_username', ['username'])
+    .index('by_github_user_id', ['githubUserId'])
+    .index('by_github_username', ['githubUsername'])
     .searchIndex('by_name_email_username', {
       searchField: 'name',
     }),
@@ -73,6 +78,18 @@ export default defineSchema({
     brandLogo: v.optional(v.id('_storage')),
     brandThemeColor: v.optional(v.string()),
     brandAccentColor: v.optional(v.string()),
+    // Platform-level GitHub App credentials (configurable from admin UI, env var fallback)
+    githubAppId: v.optional(v.string()),
+    githubAppEncryptedPrivateKey: v.optional(v.string()),
+    githubAppEncryptedWebhookSecret: v.optional(v.string()),
+    // Platform-level GitHub App installation metadata
+    githubAppInstallationId: v.optional(v.number()),
+    githubAppAccountLogin: v.optional(v.string()),
+    githubAppAccountType: v.optional(v.string()),
+    githubAppEncryptedToken: v.optional(v.string()),
+    githubAppTokenFingerprint: v.optional(v.string()),
+    githubAppConnectedAt: v.optional(v.number()),
+    githubAppUpdatedAt: v.optional(v.number()),
   }),
 
   signupEmailDomainRules: defineTable({
@@ -598,6 +615,7 @@ export default defineSchema({
     baseRefName: v.optional(v.string()),
     authorLogin: v.optional(v.string()),
     authorAvatarUrl: v.optional(v.string()),
+    assigneeLogins: v.optional(v.array(v.string())),
     mergedAt: v.optional(v.number()),
     closedAt: v.optional(v.number()),
     lastActivityAt: v.number(),

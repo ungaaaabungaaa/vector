@@ -66,7 +66,14 @@ async function loadGitHubAuth(
   integration: any;
   repositories: any[];
   fallbackToken: string | null;
+  appCredentials?: { appId: string; privateKey: string };
 }> {
+  // Try platform-level credentials first
+  const platformCreds = await ctx.runQuery(
+    internal.platformAdmin.queries.getGitHubAppCredentials,
+    {},
+  );
+
   const result: {
     integration: any;
     repositories: any[];
@@ -78,14 +85,37 @@ async function loadGitHubAuth(
   );
   const { integration, repositories } = result;
 
-  const fallbackToken = integration?.encryptedToken
-    ? decryptSecret(integration.encryptedToken)
-    : null;
+  // Platform token takes precedence, then per-org token
+  const encryptedToken =
+    platformCreds.encryptedToken ?? integration?.encryptedToken ?? null;
+  const fallbackToken = encryptedToken ? decryptSecret(encryptedToken) : null;
+
+  // Build merged integration with platform installationId if per-org doesn't have one
+  const mergedIntegration = integration
+    ? {
+        ...integration,
+        installationId:
+          integration.installationId ??
+          platformCreds.installationId ??
+          undefined,
+      }
+    : platformCreds.installationId
+      ? { installationId: platformCreds.installationId }
+      : null;
+
+  const appCredentials =
+    platformCreds.appId && platformCreds.encryptedPrivateKey
+      ? {
+          appId: platformCreds.appId,
+          privateKey: decryptSecret(platformCreds.encryptedPrivateKey),
+        }
+      : undefined;
 
   return {
-    integration,
+    integration: mergedIntegration,
     repositories,
     fallbackToken,
+    appCredentials,
   };
 }
 
@@ -93,7 +123,7 @@ async function syncRepositoriesForOrganization(
   ctx: any,
   organizationId: Id<'organizations'>,
 ) {
-  const { integration, fallbackToken } = await loadGitHubAuth(
+  const { integration, fallbackToken, appCredentials } = await loadGitHubAuth(
     ctx,
     organizationId,
   );
@@ -101,6 +131,7 @@ async function syncRepositoriesForOrganization(
   const repositories: any[] = await withGitHubToken({
     installationId: integration?.installationId,
     fallbackToken,
+    appCredentials,
     run: async token => {
       const result = await listInstallationRepositories(token);
       return result.repositories;
@@ -210,6 +241,11 @@ async function persistPullRequestPayload(
       baseRefName: args.payload.base?.ref ?? undefined,
       authorLogin: args.payload.user?.login ?? undefined,
       authorAvatarUrl: args.payload.user?.avatar_url ?? undefined,
+      assigneeLogins: Array.isArray(args.payload.assignees)
+        ? args.payload.assignees
+            .map((a: any) => a?.login)
+            .filter((l: unknown): l is string => typeof l === 'string')
+        : undefined,
       mergedAt: args.payload.merged_at
         ? Date.parse(args.payload.merged_at)
         : undefined,
@@ -423,7 +459,7 @@ export const linkArtifactByUrl = action({
       throw new ConvexError('INVALID_GITHUB_URL');
     }
 
-    const { integration, fallbackToken } = await loadGitHubAuth(
+    const { integration, fallbackToken, appCredentials } = await loadGitHubAuth(
       ctx,
       issue.organizationId,
     );
@@ -442,6 +478,7 @@ export const linkArtifactByUrl = action({
     const artifactResult = await withGitHubToken({
       installationId: integration?.installationId,
       fallbackToken,
+      appCredentials,
       run: async token => {
         if (parsed.type === 'pull_request') {
           return {
@@ -574,7 +611,7 @@ export const refreshIssueDevelopment = action({
 
     const organizationId = development.organizationId;
 
-    const { integration, fallbackToken } = await loadGitHubAuth(
+    const { integration, fallbackToken, appCredentials } = await loadGitHubAuth(
       ctx,
       organizationId,
     );
@@ -582,6 +619,7 @@ export const refreshIssueDevelopment = action({
     await withGitHubToken({
       installationId: integration?.installationId,
       fallbackToken,
+      appCredentials,
       run: async token => {
         for (const link of links) {
           if (!link.repo) continue;
@@ -644,7 +682,21 @@ export const processWebhook = internalAction({
     signature: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    if (!verifyGitHubWebhookSignature(args.body, args.signature ?? null)) {
+    const platformCreds = await ctx.runQuery(
+      internal.platformAdmin.queries.getGitHubAppCredentials,
+      {},
+    );
+    const webhookSecret = platformCreds.encryptedWebhookSecret
+      ? decryptSecret(platformCreds.encryptedWebhookSecret)
+      : undefined;
+
+    if (
+      !verifyGitHubWebhookSignature(
+        args.body,
+        args.signature ?? null,
+        webhookSecret,
+      )
+    ) {
       throw new Error('Invalid GitHub webhook signature');
     }
 
@@ -804,6 +856,18 @@ export const reconcileRecentArtifacts = internalAction({
         {},
       );
 
+    const platformCreds = await ctx.runQuery(
+      internal.platformAdmin.queries.getGitHubAppCredentials,
+      {},
+    );
+    const appCredentials =
+      platformCreds.appId && platformCreds.encryptedPrivateKey
+        ? {
+            appId: platformCreds.appId,
+            privateKey: decryptSecret(platformCreds.encryptedPrivateKey),
+          }
+        : undefined;
+
     const sinceIso = new Date(
       Date.now() - 14 * 24 * 60 * 60 * 1000,
     ).toISOString();
@@ -817,6 +881,7 @@ export const reconcileRecentArtifacts = internalAction({
         await withGitHubToken({
           installationId: item.integration.installationId,
           fallbackToken,
+          appCredentials,
           run: async token => {
             for (const repository of item.repositories) {
               const [pullRequests, githubIssues, commits] = await Promise.all([

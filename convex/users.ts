@@ -1,4 +1,11 @@
-import { query, mutation, action, type MutationCtx } from './_generated/server';
+import {
+  query,
+  mutation,
+  action,
+  internalAction,
+  internalMutation,
+  type MutationCtx,
+} from './_generated/server';
 import { v, ConvexError } from 'convex/values';
 import { api, components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -387,6 +394,78 @@ export const getOrganizations = query({
       orgIds.map(id => ctx.db.get('organizations', id)),
     );
     return orgs.filter(isDefined);
+  },
+});
+
+/**
+ * Fetch GitHub profile via access token and store identity on the Vector user.
+ * Called internally after the frontend completes GitHub OAuth linking.
+ */
+export const linkGitHubIdentity = internalAction({
+  args: {
+    userId: v.id('users'),
+    accessToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const res = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${args.accessToken}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'vector-github-integration/1.0',
+      },
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch GitHub profile');
+    }
+    const profile = await res.json();
+
+    await ctx.runMutation(internal.users.setGitHubIdentity, {
+      userId: args.userId,
+      githubUserId: profile.id,
+      githubUsername: profile.login,
+    });
+  },
+});
+
+export const setGitHubIdentity = internalMutation({
+  args: {
+    userId: v.id('users'),
+    githubUserId: v.number(),
+    githubUsername: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch('users', args.userId, {
+      githubUserId: args.githubUserId,
+      githubUsername: args.githubUsername,
+    });
+  },
+});
+
+export const unlinkGitHubIdentity = mutation({
+  args: {},
+  handler: async ctx => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError('UNAUTHORIZED');
+
+    await ctx.db.patch('users', userId, {
+      githubUserId: undefined,
+      githubUsername: undefined,
+    });
+  },
+});
+
+export const getGitHubConnection = query({
+  args: {},
+  handler: async ctx => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get('users', userId);
+    if (!user) return null;
+    return {
+      connected: Boolean(user.githubUserId),
+      githubUsername: user.githubUsername ?? null,
+      githubUserId: user.githubUserId ?? null,
+    };
   },
 });
 

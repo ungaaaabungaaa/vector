@@ -4,6 +4,7 @@ import { ConvexError, v } from 'convex/values';
 import { api, internal } from '../_generated/api';
 import { action, internalAction } from '../_generated/server';
 import { MAX_DOMAIN_RULE_BATCH_SIZE, normalizeDomainList } from './lib';
+import { encryptSecret, fingerprintSecret } from '../github/node';
 
 const DISPOSABLE_DOMAINS_FEED_URL =
   'https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt';
@@ -27,6 +28,107 @@ function parseDisposableDomainFeed(rawText: string): string[] {
   const normalized = normalizeDomainList(candidates);
   return normalized.domains;
 }
+
+export const saveGitHubAppConnection = action({
+  args: {
+    installationId: v.number(),
+    accountLogin: v.optional(v.string()),
+    accountType: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    try {
+      await ctx.runQuery(api.platformAdmin.queries.assertPlatformAdmin, {});
+    } catch {
+      throw new ConvexError('FORBIDDEN');
+    }
+
+    await ctx.runMutation(
+      internal.platformAdmin.mutations.saveGitHubAppInstallation,
+      {
+        installationId: args.installationId,
+        accountLogin: args.accountLogin,
+        accountType: args.accountType,
+      },
+    );
+
+    return { success: true } as const;
+  },
+});
+
+export const saveGitHubAppToken = action({
+  args: {
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      await ctx.runQuery(api.platformAdmin.queries.assertPlatformAdmin, {});
+    } catch {
+      throw new ConvexError('FORBIDDEN');
+    }
+
+    const trimmed = args.token.trim();
+    await ctx.runMutation(
+      internal.platformAdmin.mutations.setGitHubAppEncryptedToken,
+      {
+        encryptedToken: encryptSecret(trimmed),
+        tokenFingerprint: fingerprintSecret(trimmed),
+      },
+    );
+
+    return { success: true } as const;
+  },
+});
+
+export const removeGitHubAppToken = action({
+  args: {},
+  handler: async ctx => {
+    try {
+      await ctx.runQuery(api.platformAdmin.queries.assertPlatformAdmin, {});
+    } catch {
+      throw new ConvexError('FORBIDDEN');
+    }
+
+    await ctx.runMutation(
+      internal.platformAdmin.mutations.removeGitHubAppToken,
+      {},
+    );
+
+    return { success: true } as const;
+  },
+});
+
+export const saveGitHubAppCredentials = action({
+  args: {
+    appId: v.optional(v.string()),
+    privateKey: v.optional(v.string()),
+    webhookSecret: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    try {
+      await ctx.runQuery(api.platformAdmin.queries.assertPlatformAdmin, {});
+    } catch {
+      throw new ConvexError('FORBIDDEN');
+    }
+
+    const encryptedPrivateKey = args.privateKey
+      ? encryptSecret(args.privateKey)
+      : undefined;
+    const encryptedWebhookSecret = args.webhookSecret
+      ? encryptSecret(args.webhookSecret)
+      : undefined;
+
+    await ctx.runMutation(
+      internal.platformAdmin.mutations.saveGitHubAppCredentials,
+      {
+        appId: args.appId,
+        encryptedPrivateKey,
+        encryptedWebhookSecret,
+      },
+    );
+
+    return { success: true } as const;
+  },
+});
 
 export const syncDisposableEmailDomains = internalAction({
   args: {},

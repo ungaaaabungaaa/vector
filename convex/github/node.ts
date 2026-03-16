@@ -66,8 +66,9 @@ export function fingerprintSecret(secret: string) {
 export function verifyGitHubWebhookSignature(
   body: string,
   signature: string | null,
+  webhookSecret?: string,
 ) {
-  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+  const secret = webhookSecret ?? process.env.GITHUB_WEBHOOK_SECRET;
   if (!secret) {
     throw new Error('Missing GITHUB_WEBHOOK_SECRET');
   }
@@ -80,9 +81,14 @@ export function verifyGitHubWebhookSignature(
   return expected === signature;
 }
 
-async function createGitHubAppJwt() {
-  const appId = process.env.GITHUB_APP_ID;
-  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n');
+async function createGitHubAppJwt(opts?: {
+  appId?: string;
+  privateKey?: string;
+}) {
+  const appId = opts?.appId ?? process.env.GITHUB_APP_ID;
+  const privateKey = (
+    opts?.privateKey ?? process.env.GITHUB_APP_PRIVATE_KEY
+  )?.replace(/\\n/g, '\n');
 
   if (!appId || !privateKey) {
     throw new Error('Missing GitHub App credentials');
@@ -124,8 +130,11 @@ async function requestGitHub<T>(
   return (await response.json()) as T;
 }
 
-export async function createInstallationAccessToken(installationId: number) {
-  const jwt = await createGitHubAppJwt();
+export async function createInstallationAccessToken(
+  installationId: number,
+  appCredentials?: { appId?: string; privateKey?: string },
+) {
+  const jwt = await createGitHubAppJwt(appCredentials);
   const response = await requestGitHub<{ token: string }>(
     `/app/installations/${installationId}/access_tokens`,
     {
@@ -139,11 +148,15 @@ export async function createInstallationAccessToken(installationId: number) {
 export async function withGitHubToken<T>(args: {
   installationId?: number | null;
   fallbackToken?: string | null;
+  appCredentials?: { appId?: string; privateKey?: string };
   run: (token: string) => Promise<T>;
 }) {
   if (args.installationId) {
     try {
-      const token = await createInstallationAccessToken(args.installationId);
+      const token = await createInstallationAccessToken(
+        args.installationId,
+        args.appCredentials,
+      );
       return await args.run(token);
     } catch (error) {
       if (!args.fallbackToken) {

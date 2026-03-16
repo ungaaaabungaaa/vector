@@ -36,6 +36,68 @@ async function upsertSyncStats(
   });
 }
 
+export const saveGitHubAppInstallation = internalMutation({
+  args: {
+    installationId: v.number(),
+    accountLogin: v.optional(v.string()),
+    accountType: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const settingsId = await ensureSiteSettings(ctx.db);
+    await ctx.db.patch('siteSettings', settingsId, {
+      githubAppInstallationId: args.installationId,
+      githubAppAccountLogin: args.accountLogin,
+      githubAppAccountType: args.accountType,
+      githubAppConnectedAt: Date.now(),
+      githubAppUpdatedAt: Date.now(),
+    });
+  },
+});
+
+export const setGitHubAppEncryptedToken = internalMutation({
+  args: {
+    encryptedToken: v.optional(v.string()),
+    tokenFingerprint: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const settingsId = await ensureSiteSettings(ctx.db);
+    await ctx.db.patch('siteSettings', settingsId, {
+      githubAppEncryptedToken: args.encryptedToken,
+      githubAppTokenFingerprint: args.tokenFingerprint,
+      githubAppUpdatedAt: Date.now(),
+    });
+  },
+});
+
+export const removeGitHubAppToken = internalMutation({
+  args: {},
+  handler: async ctx => {
+    const settingsId = await ensureSiteSettings(ctx.db);
+    await ctx.db.patch('siteSettings', settingsId, {
+      githubAppEncryptedToken: undefined,
+      githubAppTokenFingerprint: undefined,
+      githubAppUpdatedAt: Date.now(),
+    });
+  },
+});
+
+export const saveGitHubAppCredentials = internalMutation({
+  args: {
+    appId: v.optional(v.string()),
+    encryptedPrivateKey: v.optional(v.string()),
+    encryptedWebhookSecret: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const settingsId = await ensureSiteSettings(ctx.db);
+    await ctx.db.patch('siteSettings', settingsId, {
+      githubAppId: args.appId,
+      githubAppEncryptedPrivateKey: args.encryptedPrivateKey,
+      githubAppEncryptedWebhookSecret: args.encryptedWebhookSecret,
+      githubAppUpdatedAt: Date.now(),
+    });
+  },
+});
+
 export const updateSignupEmailDomainPolicy = mutation({
   args: {
     blockedDomains: v.array(v.string()),

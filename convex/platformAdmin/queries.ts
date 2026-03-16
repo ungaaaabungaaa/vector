@@ -78,6 +78,48 @@ export const listSignupEmailDomainRulesPageBySource = internalQuery({
   },
 });
 
+export const getGitHubAppConfig = query({
+  args: {},
+  handler: async ctx => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new ConvexError('UNAUTHORIZED');
+    }
+
+    await requirePlatformAdminUser(ctx.db, userId);
+
+    const settings = await getSiteSettings(ctx.db);
+
+    return {
+      installationId: settings?.githubAppInstallationId ?? null,
+      accountLogin: settings?.githubAppAccountLogin ?? null,
+      accountType: settings?.githubAppAccountType ?? null,
+      hasToken: Boolean(settings?.githubAppEncryptedToken),
+      tokenFingerprint: settings?.githubAppTokenFingerprint ?? null,
+      connectedAt: settings?.githubAppConnectedAt ?? null,
+      updatedAt: settings?.githubAppUpdatedAt ?? null,
+      hasAppId: Boolean(settings?.githubAppId),
+      hasPrivateKey: Boolean(settings?.githubAppEncryptedPrivateKey),
+      hasWebhookSecret: Boolean(settings?.githubAppEncryptedWebhookSecret),
+    };
+  },
+});
+
+export const getGitHubAppCredentials = internalQuery({
+  args: {},
+  handler: async ctx => {
+    const settings = await getSiteSettings(ctx.db);
+
+    return {
+      installationId: settings?.githubAppInstallationId ?? null,
+      encryptedToken: settings?.githubAppEncryptedToken ?? null,
+      appId: settings?.githubAppId ?? null,
+      encryptedPrivateKey: settings?.githubAppEncryptedPrivateKey ?? null,
+      encryptedWebhookSecret: settings?.githubAppEncryptedWebhookSecret ?? null,
+    };
+  },
+});
+
 export const getBranding = query({
   args: {},
   handler: async ctx => {

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/lib/convex';
+import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -19,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { useFormSubmission } from '@/hooks/use-error-handling';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/user-avatar';
+import { Github } from 'lucide-react';
 import { toast } from 'sonner';
 
 const profileFormSchema = z.object({
@@ -178,7 +180,7 @@ export function ProfileForm() {
     previewImage === undefined ? Boolean(user.image) : Boolean(previewImage);
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <div className='flex items-start gap-3 rounded-lg border p-3'>
         <UserAvatar
           name={user.name}
@@ -262,6 +264,97 @@ export function ProfileForm() {
             </form>
           </Form>
         </div>
+      </div>
+
+      <GitHubConnectionSection />
+    </div>
+  );
+}
+
+function GitHubConnectionSection() {
+  const githubConnection = useQuery(api.users.getGitHubConnection);
+  const unlinkGitHub = useMutation(api.users.unlinkGitHubIdentity);
+  const [isLinking, setIsLinking] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+
+  const handleConnect = async () => {
+    setIsLinking(true);
+    try {
+      await authClient.signIn.social({
+        provider: 'github',
+        callbackURL: '/settings/profile',
+      });
+    } catch {
+      toast.error('Failed to start GitHub connection');
+      setIsLinking(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setIsUnlinking(true);
+    try {
+      await unlinkGitHub({});
+      toast.success('GitHub account disconnected');
+    } catch {
+      toast.error('Failed to disconnect GitHub');
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+
+  if (githubConnection === undefined) {
+    return (
+      <div className='space-y-3'>
+        <div className='text-sm font-medium'>Connected Accounts</div>
+        <div className='flex items-center gap-3 rounded-lg border p-3'>
+          <Skeleton className='size-8 rounded' />
+          <Skeleton className='h-4 w-32' />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className='space-y-3'>
+      <div className='text-sm font-medium'>Connected Accounts</div>
+      <div className='flex items-center justify-between rounded-lg border p-3'>
+        <div className='flex items-center gap-3'>
+          <div className='bg-secondary flex size-8 items-center justify-center rounded'>
+            <Github className='size-4' />
+          </div>
+          <div>
+            <div className='text-sm font-medium'>GitHub</div>
+            {githubConnection?.connected ? (
+              <p className='text-muted-foreground text-xs'>
+                @{githubConnection.githubUsername}
+              </p>
+            ) : (
+              <p className='text-muted-foreground text-xs'>
+                Connect to auto-assign issues from PRs
+              </p>
+            )}
+          </div>
+        </div>
+        {githubConnection?.connected ? (
+          <Button
+            variant='ghost'
+            size='sm'
+            disabled={isUnlinking}
+            onClick={handleDisconnect}
+          >
+            {isUnlinking ? 'Disconnecting...' : 'Disconnect'}
+          </Button>
+        ) : (
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={isLinking}
+            onClick={handleConnect}
+          >
+            <Github className='mr-1.5 size-3.5' />
+            {isLinking ? 'Connecting...' : 'Connect'}
+          </Button>
+        )}
       </div>
     </div>
   );

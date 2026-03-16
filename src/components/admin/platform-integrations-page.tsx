@@ -68,12 +68,19 @@ export function PlatformIntegrationsPage() {
     user?.role === PLATFORM_ADMIN_ROLE ? {} : 'skip',
   );
 
+  const saveCredentials = useAction(
+    api.platformAdmin.actions.saveGitHubAppCredentials,
+  );
   const saveConnection = useAction(
     api.platformAdmin.actions.saveGitHubAppConnection,
   );
   const saveToken = useAction(api.platformAdmin.actions.saveGitHubAppToken);
   const removeToken = useAction(api.platformAdmin.actions.removeGitHubAppToken);
 
+  const [appId, setAppId] = useState('');
+  const [privateKey, setPrivateKey] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [savingCreds, setSavingCreds] = useState(false);
   const [installationId, setInstallationId] = useState('');
   const [accountLogin, setAccountLogin] = useState('');
   const [accountType, setAccountType] = useState('');
@@ -117,6 +124,25 @@ export function PlatformIntegrationsPage() {
   }
 
   const config = configQuery.data;
+
+  const handleSaveCredentials = async () => {
+    setSavingCreds(true);
+    try {
+      await saveCredentials({
+        appId: appId.trim() || undefined,
+        privateKey: privateKey.trim() || undefined,
+        webhookSecret: webhookSecret.trim() || undefined,
+      });
+      setPrivateKey('');
+      setWebhookSecret('');
+      toast.success('GitHub App credentials saved');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save credentials');
+    } finally {
+      setSavingCreds(false);
+    }
+  };
 
   const handleSaveInstallation = async () => {
     const nextInstallationId = Number(installationId);
@@ -229,12 +255,113 @@ export function PlatformIntegrationsPage() {
             </p>
           </div>
 
-          {/* GitHub App Card */}
+          {/* GitHub App Credentials Card */}
           <div className='rounded-md border'>
             <div className='flex items-center justify-between border-b px-3 py-2'>
               <div className='flex items-center gap-2'>
                 <Github className='size-4' />
-                <span className='text-sm font-medium'>GitHub App</span>
+                <span className='text-sm font-medium'>
+                  GitHub App Credentials
+                </span>
+              </div>
+              {config?.hasAppId && config?.hasPrivateKey ? (
+                <Badge
+                  variant='secondary'
+                  className='h-5 rounded-md px-1.5 text-[10px]'
+                >
+                  Configured
+                </Badge>
+              ) : (
+                <Badge
+                  variant='outline'
+                  className='h-5 rounded-md px-1.5 text-[10px]'
+                >
+                  Not configured
+                </Badge>
+              )}
+            </div>
+
+            <div className='space-y-3 p-3'>
+              <p className='text-muted-foreground text-xs'>
+                Create a GitHub App under{' '}
+                <span className='text-foreground font-medium'>
+                  GitHub &rarr; Settings &rarr; Developer settings &rarr; GitHub
+                  Apps
+                </span>
+                . Falls back to environment variables if not configured here.
+              </p>
+
+              <div className='grid gap-3'>
+                <div className='space-y-1'>
+                  <label className='text-xs font-medium'>App ID</label>
+                  <Input
+                    value={appId}
+                    onChange={event => setAppId(event.target.value)}
+                    placeholder={
+                      config?.hasAppId ? '(configured)' : 'e.g. 123456'
+                    }
+                    className='h-8'
+                    disabled={savingCreds}
+                  />
+                </div>
+
+                <div className='space-y-1'>
+                  <label className='text-xs font-medium'>Private Key</label>
+                  <textarea
+                    value={privateKey}
+                    onChange={event => setPrivateKey(event.target.value)}
+                    placeholder={
+                      config?.hasPrivateKey
+                        ? '(configured — paste to replace)'
+                        : '-----BEGIN RSA PRIVATE KEY-----'
+                    }
+                    className='border-input bg-background h-20 w-full resize-none rounded-md border px-3 py-2 font-mono text-xs'
+                    disabled={savingCreds}
+                  />
+                </div>
+
+                <div className='space-y-1'>
+                  <label className='text-xs font-medium'>Webhook Secret</label>
+                  <Input
+                    type='password'
+                    value={webhookSecret}
+                    onChange={event => setWebhookSecret(event.target.value)}
+                    placeholder={
+                      config?.hasWebhookSecret
+                        ? '(configured — type to replace)'
+                        : 'your-webhook-secret'
+                    }
+                    className='h-8'
+                    disabled={savingCreds}
+                  />
+                </div>
+              </div>
+
+              <div className='flex items-center justify-end'>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  disabled={
+                    savingCreds ||
+                    (!appId.trim() &&
+                      !privateKey.trim() &&
+                      !webhookSecret.trim())
+                  }
+                  onClick={() => void handleSaveCredentials()}
+                >
+                  {savingCreds ? <BarsSpinner size={10} /> : null}
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Installation Card */}
+          <div className='rounded-md border'>
+            <div className='flex items-center justify-between border-b px-3 py-2'>
+              <div className='flex items-center gap-2'>
+                <Github className='size-4' />
+                <span className='text-sm font-medium'>App Installation</span>
               </div>
               {config?.installationId ? (
                 <Badge
@@ -255,19 +382,13 @@ export function PlatformIntegrationsPage() {
 
             <div className='space-y-3 p-3'>
               <p className='text-muted-foreground text-xs'>
-                Connect a GitHub App to enable webhook-driven PR, issue, and
-                commit tracking. Create one under{' '}
-                <span className='text-foreground font-medium'>
-                  GitHub &rarr; Settings &rarr; Developer settings &rarr; GitHub
-                  Apps
-                </span>
-                , install it on the target account, then paste the installation
-                details below.
+                Install your GitHub App on the target account, then enter the
+                installation details.
               </p>
 
               <div className='grid gap-3'>
                 <div className='space-y-1'>
-                  <label className='text-xs font-medium'>App ID</label>
+                  <label className='text-xs font-medium'>Installation ID</label>
                   <Input
                     value={installationId}
                     onChange={event => setInstallationId(event.target.value)}
@@ -276,8 +397,7 @@ export function PlatformIntegrationsPage() {
                     disabled={savingInstall}
                   />
                   <p className='text-muted-foreground text-[11px]'>
-                    The numeric ID from your GitHub App&apos;s general settings
-                    page, or from the installation URL.
+                    The numeric ID from the installation URL.
                   </p>
                 </div>
 
@@ -302,9 +422,6 @@ export function PlatformIntegrationsPage() {
                       <option value='User'>User</option>
                     </select>
                   </div>
-                  <p className='text-muted-foreground text-[11px]'>
-                    The GitHub user or organization the app is installed on.
-                  </p>
                 </div>
               </div>
 

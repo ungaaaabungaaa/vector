@@ -238,8 +238,8 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
   return (
     <div className='bg-background h-full'>
       <div className='flex flex-col'>
-        {/* Header — scope tabs + actions (row 1) */}
-        <div className='flex items-center justify-between gap-1 border-b p-1'>
+        {/* Header — scope tabs, status filters + actions */}
+        <div className='scrollbar-none flex items-center justify-between gap-1 overflow-x-auto border-b p-1'>
           <div className='flex min-w-0 flex-1 items-center gap-1'>
             <MobileNavTrigger />
             {/* Scope tabs */}
@@ -279,6 +279,28 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
                 {allProjects.length}
               </span>
             </Button>
+
+            {/* Separator */}
+            <div className='bg-border mx-1 h-4 w-px shrink-0' />
+
+            {/* Status filter tabs */}
+            {visibleTabs.map(tab => (
+              <Button
+                key={tab.key}
+                variant={activeFilter === tab.key ? 'secondary' : 'ghost'}
+                size='sm'
+                className={cn(
+                  'h-6 shrink-0 gap-2 rounded-xs px-3 text-xs font-normal',
+                  activeFilter === tab.key && 'bg-secondary',
+                )}
+                onClick={() => setActiveFilter(tab.key)}
+              >
+                <span>{tab.label}</span>
+                <span className='text-muted-foreground text-xs'>
+                  {tab.count}
+                </span>
+              </Button>
+            ))}
           </div>
 
           <div className='flex shrink-0 items-center gap-1'>
@@ -308,25 +330,6 @@ export function ProjectsPageContent({ orgSlug }: ProjectsPageContentProps) {
               size='sm'
             />
           </div>
-        </div>
-
-        {/* Status filter tabs (row 2) */}
-        <div className='scrollbar-none flex items-center gap-1 overflow-x-auto border-b p-1'>
-          {visibleTabs.map(tab => (
-            <Button
-              key={tab.key}
-              variant={activeFilter === tab.key ? 'secondary' : 'ghost'}
-              size='sm'
-              className={cn(
-                'h-6 shrink-0 gap-2 rounded-xs px-3 text-xs font-normal',
-                activeFilter === tab.key && 'bg-secondary',
-              )}
-              onClick={() => setActiveFilter(tab.key)}
-            >
-              <span>{tab.label}</span>
-              <span className='text-muted-foreground text-xs'>{tab.count}</span>
-            </Button>
-          ))}
         </div>
 
         {/* Projects content */}

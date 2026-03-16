@@ -436,7 +436,7 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
 
   return (
     <>
-      <div className='border-border flex flex-col border-t'>
+      <div className='border-border bg-background flex flex-col border-t'>
         {/* Header toggle */}
         <button
           type='button'
@@ -566,7 +566,7 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
               'border-border/60 bg-background/60 overflow-hidden rounded-lg border',
             )}
           >
-            <div className='flex items-end gap-0.5'>
+            <div className='flex items-center gap-0.5'>
               <AssistantInput
                 ref={inputRef}
                 orgSlug={orgSlug}
@@ -576,7 +576,7 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
                 className='min-h-8 flex-1 px-2 py-1.5 text-xs'
                 placeholder='Ask anything...'
               />
-              <div className='flex shrink-0 items-center gap-0.5 p-1'>
+              <div className='flex shrink-0 items-center gap-0.5 px-0.5'>
                 {hasMessages ? (
                   <button
                     type='button'
@@ -589,7 +589,7 @@ export function OrgAssistantDock({ orgSlug }: { orgSlug: string }) {
                 ) : null}
                 <Button
                   size='sm'
-                  className='size-5 rounded p-0'
+                  className='size-7 rounded-md p-0'
                   disabled={isSending}
                   onClick={() => inputRef.current?.submit()}
                 >

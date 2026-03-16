@@ -1206,81 +1206,83 @@ export default function ProjectViewClient({ params }: ProjectViewClientProps) {
 
           {/* Tabs: Issues / Activity / Members */}
           <Tabs value={projectTab} onValueChange={setProjectTab}>
-            <div className='mx-auto w-full max-w-5xl space-y-2 px-3 sm:px-4'>
-              <div className='overflow-x-auto overflow-y-hidden'>
-                <TabsList>
-                  <TabsTrigger value='issues'>Issues</TabsTrigger>
-                  <TabsTrigger value='activity'>Activity</TabsTrigger>
-                  <TabsTrigger value='members'>Members</TabsTrigger>
-                </TabsList>
+            <div className='mx-auto w-full max-w-5xl px-3 sm:px-4'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
+                <div className='overflow-x-auto overflow-y-hidden'>
+                  <TabsList>
+                    <TabsTrigger value='issues'>Issues</TabsTrigger>
+                    <TabsTrigger value='activity'>Activity</TabsTrigger>
+                    <TabsTrigger value='members'>Members</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                {/* Members controls */}
+                {projectTab === 'members' && (
+                  <div className='flex items-center gap-2'>
+                    <div className='relative'>
+                      {deferredMemberSearch !== memberSearchText ? (
+                        <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                      ) : (
+                        <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                      )}
+                      <Input
+                        placeholder='Search members...'
+                        value={memberSearchText}
+                        onChange={e => setMemberSearchText(e.target.value)}
+                        className='h-6 w-40 pl-7 text-xs'
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Issues controls */}
+                {projectTab === 'issues' && (
+                  <div className='flex items-center gap-2'>
+                    <div className='relative'>
+                      {deferredIssueSearch !== issueSearchText ? (
+                        <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
+                      ) : (
+                        <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
+                      )}
+                      <Input
+                        placeholder='Search issues...'
+                        value={issueSearchText}
+                        onChange={e => setIssueSearchText(e.target.value)}
+                        className='h-6 w-40 pl-7 text-xs'
+                      />
+                    </div>
+                    <div className='border-border flex items-center rounded-md border'>
+                      <Button
+                        variant={
+                          issueViewMode === 'kanban' ? 'secondary' : 'ghost'
+                        }
+                        size='sm'
+                        className='h-6 rounded-r-none px-2'
+                        onClick={() => setIssueViewMode('kanban')}
+                      >
+                        <Columns3 className='size-3.5' />
+                      </Button>
+                      <Button
+                        variant={
+                          issueViewMode === 'table' ? 'secondary' : 'ghost'
+                        }
+                        size='sm'
+                        className='h-6 rounded-l-none px-2'
+                        onClick={() => setIssueViewMode('table')}
+                      >
+                        <LayoutList className='size-3.5' />
+                      </Button>
+                    </div>
+                    {project && (
+                      <CreateIssueDialog
+                        orgSlug={params.orgSlug}
+                        defaultStates={{ projectId: project._id }}
+                        className='h-6 text-xs'
+                      />
+                    )}
+                  </div>
+                )}
               </div>
-
-              {/* Members controls */}
-              {projectTab === 'members' && (
-                <div className='flex items-center gap-2'>
-                  <div className='relative'>
-                    {deferredMemberSearch !== memberSearchText ? (
-                      <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
-                    ) : (
-                      <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
-                    )}
-                    <Input
-                      placeholder='Search members...'
-                      value={memberSearchText}
-                      onChange={e => setMemberSearchText(e.target.value)}
-                      className='h-6 w-40 pl-7 text-xs'
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Issues controls — only visible on issues tab */}
-              {projectTab === 'issues' && (
-                <div className='flex items-center gap-2'>
-                  <div className='relative'>
-                    {deferredIssueSearch !== issueSearchText ? (
-                      <Loader2 className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2 animate-spin' />
-                    ) : (
-                      <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3 -translate-y-1/2' />
-                    )}
-                    <Input
-                      placeholder='Search issues...'
-                      value={issueSearchText}
-                      onChange={e => setIssueSearchText(e.target.value)}
-                      className='h-6 w-40 pl-7 text-xs'
-                    />
-                  </div>
-                  <div className='border-border flex items-center rounded-md border'>
-                    <Button
-                      variant={
-                        issueViewMode === 'kanban' ? 'secondary' : 'ghost'
-                      }
-                      size='sm'
-                      className='h-6 rounded-r-none px-2'
-                      onClick={() => setIssueViewMode('kanban')}
-                    >
-                      <Columns3 className='size-3.5' />
-                    </Button>
-                    <Button
-                      variant={
-                        issueViewMode === 'table' ? 'secondary' : 'ghost'
-                      }
-                      size='sm'
-                      className='h-6 rounded-l-none px-2'
-                      onClick={() => setIssueViewMode('table')}
-                    >
-                      <LayoutList className='size-3.5' />
-                    </Button>
-                  </div>
-                  {project && (
-                    <CreateIssueDialog
-                      orgSlug={params.orgSlug}
-                      defaultStates={{ projectId: project._id }}
-                      className='h-6 text-xs'
-                    />
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Issues Tab */}

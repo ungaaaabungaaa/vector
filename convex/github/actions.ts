@@ -151,6 +151,25 @@ async function syncRepositoriesForOrganization(
   return repositories.length;
 }
 
+function parseGitHubWebhookPayload(body: string) {
+  try {
+    return JSON.parse(body);
+  } catch {
+    const form = new URLSearchParams(body);
+    const payload = form.get('payload');
+    if (payload) {
+      return JSON.parse(payload);
+    }
+
+    const bodyObject = Object.fromEntries(form.entries());
+    if (Object.keys(bodyObject).length > 0) {
+      return bodyObject;
+    }
+
+    throw new Error('Invalid GitHub webhook payload');
+  }
+}
+
 async function ensureRepository(
   ctx: any,
   organizationId: Id<'organizations'>,
@@ -705,7 +724,7 @@ export const processWebhook = internalAction({
     signature: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const payload = JSON.parse(args.body);
+    const payload = parseGitHubWebhookPayload(args.body);
     const repoPayload = payload.repository;
 
     if (args.orgSlug) {

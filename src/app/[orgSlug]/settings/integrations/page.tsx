@@ -29,16 +29,22 @@ export default function IntegrationsPage() {
     notFound();
   }
 
-  const hasWebhookReady = Boolean(
+  const hasWebhookSecret = Boolean(
     githubSettings?.effectiveAuth.hasWebhookSecret,
+  );
+  const hasReceivedWebhook = Boolean(
+    githubSettings?.integration?.lastWebhookAt,
   );
 
   let badgeLabel: string;
   let badgeVariant: 'secondary' | 'outline';
 
-  if (hasWebhookReady) {
+  if (hasWebhookSecret && hasReceivedWebhook) {
     badgeLabel = 'Ready';
     badgeVariant = 'secondary';
+  } else if (hasWebhookSecret) {
+    badgeLabel = 'Awaiting delivery';
+    badgeVariant = 'outline';
   } else {
     badgeLabel = 'Needs setup';
     badgeVariant = 'outline';

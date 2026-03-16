@@ -134,6 +134,24 @@ export function GitHubIntegrationSettings({ orgSlug }: { orgSlug: string }) {
   const lastWebhookAt = settings.integration?.lastWebhookAt ?? null;
   const secretFingerprint =
     settings.integration?.webhookSecretFingerprint ?? 'Not generated yet';
+  const webhookStatus = !hasWebhookSecret
+    ? {
+        label: 'Needs setup',
+        variant: 'outline' as const,
+        activity: 'Generate a secret and send a GitHub test delivery.',
+      }
+    : !lastWebhookAt
+      ? {
+          label: 'Awaiting delivery',
+          variant: 'outline' as const,
+          activity:
+            'Configured, but no GitHub deliveries have been received yet.',
+        }
+      : {
+          label: 'Connected',
+          variant: 'secondary' as const,
+          activity: `Last delivery ${formatDateHuman(new Date(lastWebhookAt))}`,
+        };
 
   return (
     <div className='space-y-3'>
@@ -146,10 +164,10 @@ export function GitHubIntegrationSettings({ orgSlug }: { orgSlug: string }) {
             <div className='flex flex-wrap items-center gap-2'>
               <h2 className='text-sm font-semibold'>GitHub</h2>
               <Badge
-                variant={hasWebhookSecret ? 'secondary' : 'outline'}
+                variant={webhookStatus.variant}
                 className='h-5 rounded-md px-1.5 text-[10px]'
               >
-                {hasWebhookSecret ? 'Connected' : 'Needs setup'}
+                {webhookStatus.label}
               </Badge>
               {hasApiAccess ? (
                 <Badge
@@ -166,11 +184,7 @@ export function GitHubIntegrationSettings({ orgSlug }: { orgSlug: string }) {
             </p>
             <div className='text-muted-foreground mt-2 flex flex-wrap items-center gap-4 text-xs'>
               <span>{repositoryCount} repositories seen</span>
-              <span>
-                {lastWebhookAt
-                  ? `Last delivery ${formatDateHuman(new Date(lastWebhookAt))}`
-                  : 'No deliveries received yet'}
-              </span>
+              <span>{webhookStatus.activity}</span>
             </div>
           </div>
         </div>
